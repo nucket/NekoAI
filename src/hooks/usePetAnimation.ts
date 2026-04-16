@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import type { AnimationDef } from "../pets";
+import type { AnimationConfig as AnimationDef } from "../pets";
 
 export function usePetAnimation(animation: AnimationDef | null) {
   const [frameIndex, setFrameIndex] = useState(0);

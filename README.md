@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="https://raw.githubusercontent.com/nucket/nekoai/main/assets/logo.png" alt="NekoAI Logo" width="120" />
+<img src="https://raw.githubusercontent.com/nucket/NekoAI/refs/heads/main/main/assets/logo.png" alt="NekoAI Logo" width="120" />
 
 # 🐱 NekoAI
 

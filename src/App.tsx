@@ -4,33 +4,46 @@ import { PetRenderer } from "./pets/PetRenderer";
 import {
   generatePlaceholderSpritesheet,
   PLACEHOLDER_ANIMATIONS,
-  ANIMATION_CYCLE,
 } from "./pets/placeholderSprite";
+import { usePetMovement } from "./hooks/usePetMovement";
 import "./App.css";
 
-// Generate the placeholder sprite sheet once at module load time.
-// In a real app this would be replaced with a LoadedPet's spritesheetUrl.
+// Generated once at module load — in a real app, this comes from LoadedPet.
 const PLACEHOLDER_URL = generatePlaceholderSpritesheet(18, 32);
 
 function App() {
-  const [animIndex, setAnimIndex] = useState(0);
-  const currentAnimation = ANIMATION_CYCLE[animIndex % ANIMATION_CYCLE.length];
+  // Track whether the user is manually dragging the window so we can
+  // pause autonomous movement during drag and resume afterwards.
+  const [dragging, setDragging] = useState(false);
 
-  // Stable reference — avoids PetRenderer's rAF loop restarting on re-render
+  const { petState, currentAnimation } = usePetMovement({
+    speed:         3,
+    nearThreshold: 50,
+    sleepTimeout:  5 * 60 * 1000,
+    windowSize:    128,
+    enabled:       !dragging,
+  });
+
+  // Stable reference — prevents PetRenderer's rAF loop from restarting.
   const animations = useMemo(() => ({ ...PLACEHOLDER_ANIMATIONS }), []);
 
-  // Left-click + drag → move the transparent window
+  // Left-click: pause movement, start native OS drag, resume when button released.
   const handleMouseDown = async (e: React.MouseEvent) => {
-    if (e.button === 0) {
-      const appWindow = getCurrentWindow();
-      await appWindow.startDragging();
-    }
-  };
+    if (e.button !== 0) return;
 
-  // Right-click → cycle to next animation (visual debug)
-  const handleContextMenu = (e: React.MouseEvent) => {
-    e.preventDefault();
-    setAnimIndex((prev) => (prev + 1) % ANIMATION_CYCLE.length);
+    setDragging(true);
+
+    const win = getCurrentWindow();
+    await win.startDragging();
+
+    // startDragging() returns immediately; the OS drag ends on mouseup.
+    // The webview may not receive mouseup during a native drag, so we listen
+    // on the document as a fallback and also on the element itself.
+    const resume = () => {
+      setDragging(false);
+      document.removeEventListener("mouseup", resume);
+    };
+    document.addEventListener("mouseup", resume, { once: true });
   };
 
   return (
@@ -38,8 +51,8 @@ function App() {
       <div
         className="sprite-container"
         onMouseDown={handleMouseDown}
-        onContextMenu={handleContextMenu}
-        title={`NekoAI — ${currentAnimation}\nLeft-drag to move · Right-click to cycle animations`}
+        data-state={petState}
+        title={`NekoAI — ${petState} (${currentAnimation})`}
       >
         <PetRenderer
           spritesheetUrl={PLACEHOLDER_URL}
