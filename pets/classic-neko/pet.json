@@ -3,10 +3,13 @@
   "name": "Classic Neko",
   "author": "NekoAI",
   "version": "1.0.0",
-  "description": "The original Neko cat from the classic desktop pet app",
-  "spriteSheet": "sprites.png",
-  "frameWidth": 32,
-  "frameHeight": 32,
+  "description": "The original Neko cat from the classic 1989 desktop pet — pixel-perfect recreation",
+  "sprite": {
+    "path": "sprites.png",
+    "frameWidth": 32,
+    "frameHeight": 32
+  },
+  "defaultAnimation": "idle",
   "animations": {
     "idle": {
       "frames": [0, 1],
@@ -23,8 +26,18 @@
       "fps": 8,
       "loop": true
     },
+    "happy": {
+      "frames": [10, 11, 12],
+      "fps": 6,
+      "loop": true
+    },
+    "thinking": {
+      "frames": [13, 14],
+      "fps": 3,
+      "loop": true
+    },
     "sleep": {
-      "frames": [10, 11],
+      "frames": [15, 16],
       "fps": 1,
       "loop": true
     },
@@ -36,7 +49,19 @@
     "yawn": {
       "frames": [15, 16, 17],
       "fps": 4,
-      "loop": false
+      "loop": false,
+      "next": "idle"
     }
+  },
+  "triggers": {
+    "onIdle":        "scratch",
+    "onMouseNear":   "happy",
+    "onMouseFar":    "idle",
+    "onDragStart":   "walk_right",
+    "onDragEnd":     "idle",
+    "onDoubleClick": "happy",
+    "onRightClick":  "thinking",
+    "onSystemIdle":  "sleep",
+    "onNight":       "sleep"
   }
 }

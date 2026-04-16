@@ -13,10 +13,10 @@ fn set_ignore_cursor_events(window: tauri::Window, ignore: bool) {
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
+        .plugin(tauri_plugin_fs::init())
         .plugin(tauri_plugin_shell::init())
         .setup(|app| {
             let window = app.get_webview_window("main").unwrap();
-            // Ensure transparency is applied on startup
             window.set_always_on_top(true).ok();
             Ok(())
         })

@@ -1,20 +1,24 @@
-// Pet definitions and loaders
-// Each pet is a folder under /pets/<pet-id>/
-// containing sprite sheets, animations, and metadata
+// Re-export everything from the canonical types module so that
+// any import from "@/pets" continues to work without path changes.
+export type {
+  PetDefinition,
+  LoadedPet,
+  AnimationConfig,
+  AnimationName,
+  BuiltinAnimationName,
+  SpriteConfig,
+  TriggerEvent,
+  TriggerMap,
+  PetMood,
+} from "../types/pet";
 
-export interface PetDefinition {
-  id: string;
-  name: string;
-  author: string;
-  version: string;
-  spritePath: string;
-  frameWidth: number;
-  frameHeight: number;
-  animations: Record<string, AnimationDef>;
-}
+export { PetRenderer } from "./PetRenderer";
+export type { PetRendererProps } from "./PetRenderer";
 
-export interface AnimationDef {
-  frames: number[];
-  fps: number;
-  loop: boolean;
-}
+export { loadPetFromPath, validatePetDefinition, PetValidationError } from "./loader";
+
+export {
+  generatePlaceholderSpritesheet,
+  PLACEHOLDER_ANIMATIONS,
+  ANIMATION_CYCLE,
+} from "./placeholderSprite";

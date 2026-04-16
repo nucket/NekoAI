@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import type { PetDefinition, PetMood } from "../pets";
+import type { PetDefinition, PetMood } from "../types/pet";
 import type { AIConfig } from "../ai";
 
 interface AppState {

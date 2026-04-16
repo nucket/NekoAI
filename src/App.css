@@ -1,3 +1,5 @@
+/* The Tauri window is 128×128, transparent, no decorations */
+
 .app-container {
   width: 128px;
   height: 128px;
@@ -7,21 +9,17 @@
   background: transparent;
 }
 
+/* scale=3 → canvas is 96×96, centred in the 128×128 window */
 .sprite-container {
-  width: 128px;
-  height: 128px;
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: grab;
+  /* Prevent the browser from showing its own context-menu chrome */
+  -webkit-user-select: none;
+  user-select: none;
 }
 
 .sprite-container:active {
   cursor: grabbing;
-}
-
-.placeholder-sprite {
-  font-size: 80px;
-  line-height: 1;
-  image-rendering: pixelated;
 }
