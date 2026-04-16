@@ -1,0 +1,27 @@
+.app-container {
+  width: 128px;
+  height: 128px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+}
+
+.sprite-container {
+  width: 128px;
+  height: 128px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: grab;
+}
+
+.sprite-container:active {
+  cursor: grabbing;
+}
+
+.placeholder-sprite {
+  font-size: 80px;
+  line-height: 1;
+  image-rendering: pixelated;
+}

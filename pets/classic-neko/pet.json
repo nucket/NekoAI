@@ -1,0 +1,42 @@
+{
+  "id": "classic-neko",
+  "name": "Classic Neko",
+  "author": "NekoAI",
+  "version": "1.0.0",
+  "description": "The original Neko cat from the classic desktop pet app",
+  "spriteSheet": "sprites.png",
+  "frameWidth": 32,
+  "frameHeight": 32,
+  "animations": {
+    "idle": {
+      "frames": [0, 1],
+      "fps": 2,
+      "loop": true
+    },
+    "walk_right": {
+      "frames": [2, 3, 4, 5],
+      "fps": 8,
+      "loop": true
+    },
+    "walk_left": {
+      "frames": [6, 7, 8, 9],
+      "fps": 8,
+      "loop": true
+    },
+    "sleep": {
+      "frames": [10, 11],
+      "fps": 1,
+      "loop": true
+    },
+    "scratch": {
+      "frames": [12, 13, 14],
+      "fps": 6,
+      "loop": true
+    },
+    "yawn": {
+      "frames": [15, 16, 17],
+      "fps": 4,
+      "loop": false
+    }
+  }
+}

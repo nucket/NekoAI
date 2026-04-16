@@ -313,7 +313,7 @@ This project is a love letter to:
 
 ## 📄 License
 
-MIT © 2025 [Naudy Castellanos](https://github.com/nucket)
+MIT © 2026 [Naudy Castellanos](https://github.com/nucket)
 
 Free to use, modify, and distribute. Attribution appreciated. ❤️
 
