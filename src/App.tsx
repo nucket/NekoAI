@@ -88,8 +88,7 @@ export default function App() {
     nearThreshold: 50,
     sleepTimeout: 5 * 60 * 1000,
     windowSize: SPRITE_SIZE,
-    enabled: !dragging && !bubbleOpen,
-    windowLocked: settingsOpen,
+    enabled: !dragging && !bubbleOpen && !settingsOpen,
   });
 
   // ── Open bubble ────────────────────────────────────────────────────────────

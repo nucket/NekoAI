@@ -13,8 +13,6 @@ export interface UsePetMovementOptions {
   sleepTimeout?: number;
   windowSize?: number;
   enabled?: boolean;
-  /** Keep animations running but freeze the OS window position */
-  windowLocked?: boolean;
 }
 
 export interface UsePetMovementResult {
@@ -68,7 +66,6 @@ export function usePetMovement({
   sleepTimeout = 5 * 60 * 1000,
   windowSize = 128,
   enabled = true,
-  windowLocked = false,
 }: UsePetMovementOptions = {}): UsePetMovementResult {
 
   const [petState, setPetState] = useState<PetState>("IDLE");
@@ -224,11 +221,9 @@ export function usePetMovement({
           const newY = winPos.y + ny * step;
 
           winPosRef.current = { x: newX, y: newY };
-          if (!windowLocked) {
-            win
-              .setPosition(new PhysicalPosition(Math.round(newX), Math.round(newY)))
-              .catch(() => { });
-          }
+          win
+            .setPosition(new PhysicalPosition(Math.round(newX), Math.round(newY)))
+            .catch(() => { });
           break;
         }
       }
@@ -238,7 +233,7 @@ export function usePetMovement({
 
     rafIdRef.current = requestAnimationFrame(loop);
     return () => cancelAnimationFrame(rafIdRef.current);
-  }, [enabled, windowLocked, speed, nearThreshold, sleepTimeout, halfSize, transition, setWalkDir]);
+  }, [enabled, speed, nearThreshold, sleepTimeout, halfSize, transition, setWalkDir]);
 
   return { petState, currentAnimation };
 }
