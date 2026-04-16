@@ -1,67 +1,178 @@
 {
-  "id": "classic-neko",
-  "name": "Classic Neko",
-  "author": "NekoAI",
+  "name": "Neko",
   "version": "1.0.0",
-  "description": "The original Neko cat from the classic 1989 desktop pet — pixel-perfect recreation",
-  "sprite": {
-    "path": "sprites.png",
-    "frameWidth": 32,
-    "frameHeight": 32
-  },
-  "defaultAnimation": "idle",
+  "author": "Naudy Castellanos",
+  "description": "The original Neko cat, reimagined with AI",
+  "personality": "Neko is a playful, curious cat who gives short, warm answers.",
+  "system_prompt": "You are Neko, a tiny animated cat living on the user's desktop. You are playful, warm, and give very short helpful answers (1-2 sentences max). Occasionally use cat sounds like \"nya~\" or \"*purrs*\". Never use markdown. Be concise and charming.",
+  "spritesDir": "sprites",
   "animations": {
     "idle": {
-      "frames": [0, 1],
+      "files": [
+        "awake.png"
+      ],
       "fps": 2,
       "loop": true
     },
+    "awaken": {
+      "files": [
+        "awake.png"
+      ],
+      "fps": 6,
+      "loop": false
+    },
     "walk_right": {
-      "frames": [2, 3, 4, 5],
+      "files": [
+        "right1.png",
+        "right2.png"
+      ],
       "fps": 8,
       "loop": true
     },
     "walk_left": {
-      "frames": [6, 7, 8, 9],
+      "files": [
+        "left1.png",
+        "left2.png"
+      ],
       "fps": 8,
       "loop": true
     },
-    "happy": {
-      "frames": [10, 11, 12],
+    "walk_up": {
+      "files": [
+        "up1.png",
+        "up2.png"
+      ],
+      "fps": 8,
+      "loop": true
+    },
+    "walk_down": {
+      "files": [
+        "down1.png",
+        "down2.png"
+      ],
+      "fps": 8,
+      "loop": true
+    },
+    "walk_up_right": {
+      "files": [
+        "upright1.png",
+        "upright2.png"
+      ],
+      "fps": 8,
+      "loop": true
+    },
+    "walk_up_left": {
+      "files": [
+        "upleft1.png",
+        "upleft2.png"
+      ],
+      "fps": 8,
+      "loop": true
+    },
+    "walk_down_right": {
+      "files": [
+        "downright1.png",
+        "downright2.png"
+      ],
+      "fps": 8,
+      "loop": true
+    },
+    "walk_down_left": {
+      "files": [
+        "downleft1.png",
+        "downleft2.png"
+      ],
+      "fps": 8,
+      "loop": true
+    },
+    "scratch_right": {
+      "files": [
+        "rightclaw1.png",
+        "rightclaw2.png"
+      ],
       "fps": 6,
       "loop": true
     },
-    "thinking": {
-      "frames": [13, 14],
-      "fps": 3,
+    "scratch_left": {
+      "files": [
+        "leftclaw1.png",
+        "leftclaw2.png"
+      ],
+      "fps": 6,
       "loop": true
     },
-    "sleep": {
-      "frames": [15, 16],
-      "fps": 1,
+    "scratch_up": {
+      "files": [
+        "upclaw1.png",
+        "upclaw2.png"
+      ],
+      "fps": 6,
       "loop": true
     },
-    "scratch": {
-      "frames": [12, 13, 14],
+    "scratch_down": {
+      "files": [
+        "downclaw1.png",
+        "downclaw2.png"
+      ],
+      "fps": 6,
+      "loop": true
+    },
+    "scratch_wall": {
+      "files": [
+        "scratch1.png",
+        "scratch2.png"
+      ],
       "fps": 6,
       "loop": true
     },
     "yawn": {
-      "frames": [15, 16, 17],
+      "files": [
+        "yawn2.png",
+        "yawn3.png"
+      ],
+      "fps": 3,
+      "loop": false
+    },
+    "sleep": {
+      "files": [
+        "sleep1.png",
+        "sleep2.png"
+      ],
+      "fps": 2,
+      "loop": true
+    },
+    "wash": {
+      "files": [
+        "wash2.png"
+      ],
       "fps": 4,
-      "loop": false,
-      "next": "idle"
+      "loop": true
+    },
+    "falling_asleep": {
+      "files": [
+        "fall1.png",
+        "fall2.png",
+        "fall3.png",
+        "fall4.png",
+        "fall5.png",
+        "fall6.png",
+        "fall7.png",
+        "fall8.png",
+        "fall9.png",
+        "fall10.png",
+        "fall11.png"
+      ],
+      "fps": 4,
+      "loop": false
     }
   },
   "triggers": {
-    "onIdle":        "scratch",
-    "onMouseNear":   "happy",
-    "onMouseFar":    "idle",
-    "onDragStart":   "walk_right",
-    "onDragEnd":     "idle",
-    "onDoubleClick": "happy",
-    "onRightClick":  "thinking",
-    "onSystemIdle":  "sleep",
-    "onNight":       "sleep"
+    "on_cursor_near": "scratch_wall",
+    "on_chat_open": "awaken",
+    "on_ai_thinking": "wash",
+    "on_idle_3min": "yawn",
+    "on_idle_5min": "falling_asleep",
+    "on_idle_6min": "sleep",
+    "on_movement_start": "awaken"
   }
 }

@@ -1,25 +1,39 @@
-/* The Tauri window is 128×128, transparent, no decorations */
+/* ─── Base: 64×64 transparent window ───────────────────────────────────────── */
 
 .app-container {
-  width: 128px;
-  height: 128px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  width:    48px;
+  height:   48px;
+  position: relative;
   background: transparent;
-}
-
-/* scale=3 → canvas is 96×96, centred in the 128×128 window */
-.sprite-container {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: grab;
-  /* Prevent the browser from showing its own context-menu chrome */
+  /* Prevent accidental text selection while clicking / dragging */
   -webkit-user-select: none;
   user-select: none;
 }
 
-.sprite-container:active {
+/* ─── Expanded: 300×300 when the speech bubble is open ──────────────────────── */
+
+.app-container--open {
+  width:  300px;
+  height: 300px;
+}
+
+/* ─── Sprite container ───────────────────────────────────────────────────────── */
+
+/* Default (closed): fills the 64×64 window */
+.sprite-container {
+  width:    48px;
+  height:   48px;
+  display:  flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+/* Bubble is open → sprite is absolutely positioned by inline style from App.tsx */
+.app-container--open .sprite-container {
+  cursor: grab;
+  /* Absolute position values are injected as inline style */
+}
+.app-container--open .sprite-container:active {
   cursor: grabbing;
 }

@@ -1,6 +1,9 @@
 use serde::Serialize;
 use tauri::Manager;
 
+mod storage;
+use storage::{AIConfig, StoredMessage};
+
 // ─── Shared types ─────────────────────────────────────────────────────────────
 
 #[derive(Serialize)]
@@ -12,11 +15,6 @@ struct Vec2 {
 // ─── Cursor position ──────────────────────────────────────────────────────────
 
 /// Returns the current cursor position in physical screen pixels.
-///
-/// Uses the `mouse_position` crate which calls the native OS API:
-/// - Windows: `user32::GetCursorPos`
-/// - macOS:   `CGEventGetLocation`
-/// - Linux:   X11 / Wayland query
 #[tauri::command]
 fn get_cursor_pos() -> Vec2 {
     use mouse_position::mouse_position::Mouse;
@@ -32,8 +30,6 @@ fn get_cursor_pos() -> Vec2 {
 
 // ─── Window positioning ───────────────────────────────────────────────────────
 
-/// Moves the calling webview window to an absolute screen position
-/// (physical pixels, top-left origin).
 #[tauri::command]
 fn move_window(window: tauri::WebviewWindow, x: f64, y: f64) -> Result<(), String> {
     window
@@ -60,6 +56,49 @@ fn set_ignore_cursor_events(
         .map_err(|e| e.to_string())
 }
 
+// ─── App lifecycle ────────────────────────────────────────────────────────────
+
+#[tauri::command]
+fn quit_app(app: tauri::AppHandle) {
+    app.exit(0);
+}
+
+// ─── Config commands ──────────────────────────────────────────────────────────
+
+#[tauri::command]
+fn get_config() -> AIConfig {
+    storage::read_config()
+}
+
+#[tauri::command]
+fn save_config(config: AIConfig) -> Result<(), String> {
+    storage::write_config(&config)
+}
+
+// ─── Conversation commands ────────────────────────────────────────────────────
+
+#[tauri::command]
+fn get_recent_messages(limit: u32) -> Result<Vec<StoredMessage>, String> {
+    storage::get_recent_messages(limit)
+}
+
+#[tauri::command]
+fn save_message(role: String, content: String) -> Result<(), String> {
+    storage::save_message(&role, &content)
+}
+
+// ─── User fact commands ───────────────────────────────────────────────────────
+
+#[tauri::command]
+fn get_user_fact(key: String) -> Result<Option<String>, String> {
+    storage::get_user_fact(&key)
+}
+
+#[tauri::command]
+fn set_user_fact(key: String, value: String) -> Result<(), String> {
+    storage::set_user_fact(&key, &value)
+}
+
 // ─── Entry point ──────────────────────────────────────────────────────────────
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -73,10 +112,17 @@ pub fn run() {
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
+            quit_app,
             get_cursor_pos,
             move_window,
             set_always_on_top,
             set_ignore_cursor_events,
+            get_config,
+            save_config,
+            get_recent_messages,
+            save_message,
+            get_user_fact,
+            set_user_fact,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

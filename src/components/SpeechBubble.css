@@ -1,0 +1,231 @@
+/* ─── Container ─────────────────────────────────────────────────────────────── */
+
+.speech-bubble {
+  position: absolute;
+  /* Horizontally centred inside the expanded 300 px window */
+  left: 50%;
+  transform: translateX(-50%);
+  width: 280px;
+
+  background: #ffffff;
+  border-radius: 16px;
+  box-shadow:
+    0 2px 8px rgba(0, 0, 0, 0.10),
+    0 6px 24px rgba(0, 0, 0, 0.08);
+
+  padding: 10px 10px 8px;
+  box-sizing: border-box;
+
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-size: 13px;
+  color: #1a1a1a;
+  line-height: 1.45;
+
+  z-index: 20;
+  animation: bubble-in 0.14s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+
+@keyframes bubble-in {
+  from { opacity: 0; transform: translateX(-50%) scale(0.88); }
+  to   { opacity: 1; transform: translateX(-50%) scale(1);    }
+}
+
+/* Above the sprite (triangle at bottom) */
+.speech-bubble--above {
+  top: 6px;
+}
+
+/* Below the sprite (triangle at top) */
+.speech-bubble--below {
+  /* SPRITE_SIZE 128 + gap 12 + triangle 10 */
+  top: 150px;
+}
+
+/* ─── Triangle tail ──────────────────────────────────────────────────────────── */
+
+.speech-bubble__tail {
+  position: absolute;
+  width: 0;
+  height: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  /* Soften shadow on the tail using filter on parent */
+  pointer-events: none;
+}
+
+/* Points DOWN toward sprite (bubble is above) */
+.speech-bubble__tail--above {
+  bottom: -11px;
+  border-left:   11px solid transparent;
+  border-right:  11px solid transparent;
+  border-top:    11px solid #ffffff;
+  /* Subtle shadow offset downward */
+  filter: drop-shadow(0 3px 2px rgba(0,0,0,0.07));
+}
+
+/* Points UP toward sprite (bubble is below) */
+.speech-bubble__tail--below {
+  top: -11px;
+  border-left:   11px solid transparent;
+  border-right:  11px solid transparent;
+  border-bottom: 11px solid #ffffff;
+  filter: drop-shadow(0 -2px 2px rgba(0,0,0,0.07));
+}
+
+/* ─── Close button ───────────────────────────────────────────────────────────── */
+
+.speech-bubble__close {
+  position: absolute;
+  top: 5px;
+  right: 6px;
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  background: none;
+  border: none;
+  cursor: pointer;
+  border-radius: 50%;
+  font-size: 15px;
+  line-height: 1;
+  color: #bbb;
+  padding: 0;
+  transition: color 0.12s, background 0.12s;
+}
+.speech-bubble__close:hover {
+  color: #555;
+  background: #f0f0f0;
+}
+
+/* ─── Messages ───────────────────────────────────────────────────────────────── */
+
+.speech-bubble__messages {
+  max-height: 130px;
+  overflow-y: auto;
+  margin: 0 0 8px;
+  padding-right: 2px;
+  scrollbar-width: thin;
+  scrollbar-color: #e0e0e0 transparent;
+}
+
+/* Hide if no messages yet */
+.speech-bubble__messages:empty,
+.speech-bubble__messages--empty {
+  display: none;
+}
+
+.speech-bubble__msg {
+  margin-bottom: 5px;
+  word-break: break-word;
+}
+.speech-bubble__msg:last-child { margin-bottom: 0; }
+
+/* User bubble — right aligned, muted */
+.speech-bubble__msg--user {
+  text-align: right;
+  color: #777;
+  font-style: italic;
+}
+
+/* Assistant bubble — left aligned, full colour */
+.speech-bubble__msg--assistant {
+  text-align: left;
+  color: #1a1a1a;
+}
+
+/* ─── Typewriter cursor ──────────────────────────────────────────────────────── */
+
+.speech-bubble__cursor {
+  display: inline-block;
+  width: 1.5px;
+  height: 0.9em;
+  background: #555;
+  margin-left: 1px;
+  vertical-align: text-bottom;
+  animation: cursor-blink 0.65s step-start infinite;
+}
+@keyframes cursor-blink { 50% { opacity: 0; } }
+
+/* ─── Thinking indicator (3 bouncing dots) ───────────────────────────────────── */
+
+.speech-bubble__thinking {
+  display: inline-flex;
+  gap: 4px;
+  align-items: center;
+  padding: 2px 0 1px;
+}
+
+.speech-bubble__thinking span {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #c5c5c5;
+  animation: dot-bounce 1.2s ease-in-out infinite;
+}
+.speech-bubble__thinking span:nth-child(2) { animation-delay: 0.18s; }
+.speech-bubble__thinking span:nth-child(3) { animation-delay: 0.36s; }
+
+@keyframes dot-bounce {
+  0%, 60%, 100% { transform: translateY(0);    opacity: 0.4; }
+  30%            { transform: translateY(-4px); opacity: 1;   }
+}
+
+/* ─── Input row ──────────────────────────────────────────────────────────────── */
+
+.speech-bubble__input-row {
+  display: flex;
+  gap: 5px;
+  align-items: center;
+}
+
+.speech-bubble__input {
+  flex: 1;
+  min-width: 0;
+  border: 1px solid #e2e2e2;
+  border-radius: 9px;
+  padding: 5px 9px;
+  font-size: 13px;
+  font-family: inherit;
+  background: #fafafa;
+  color: #1a1a1a;
+  outline: none;
+  transition: border-color 0.13s, background 0.13s;
+  /* Don't let the webview drag from the input */
+  -webkit-user-select: text;
+  user-select: text;
+}
+.speech-bubble__input:focus {
+  border-color: #c8c8c8;
+  background: #fff;
+}
+.speech-bubble__input::placeholder { color: #bbb; }
+.speech-bubble__input:disabled     { opacity: 0.55; }
+
+.speech-bubble__send {
+  flex-shrink: 0;
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  background: #f2f2f2;
+  border: 1px solid #e2e2e2;
+  border-radius: 9px;
+  cursor: pointer;
+  font-size: 13px;
+  color: #666;
+  padding: 0;
+  transition: background 0.12s, color 0.12s;
+}
+.speech-bubble__send:hover:not(:disabled) {
+  background: #e6e6e6;
+  color: #333;
+}
+.speech-bubble__send:disabled {
+  opacity: 0.35;
+  cursor: default;
+}

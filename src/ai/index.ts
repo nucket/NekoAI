@@ -1,15 +1,27 @@
-// AI integration layer
-// Connects pet behavior to Claude API for contextual reactions
+export type { AIProvider, AIConfig, Message } from './types';
 
-export interface AIConfig {
-  provider: "claude" | "openai" | "local";
-  model: string;
-  apiKey?: string;
-  systemPrompt?: string;
+import type { AIProvider, AIConfig } from './types';
+import { AnthropicProvider } from './providers/anthropic';
+import { OpenAIProvider } from './providers/openai';
+import { OllamaProvider } from './providers/ollama';
+
+export function createAIProvider(config: AIConfig): AIProvider {
+  switch (config.provider) {
+    case 'anthropic':
+      return new AnthropicProvider(config.apiKey ?? '', config.model);
+    case 'openai':
+      return new OpenAIProvider(config.apiKey ?? '', config.model);
+    case 'ollama':
+      return new OllamaProvider(config.model, config.baseUrl);
+    default:
+      throw new Error(`Unknown AI provider: ${(config as AIConfig).provider}`);
+  }
 }
 
-export interface PetMood {
-  energy: number;     // 0-100
-  happiness: number;  // 0-100
-  curiosity: number;  // 0-100
+export function buildContextBlock(petName: string, userName?: string): string {
+  const base = `You are ${petName}, a tiny animated desktop cat. You live on the user's screen and give short, helpful, slightly playful answers. Maximum 2 sentences. No markdown.`;
+  if (userName) {
+    return `${base} The user's name is ${userName}.`;
+  }
+  return base;
 }
