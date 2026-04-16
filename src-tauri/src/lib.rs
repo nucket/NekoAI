@@ -2,6 +2,7 @@ use serde::Serialize;
 use tauri::Manager;
 
 mod storage;
+mod desktop_monitor;
 use storage::{AIConfig, StoredMessage};
 
 // ─── Shared types ─────────────────────────────────────────────────────────────
@@ -99,6 +100,23 @@ fn set_user_fact(key: String, value: String) -> Result<(), String> {
     storage::set_user_fact(&key, &value)
 }
 
+// ─── Desktop monitor commands ─────────────────────────────────────────────────
+
+#[tauri::command]
+fn get_active_window() -> Option<desktop_monitor::WindowInfo> {
+    desktop_monitor::get_active_window()
+}
+
+#[tauri::command]
+fn get_all_windows() -> Vec<desktop_monitor::WindowInfo> {
+    desktop_monitor::get_all_windows()
+}
+
+#[tauri::command]
+fn get_idle_millis() -> u64 {
+    desktop_monitor::get_idle_millis()
+}
+
 // ─── Entry point ──────────────────────────────────────────────────────────────
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -123,6 +141,9 @@ pub fn run() {
             save_message,
             get_user_fact,
             set_user_fact,
+            get_active_window,
+            get_all_windows,
+            get_idle_millis,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
