@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { invoke } from '@tauri-apps/api/core';
 import { getCurrentWindow } from '@tauri-apps/api/window';
-import { PhysicalPosition, PhysicalSize } from '@tauri-apps/api/dpi';
+import { PhysicalPosition, PhysicalSize, LogicalSize } from '@tauri-apps/api/dpi';
 import { useConfigStore } from '../store/configStore';
 import { createAIProvider, buildContextBlock } from '../ai';
 
@@ -52,16 +52,19 @@ export function SettingsPanel({ isOpen, onClose }: Props) {
   useEffect(() => {
     const win = getCurrentWindow();
     if (isOpen) {
-      win.outerPosition().then((pos) => {
+      Promise.all([win.outerPosition(), win.scaleFactor()]).then(([pos, scale]) => {
         setSavedPos({ x: pos.x, y: pos.y });
-        const newX = pos.x - Math.round((PANEL_W - SPRITE_SIZE) / 2);
-        const newY = pos.y - (PANEL_H - SPRITE_SIZE);
+        // Convert logical panel offsets to physical before applying
+        const newX = pos.x - Math.round(((PANEL_W - SPRITE_SIZE) / 2) * scale);
+        const newY = pos.y - Math.round((PANEL_H - SPRITE_SIZE) * scale);
         win.setPosition(new PhysicalPosition(newX, newY));
-        win.setSize(new PhysicalSize(PANEL_W, PANEL_H));
+        win.setSize(new PhysicalSize(PANEL_W * scale, PANEL_H * scale));
       });
     } else if (savedPos) {
-      win.setSize(new PhysicalSize(SPRITE_SIZE, SPRITE_SIZE));
-      win.setPosition(new PhysicalPosition(savedPos.x, savedPos.y));
+      // Restore: use LogicalSize so DPI scaling doesn't shrink the window below 48×48 CSS px
+      win.setSize(new LogicalSize(SPRITE_SIZE, SPRITE_SIZE)).then(() => {
+        win.setPosition(new PhysicalPosition(savedPos.x, savedPos.y));
+      });
       setSavedPos(null);
     }
   }, [isOpen]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -248,6 +251,7 @@ const styles: Record<string, React.CSSProperties> = {
   overlay: {
     position:        'fixed',
     inset:           0,
+    zIndex:          100,
     background:      'rgba(20, 20, 30, 0.96)',
     color:           '#e0e0e0',
     borderRadius:    12,
