@@ -192,8 +192,21 @@ pub fn run() {
                 &quit,
             ])?;
 
+            let logo_bytes = include_bytes!("../icons/logo.png");
+            let tray_icon = {
+                let img = image::load_from_memory(logo_bytes)
+                    .map(|i| i.into_rgba8())
+                    .ok();
+                if let Some(rgba) = img {
+                    let (w, h) = (rgba.width(), rgba.height());
+                    tauri::image::Image::new_owned(rgba.into_raw(), w, h)
+                } else {
+                    app.default_window_icon().unwrap().clone()
+                }
+            };
+
             TrayIconBuilder::new()
-                .icon(app.default_window_icon().unwrap().clone())
+                .icon(tray_icon)
                 .tooltip("NekoAI")
                 .menu(&menu)
                 .show_menu_on_left_click(false)
