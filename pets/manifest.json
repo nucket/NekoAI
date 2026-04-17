@@ -1,0 +1,31 @@
+{
+  "version": 1,
+  "pets": [
+    {
+      "id": "classic-neko",
+      "name": "Classic Neko",
+      "description": "The original Neko cat, reimagined with AI",
+      "emoji": "🐱",
+      "author": "Naudy Castellanos",
+      "bundled": true
+    },
+    {
+      "id": "ghost-pixel",
+      "name": "Ghost",
+      "description": "A friendly pixel ghost who drifts around your desktop",
+      "emoji": "👻",
+      "author": "NekoAI Community",
+      "bundled": true,
+      "spritesRequired": true
+    },
+    {
+      "id": "shiba-pixel",
+      "name": "Shiba",
+      "description": "An enthusiastic pixel shiba inu always ready to help",
+      "emoji": "🐕",
+      "author": "NekoAI Community",
+      "bundled": true,
+      "spritesRequired": true
+    }
+  ]
+}

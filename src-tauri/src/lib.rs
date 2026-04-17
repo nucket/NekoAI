@@ -103,6 +103,11 @@ fn set_user_fact(key: String, value: String) -> Result<(), String> {
     storage::set_user_fact(&key, &value)
 }
 
+#[tauri::command]
+fn get_all_user_facts() -> Result<std::collections::HashMap<String, String>, String> {
+    storage::get_all_user_facts()
+}
+
 // ─── Desktop monitor commands ─────────────────────────────────────────────────
 
 #[tauri::command]
@@ -178,9 +183,11 @@ pub fn run() {
             let show_hide   = MenuItem::with_id(app, "show_hide",   "Show/Hide NekoAI",     true, None::<&str>)?;
             let settings    = MenuItem::with_id(app, "settings",    "Settings",              true, None::<&str>)?;
             let pet_classic = MenuItem::with_id(app, "pet_classic", "Classic Neko",          true, None::<&str>)?;
-            let select_pet  = Submenu::with_items(app, "Select Pet", true, &[&pet_classic])?;
+            let pet_ghost   = MenuItem::with_id(app, "pet_ghost",   "Ghost",                 true, None::<&str>)?;
+            let pet_shiba   = MenuItem::with_id(app, "pet_shiba",   "Shiba",                 true, None::<&str>)?;
+            let select_pet  = Submenu::with_items(app, "Select Pet", true, &[&pet_classic, &pet_ghost, &pet_shiba])?;
             let sep         = PredefinedMenuItem::separator(app)?;
-            let about       = MenuItem::with_id(app, "about",       "About NekoAI v0.1.0",  true, None::<&str>)?;
+            let about       = MenuItem::with_id(app, "about",       "About NekoAI v0.2.0",  true, None::<&str>)?;
             let quit        = MenuItem::with_id(app, "quit",        "Quit",                  true, None::<&str>)?;
 
             let menu = Menu::with_items(app, &[
@@ -220,6 +227,14 @@ pub fn run() {
                         show_window(app);
                         app.emit("tray-select-pet", "classic-neko").ok();
                     }
+                    "pet_ghost" => {
+                        show_window(app);
+                        app.emit("tray-select-pet", "ghost-pixel").ok();
+                    }
+                    "pet_shiba" => {
+                        show_window(app);
+                        app.emit("tray-select-pet", "shiba-pixel").ok();
+                    }
                     "quit" => app.exit(0),
                     _ => {}
                 })
@@ -249,6 +264,7 @@ pub fn run() {
             save_message,
             get_user_fact,
             set_user_fact,
+            get_all_user_facts,
             get_active_window,
             get_all_windows,
             get_idle_millis,

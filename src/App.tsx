@@ -8,6 +8,12 @@ import { usePetMovement } from "./hooks/usePetMovement";
 import { SpeechBubble } from "./components/SpeechBubble";
 import { SettingsPanel } from "./components/SettingsPanel";
 import { PetSelector } from "./components/PetSelector";
+import { useConfigStore } from "./store/configStore";
+import { useAppStore } from "./store";
+import { createAIProvider, buildContextBlock } from "./ai";
+import { loadFacts, extractAndSaveFacts } from "./ai/memory";
+import { useDesktopContext } from "./hooks/useDesktopContext";
+import { useMoodEngine } from "./hooks/useMoodEngine";
 import "./App.css";
 
 // ─── Layout constants ──────────────────────────────────────────────────────────
@@ -26,21 +32,16 @@ interface PetDefinition {
   triggers: Record<string, string>;
 }
 
-// ─── Placeholder AI ────────────────────────────────────────────────────────────
-
-async function mockAI(message: string): Promise<string> {
-  await new Promise((r) => setTimeout(r, 700 + Math.random() * 500));
-  const replies = [
-    `Meow! You said "${message}" 🐱`,
-    `*purring* "${message}"… interesting!`,
-    `Nyaa~ "${message}"? Tell me more!`,
-  ];
-  return replies[Math.floor(Math.random() * replies.length)];
-}
 
 // ─── App ───────────────────────────────────────────────────────────────────────
 
 export default function App() {
+  const { isLoaded, loadConfig } = useConfigStore();
+
+  useEffect(() => {
+    if (!isLoaded) loadConfig();
+  }, [isLoaded, loadConfig]);
+
   const [bubbleOpen, setBubbleOpen] = useState(false);
   const [bubblePos, setBubblePos] = useState<"above" | "below">("above");
   const [dragging, setDragging] = useState(false);
@@ -54,32 +55,26 @@ export default function App() {
 
   const savedPos = useRef<{ x: number; y: number } | null>(null);
 
-  // ── Load pet.json on mount ─────────────────────────────────────────────────
+  // ── Load pet.json whenever activePetId changes ────────────────────────────
   // pets/ is served as static HTTP assets by Vite (dev) and bundled into
   // dist/pets/ by the vite.config build hook (production). No Tauri fs APIs needed.
   useEffect(() => {
     async function loadPet() {
-      console.log("[NekoAI] Starting pet load...");
       try {
-        const res = await fetch("/pets/classic-neko/pet.json");
-        console.log("[NekoAI] fetch status:", res.status, res.url);
+        const res = await fetch(`/pets/${activePetId}/pet.json`);
         if (!res.ok) throw new Error(`HTTP ${res.status} – ${res.url}`);
 
         const def: PetDefinition = await res.json();
-        console.log("[NekoAI] animations keys:", Object.keys(def.animations));
-
-        const spritesPath = `/pets/classic-neko/${def.spritesDir}`;
-        console.log("[NekoAI] spritesDir URL:", spritesPath);
+        const spritesPath = `/pets/${activePetId}/${def.spritesDir}`;
 
         setPetDef(def);
         setSpritesDir(spritesPath);
-        console.log("[NekoAI] Pet loaded successfully!");
       } catch (err) {
         console.error("[NekoAI] loadPet failed:", err);
       }
     }
     loadPet();
-  }, []);
+  }, [activePetId]);
 
   // ── Tray event listeners ───────────────────────────────────────────────────
   useEffect(() => {
@@ -100,6 +95,9 @@ export default function App() {
     [petDef]
   );
 
+  // ── Desktop context (idle time, active app) ───────────────────────────────
+  const { appCategory, idleMinutes } = useDesktopContext();
+
   // ── Movement ───────────────────────────────────────────────────────────────
   const { petState, currentAnimation } = usePetMovement({
     speed: 3,
@@ -108,6 +106,45 @@ export default function App() {
     windowSize: SPRITE_SIZE,
     enabled: !dragging && !bubbleOpen && !settingsOpen && !petSelectorOpen,
   });
+
+  // ── Mood engine (updates store + emits animation overrides) ──────────────
+  const { moodOverride } = useMoodEngine({ idleMinutes, appCategory, petState });
+
+  // ── AI send with persistent memory ────────────────────────────────────────
+  const handleSendMessage = useCallback(async (text: string): Promise<string> => {
+    const { config: cfg } = useConfigStore.getState();
+
+    if (!cfg.apiKey && cfg.provider !== 'ollama') {
+      return "Nyaa~ I need an API key to talk! Set one in Settings 🐾";
+    }
+
+    try {
+      await invoke('save_message', { role: 'user', content: text });
+
+      const [history, facts] = await Promise.all([
+        invoke<Array<{ role: string; content: string }>>('get_recent_messages', { limit: 20 }),
+        loadFacts(),
+      ]);
+
+      const mood = useAppStore.getState().mood;
+      const systemPrompt = buildContextBlock('NekoAI', facts, mood);
+      const provider = createAIProvider(cfg);
+      const messages = history.map((m) => ({
+        role: m.role as 'user' | 'assistant',
+        content: m.content,
+      }));
+
+      const reply = await provider.sendMessage(messages, systemPrompt);
+
+      await invoke('save_message', { role: 'assistant', content: reply });
+      extractAndSaveFacts(text, reply);
+
+      return reply;
+    } catch (err) {
+      console.error('[NekoAI] handleSendMessage error:', err);
+      return "Sorry, something went wrong. 😿";
+    }
+  }, []);
 
   // ── Open bubble ────────────────────────────────────────────────────────────
   const openBubble = useCallback(async () => {
@@ -219,7 +256,7 @@ export default function App() {
         isOpen={bubbleOpen}
         position={bubblePos}
         onClose={closeBubble}
-        onSendMessage={mockAI}
+        onSendMessage={handleSendMessage}
       />
 
       <div
@@ -239,7 +276,7 @@ export default function App() {
         {spritesDir && Object.keys(animations).length > 0 ? (
           <PetRenderer
             spritesDir={spritesDir}
-            currentAnimation={currentAnimation}
+            currentAnimation={moodOverride ?? currentAnimation}
             animations={animations}
             displaySize={SPRITE_SIZE}
           />

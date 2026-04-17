@@ -1,15 +1,26 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 
-// ─── Known pets ───────────────────────────────────────────────────────────────
+// ─── Types ────────────────────────────────────────────────────────────────────
 
-interface PetOption {
+interface PetManifestEntry {
   id: string;
-  label: string;
+  name: string;
+  description: string;
   emoji: string;
+  author: string;
+  spritesRequired?: boolean;
 }
 
-const PETS: PetOption[] = [
-  { id: "classic-neko", label: "Classic Neko", emoji: "🐱" },
+// ─── Fallback list (used if manifest.json is unavailable) ────────────────────
+
+const FALLBACK_PETS: PetManifestEntry[] = [
+  {
+    id: "classic-neko",
+    name: "Classic Neko",
+    description: "The original Neko cat, reimagined with AI",
+    emoji: "🐱",
+    author: "Naudy Castellanos",
+  },
 ];
 
 // ─── Component ────────────────────────────────────────────────────────────────
@@ -22,6 +33,18 @@ interface Props {
 }
 
 export function PetSelector({ isOpen, activePetId, onSelect, onClose }: Props) {
+  const [pets, setPets] = useState<PetManifestEntry[]>(FALLBACK_PETS);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    fetch("/pets/manifest.json")
+      .then((r) => r.json())
+      .then((data) => {
+        if (Array.isArray(data.pets)) setPets(data.pets);
+      })
+      .catch(() => {});
+  }, [isOpen]);
+
   useEffect(() => {
     if (!isOpen) return;
     const handler = (e: KeyboardEvent) => {
@@ -42,7 +65,7 @@ export function PetSelector({ isOpen, activePetId, onSelect, onClose }: Props) {
         </div>
 
         <div style={styles.list}>
-          {PETS.map((pet) => (
+          {pets.map((pet) => (
             <button
               key={pet.id}
               style={{
@@ -50,9 +73,15 @@ export function PetSelector({ isOpen, activePetId, onSelect, onClose }: Props) {
                 ...(pet.id === activePetId ? styles.petBtnActive : {}),
               }}
               onClick={() => { onSelect(pet.id); onClose(); }}
+              title={pet.description}
             >
               <span style={styles.petEmoji}>{pet.emoji}</span>
-              <span>{pet.label}</span>
+              <div style={styles.petInfo}>
+                <span style={styles.petName}>{pet.name}</span>
+                {pet.spritesRequired && (
+                  <span style={styles.petBadge}>sprites needed</span>
+                )}
+              </div>
               {pet.id === activePetId && <span style={styles.check}>✓</span>}
             </button>
           ))}
@@ -78,7 +107,7 @@ const styles: Record<string, React.CSSProperties> = {
     background: "rgba(20,20,30,0.97)",
     borderRadius: 12,
     padding: "12px 14px",
-    minWidth: 180,
+    minWidth: 200,
     color: "#e0e0e0",
     fontFamily: "system-ui, sans-serif",
     fontSize: 13,
@@ -127,10 +156,26 @@ const styles: Record<string, React.CSSProperties> = {
   },
   petEmoji: {
     fontSize: 18,
+    flexShrink: 0,
+  },
+  petInfo: {
+    display: "flex",
+    flexDirection: "column",
+    gap: 2,
+    flex: 1,
+  },
+  petName: {
+    fontWeight: 600,
+  },
+  petBadge: {
+    fontSize: 10,
+    color: "#888",
+    fontStyle: "italic",
   },
   check: {
     marginLeft: "auto",
     color: "#7c6af7",
     fontWeight: 700,
+    flexShrink: 0,
   },
 };

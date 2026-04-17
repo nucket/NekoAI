@@ -97,7 +97,7 @@ export function SettingsPanel({ isOpen, onClose }: Props) {
     setTestMsg('');
     try {
       const provider = createAIProvider(config);
-      const system   = buildContextBlock('Neko', userName || undefined);
+      const system   = buildContextBlock('Neko', userName ? { name: userName } : {});
       const reply    = await provider.sendMessage(
         [{ role: 'user', content: 'Say "OK" in one word.' }],
         system

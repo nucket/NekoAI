@@ -8,14 +8,23 @@ Each pet pack should follow this layout:
 
 ```
 pets-community/
-  your-pet-name/
-    pet.json       # metadata + animation definitions
-    sprites.png    # sprite sheet
-    preview.png    # 128x128 preview image
-    README.md      # description, credits, license
+└── your-pet-name/
+    ├── pet.json       ← metadata, personality, animation definitions
+    ├── sprites/       ← individual PNG frames (one file per frame)
+    │   ├── idle1.png
+    │   ├── idle2.png
+    │   └── ...
+    └── README.md      ← description, credits, license
 ```
 
-## Submitting a Pet
+## Before you start
 
-Open a pull request adding your pet folder under `pets-community/`.
-Make sure your `pet.json` follows the schema in `src/pets/index.ts`.
+Read **[docs/creating-a-pet.md](../docs/creating-a-pet.md)** — it covers the full `pet.json` format, sprite specifications, and how to test your pet locally.
+
+## Submitting your pet
+
+1. Fork the repository
+2. Add your pet folder under `pets-community/`
+3. Open a pull request with a short description and at least one screenshot
+
+Community pets are not automatically included in the in-app manifest. Once reviewed and merged, the maintainers will add the pet to `pets/manifest.json` for inclusion in a future release.

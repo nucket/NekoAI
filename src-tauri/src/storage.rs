@@ -167,3 +167,20 @@ pub fn set_user_fact(key: &str, value: &str) -> Result<(), String> {
     .map_err(|e| e.to_string())?;
     Ok(())
 }
+
+pub fn get_all_user_facts() -> Result<std::collections::HashMap<String, String>, String> {
+    let conn = open_db()?;
+    let mut stmt = conn
+        .prepare("SELECT key, value FROM user_facts")
+        .map_err(|e| e.to_string())?;
+
+    let rows = stmt
+        .query_map([], |row| Ok((row.get::<_, String>(0)?, row.get::<_, String>(1)?)))
+        .map_err(|e| e.to_string())?;
+
+    let mut map = std::collections::HashMap::new();
+    for row in rows.filter_map(|r| r.ok()) {
+        map.insert(row.0, row.1);
+    }
+    Ok(map)
+}

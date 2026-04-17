@@ -12,7 +12,6 @@
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.x-blue?logo=typescript)](https://www.typescriptlang.org/)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](CONTRIBUTING.md)
 [![Stars](https://img.shields.io/github/stars/nucket/nekoai?style=social)](https://github.com/nucket/nekoai/stargazers)
-[![Discord](https://img.shields.io/discord/000000000?label=Discord&logo=discord&color=7289da)](https://discord.gg/yourinvite)
 
 <br/>
 
@@ -21,11 +20,7 @@
 
 <br/>
 
-**[🚀 Download](#-installation) · [📖 Docs](#-documentation) · [🎨 Add your own pet](#-create-your-own-pet) · [💬 Discord](#community)**
-
-<br/>
-
-![NekoAI Demo](https://raw.githubusercontent.com/nucket/nekoai/main/assets/demo.gif)
+**[🚀 Download](#-installation) · [📖 Docs](#-documentation) · [🎨 Create a pet](docs/creating-a-pet.md) · [💬 Community](#community)**
 
 </div>
 
@@ -35,11 +30,12 @@
 
 NekoAI is an **open-source, AI-powered desktop pet** that lives on your screen. It wanders around your windows, reacts to what you do, and when you need it — it thinks, answers, and helps, right there on your desktop.
 
-It's a love letter to the 90s/00s desktop companions (Neko, eSheep, Shimeji, Tamagotchi PC) rebuilt with a modern stack and a real AI brain inside.
+It's a love letter to the 90s/00s desktop companions (Neko, eSheep, Shimeji) rebuilt with a modern stack and a real AI brain inside.
 
 ```
-You:    "Hey Neko, what's the weather in Lisbon?"
-Neko:   *walks to corner of screen, pops a bubble* "☀️ 24°C and sunny! Perfect for a walk."
+You:    "Hey Neko, explain this regex real quick"
+Neko:   *walks over, pops a bubble*
+        "That matches one or more digits at start of line. *purrs*"
 ```
 
 ---
@@ -48,13 +44,15 @@ Neko:   *walks to corner of screen, pops a bubble* "☀️ 24°C and sunny! Perf
 
 | Feature | Status |
 |---|---|
-| 🐱 Animated sprite pets that roam your desktop | ✅ Ready |
-| 🖱️ Cursor following & window-aware movement | ✅ Ready |
-| 💬 AI chat via tooltip/bubble (click to talk) | ✅ Ready |
-| 🧠 Persistent memory (remembers your name, habits) | ✅ Ready |
-| 🔌 Multi-provider AI (Claude, OpenAI, Ollama local) | ✅ Ready |
-| 🎨 Community pet skins & sprite packs | 🚧 In Progress |
-| 🔔 Proactive nudges ("You've been coding 2h, take a break!") | 🚧 In Progress |
+| 🐱 Animated sprite pets that roam your desktop | ✅ |
+| 🖱️ 8-direction cursor following & movement | ✅ |
+| 💬 AI chat via animated speech bubble | ✅ |
+| 🧠 Persistent memory — remembers your name, projects, preferences | ✅ |
+| 🔌 Multi-provider AI (Claude, OpenAI, Ollama local) | ✅ |
+| 😴 Dynamic mood — energy changes with time of day & idle time | ✅ |
+| 🎭 Multiple pets — Classic Neko, Ghost, Shiba (more via community) | ✅ |
+| 🔔 Proactive nudges ("coding 90 min — take a break!") | ✅ |
+| 🖥️ System tray — hide/show, switch pets, settings | ✅ |
 | 🌐 Cross-platform (Windows, macOS, Linux) | 🔜 Planned |
 | 🧩 Plugin system for custom behaviors | 🔜 Planned |
 | 🗣️ Voice interaction (TTS/STT) | 🔜 Planned |
@@ -64,31 +62,27 @@ Neko:   *walks to corner of screen, pops a bubble* "☀️ 24°C and sunny! Perf
 ## 🎬 How it works
 
 ```
-┌─────────────────────────────────────────────────────┐
-│                    Your Desktop                      │
-│                                                      │
-│   ┌──────────┐          ┌─────────────────────┐     │
-│   │  VSCode  │          │  "You've been at it  │     │
-│   │          │          │   for 2 hours. Want  │     │
-│   └──────────┘    🐱←   │   a quick stretch?"  │     │
-│                          └─────────────────────┘     │
-│                  ↑ walks around, reacts to windows   │
-└─────────────────────────────────────────────────────┘
+┌──────────────────────────────────────────────────────┐
+│                    Your Desktop                       │
+│                                                       │
+│   ┌──────────┐          ┌──────────────────────────┐  │
+│   │  VSCode  │          │ "You've been coding 90   │  │
+│   │          │          │  min. Stretch break? 🐾" │  │
+│   └──────────┘    🐱←   └──────────────────────────┘  │
+│                  ↑ roams, reacts to what you open     │
+└──────────────────────────────────────────────────────┘
                           │
-               Click or type to NekoAI
+               Click pet or type to chat
                           │
                           ▼
               ┌─────────────────────┐
               │   AI Provider       │
-              │  ┌───────────────┐  │
-              │  │ Claude (API)  │  │
-              │  │ OpenAI (API)  │  │
-              │  │ Ollama (local)│  │
-              │  └───────────────┘  │
+              │  Claude / OpenAI    │
+              │  / Ollama (local)   │
               └─────────────────────┘
                           │
-                    Response rendered
-                  in animated speech bubble
+              Response in animated speech bubble
+              Facts extracted → saved to SQLite
 ```
 
 ---
@@ -110,10 +104,10 @@ Go to [Releases](https://github.com/nucket/nekoai/releases) and grab the latest 
 ```bash
 # Prerequisites: Node.js 20+, Rust 1.75+, Tauri CLI
 git clone https://github.com/nucket/nekoai.git
-cd nekoai
+cd nekoai/NekoAI
 
 npm install
-npm run tauri dev        # Development
+npm run tauri dev        # Development with hot reload
 npm run tauri build      # Production build
 ```
 
@@ -121,99 +115,42 @@ npm run tauri build      # Production build
 
 ## ⚙️ Configuration
 
-On first launch, NekoAI opens a small settings panel. You only need to add **your own API key** — your key never leaves your device.
+On first launch, right-click the pet to open Settings. You only need to add **your own API key** — your key never leaves your device.
 
 ```toml
-# ~/.config/nekoai/config.toml
+# ~/.config/nekoai/config.toml  (auto-created on first run)
 
-[ai]
-provider = "anthropic"          # "anthropic" | "openai" | "ollama"
-api_key  = "sk-ant-..."         # Stored locally, never sent to NekoAI servers
-model    = "claude-haiku-4-5"   # Fastest & cheapest for chat
-
-[pet]
-name     = "Neko"
-skin     = "classic-neko"       # Folder name inside /pets
-
-[behavior]
-follow_cursor     = true
-react_to_windows  = true
-proactive_nudges  = true
-nudge_interval    = 90          # minutes
+provider = "anthropic"           # "anthropic" | "openai" | "ollama"
+api_key  = "sk-ant-..."          # Stored locally, never sent anywhere
+model    = "claude-haiku-4-5-20251001"
 ```
 
-> 🔒 **Privacy first**: NekoAI has no backend. All data stays on your machine. The only network calls are the ones *you* configure to AI providers.
+> 🔒 **Privacy first**: NekoAI has no backend server. All data stays on your machine. The only outbound calls are the AI API calls *you* configure.
 
 ---
 
-## 🎨 Create your own pet
+## 🧠 AI & Memory
 
-NekoAI uses a simple, open **Pet Definition Format** so anyone can create and share pets.
+NekoAI builds a persistent context for every conversation:
 
-### File structure
+- **Pet personality** — defined per-pet in `pet.json` via `system_prompt`
+- **User facts** — extracted automatically from conversations and stored in SQLite (`~/.local/share/nekoai/memory.db`). Includes name, current projects, preferred language, etc.
+- **Conversation history** — last 20 messages sent as context on every turn
+- **Dynamic mood** — pet's current energy/happiness/curiosity subtly influences its tone
 
 ```
-pets/
-└── my-dragon/
-    ├── pet.json          ← Metadata & personality
-    ├── spritesheet.png   ← All animation frames
-    ├── sprites.json      ← Frame coordinates & animation sequences
-    └── sounds/           ← Optional .ogg sound effects
-        └── happy.ogg
+System prompt = pet personality
+             + known facts about user
+             + current mood description
 ```
 
-### `pet.json` example
+Facts are extracted with pattern matching after each exchange and saved to the `user_facts` SQLite table. You can inspect them directly:
 
-```json
-{
-  "name": "Ember",
-  "version": "1.0.0",
-  "author": "yourname",
-  "description": "A tiny fire dragon who loves dark mode",
-  "personality": "Ember is snarky, warm-hearted, and obsessed with coffee.",
-  "system_prompt": "You are Ember, a tiny fire dragon living on the user's desktop. You are witty, slightly dramatic, and give short punchy answers. Use 1-2 sentences max unless asked for more.",
-  "animations": {
-    "idle":      { "frames": [0, 1, 2, 3], "fps": 8, "loop": true },
-    "walk":      { "frames": [4, 5, 6, 7], "fps": 12, "loop": true },
-    "happy":     { "frames": [8, 9, 10],   "fps": 10, "loop": false },
-    "thinking":  { "frames": [11, 12, 13], "fps": 6,  "loop": true },
-    "sleep":     { "frames": [14, 15],     "fps": 4,  "loop": true }
-  },
-  "triggers": {
-    "on_cursor_near":   "walk",
-    "on_chat_open":     "happy",
-    "on_ai_thinking":   "thinking",
-    "on_idle_5min":     "sleep"
-  }
-}
+```bash
+sqlite3 ~/.local/share/nekoai/memory.db "SELECT * FROM user_facts;"
 ```
 
-### Share your pet
-
-Submit a PR adding your pet folder to `/pets-community/` and it'll be listed in the in-app gallery! See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
-
----
-
-## 🧠 AI Integration
-
-NekoAI supports multiple AI backends. Each conversation includes:
-
-- **System prompt** from the pet's `pet.json` (personality)
-- **User context** (optional): time of day, active app, idle duration
-- **Conversation history**: last N messages for continuity
-- **User memory**: persistent facts about the user stored in local SQLite
-
-```typescript
-// src/ai/providers/anthropic.ts — simplified
-const response = await anthropic.messages.create({
-  model: "claude-haiku-4-5-20251001",
-  max_tokens: 256,
-  system: pet.system_prompt + buildContextBlock(userContext),
-  messages: conversationHistory,
-});
-```
-
-### Supported providers
+### Supported AI providers
 
 | Provider | Models | Requires |
 |---|---|---|
@@ -221,82 +158,104 @@ const response = await anthropic.messages.create({
 | **OpenAI** | GPT-4o mini, GPT-4o | API Key |
 | **Ollama** | Llama 3, Mistral, Phi-3... | [Ollama](https://ollama.ai) running locally |
 
-> 💡 **Tip for privacy lovers**: Use Ollama for a 100% local, offline-capable pet with no API costs.
+> 💡 **For full privacy**: Use Ollama — 100% local, no API costs, no data leaves your machine.
+
+---
+
+## 😴 Mood Engine
+
+The pet's mood updates every 60 seconds based on:
+
+| Signal | Effect |
+|---|---|
+| Time of day (6am–8pm) | Energy peaks at midday, drops at night |
+| OS idle time | Energy drains gradually while inactive |
+| Active app category | Curiosity rises when coding; relaxes otherwise |
+
+Mood affects:
+- **Animations** — yawns after 3 min idle, falls asleep after 5 min
+- **AI tone** — sleepy pet gives shorter, quieter answers; curious pet asks follow-ups
+
+---
+
+## 🎭 Available Pets
+
+| Pet | ID | Personality |
+|---|---|---|
+| 🐱 Classic Neko | `classic-neko` | Playful, curious, gives warm short answers |
+| 👻 Ghost | `ghost-pixel` | Ethereal, gentle, slightly mysterious |
+| 🐕 Shiba | `shiba-pixel` | Loyal, energetic, enthusiastic about everything |
+
+Switch pets via right-click → Settings, or from the system tray menu.
+
+Want to create your own? See [Creating a Pet](docs/creating-a-pet.md).
 
 ---
 
 ## 🏗️ Architecture
 
 ```
-nekoai/
-├── src-tauri/                  # Rust backend
-│   ├── src/
-│   │   ├── main.rs             # App entry, tray icon, window setup
-│   │   ├── window.rs           # Transparent always-on-top window logic
-│   │   ├── desktop_monitor.rs  # Win32/macOS APIs — active window detection
-│   │   └── storage.rs          # SQLite: memory, config, history
-│   └── tauri.conf.json
+NekoAI/
+├── src-tauri/                   # Rust backend (Tauri v2)
+│   └── src/
+│       ├── lib.rs               # App setup, tray, Tauri commands
+│       ├── desktop_monitor.rs   # Win32 APIs — active window, idle time
+│       └── storage.rs           # SQLite: conversation history, user facts, config
 │
-├── src/                        # TypeScript/React frontend
-│   ├── pets/                   # Pet engine
-│   │   ├── PetRenderer.tsx     # Sprite animation engine
-│   │   ├── PetBrain.ts         # Behavior state machine
-│   │   └── loader.ts           # Load pet definitions from disk
+├── src/                         # TypeScript / React frontend
 │   ├── ai/
-│   │   ├── providers/          # Anthropic, OpenAI, Ollama adapters
-│   │   └── context-builder.ts  # Builds rich context for AI calls
+│   │   ├── index.ts             # Provider factory, system prompt builder
+│   │   ├── memory.ts            # Fact extraction & persistence (SQLite IPC)
+│   │   ├── types.ts             # AIProvider interface, Message type
+│   │   └── providers/           # anthropic.ts · openai.ts · ollama.ts
 │   ├── components/
-│   │   ├── SpeechBubble.tsx    # Animated tooltip/chat UI
-│   │   └── SettingsPanel.tsx
-│   └── hooks/
-│       └── usePetMovement.ts   # Cursor tracking, window avoidance
+│   │   ├── SpeechBubble.tsx     # Animated chat bubble with typewriter effect
+│   │   ├── SettingsPanel.tsx    # Right-click settings UI
+│   │   └── PetSelector.tsx      # Pet picker (loads from pets/manifest.json)
+│   ├── hooks/
+│   │   ├── usePetMovement.ts    # 8-direction cursor tracking & rAF loop
+│   │   ├── useMoodEngine.ts     # Energy/happiness/curiosity + animation overrides
+│   │   ├── useDesktopContext.ts # Active window detection & app categorization
+│   │   └── usePetAnimation.ts  # Sprite frame ticker
+│   ├── pets/
+│   │   ├── PetRenderer.tsx      # Renders frame-by-frame sprite animations
+│   │   ├── PetBrain.ts          # Behavioral state machine (coding alert, sleep)
+│   │   └── loader.ts            # pet.json validation & loading
+│   └── store/
+│       ├── index.ts             # Zustand store (mood, active pet, animation)
+│       └── configStore.ts       # AI config persisted via Tauri commands
 │
-├── pets/                       # Bundled default pets
-│   ├── classic-neko/
-│   └── pixel-sheep/
-│
-├── pets-community/             # Community-contributed pets (via PR)
-│
-└── .github/
-    ├── CONTRIBUTING.md
-    ├── CODE_OF_CONDUCT.md
-    └── workflows/
-        ├── ci.yml              # Test & lint on PR
-        └── release.yml         # Auto-build installers on tag
+└── pets/                        # Pet definitions (bundled with app)
+    ├── manifest.json            # Registry of all available pets
+    ├── classic-neko/            # 🐱 pet.json + sprites/
+    ├── ghost-pixel/             # 👻 pet.json + sprites/ (add sprite PNGs)
+    └── shiba-pixel/             # 🐕 pet.json + sprites/ (add sprite PNGs)
 ```
 
 ---
 
 ## 🤝 Contributing
 
-NekoAI is **community-first**. There are many ways to contribute:
+NekoAI is community-first. Ways to contribute:
 
-- 🐾 **Create a new pet** — sprites + `pet.json` + PR
+- 🐾 **Create a new pet** — see [Creating a Pet](docs/creating-a-pet.md)
 - 🐛 **Report bugs** — open a detailed Issue
 - 💡 **Suggest features** — Discussions tab
-- 🌍 **Translate** the UI to your language
 - 🧑‍💻 **Code** — check [good first issues](https://github.com/nucket/nekoai/labels/good%20first%20issue)
 
-Read [CONTRIBUTING.md](CONTRIBUTING.md) before submitting. We follow the [Contributor Covenant](CODE_OF_CONDUCT.md).
+Read [CONTRIBUTING.md](CONTRIBUTING.md) before submitting.
 
 ---
 
 ## 🗺️ Roadmap
 
-- **v0.1** — Core: transparent window, Neko-style sprite, cursor tracking
-- **v0.2** — AI chat: speech bubble, Anthropic/OpenAI/Ollama integration
-- **v0.3** — Desktop awareness: react to open windows, app detection
-- **v0.4** — Memory system: SQLite, persistent user context
-- **v0.5** — Community pet gallery in-app
-- **v1.0** — Cross-platform stable release, plugin API, voice support
-
----
-
-## 💬 Community
-
-- 🐦 **X/Twitter**: [@nekoai_app](https://twitter.com/nekoai_app)
-- 💬 **Discord**: [discord.gg/yourinvite](https://discord.gg/yourinvite)
-- 🐙 **GitHub Discussions**: [Ask anything](https://github.com/nucket/nekoai/discussions)
+| Version | Focus |
+|---|---|
+| **v0.1** ✅ | Core: transparent window, Neko sprite, cursor tracking, AI chat |
+| **v0.2** ✅ | Persistent memory, dynamic mood engine, multiple pets |
+| **v0.3** 🚧 | Accessories/skins system, sound effects, sprite scale slider |
+| **v0.4** 🔜 | Community pet gallery in-app, mini-games |
+| **v1.0** 🔜 | Cross-platform stable release, plugin API, voice support |
 
 ---
 
@@ -307,7 +266,7 @@ This project is a love letter to:
 - **[Neko](https://en.wikipedia.org/wiki/Neko_(software))** — the original X11 cat, 1989
 - **[eSheep](https://github.com/Adrianotiger/desktopPet)** — the Windows XP classic
 - **[Shimeji](https://kilkakon.com/shimeji/)** — the Japanese desktop mascot framework
-- **[Tauri](https://tauri.app)** — for making lightweight desktop apps possible
+- **[Tauri](https://tauri.app)** — for making lightweight native desktop apps possible
 
 ---
 
@@ -315,14 +274,14 @@ This project is a love letter to:
 
 MIT © 2026 [Naudy Castellanos](https://github.com/nucket)
 
-Free to use, modify, and distribute. Attribution appreciated. ❤️
+Free to use, modify, and distribute. Attribution appreciated.
 
 ---
 
 <div align="center">
 
-**If NekoAI made you smile, consider giving it a ⭐ — it helps a lot!**
+**If NekoAI made you smile, give it a ⭐ — it helps a lot!**
 
-*Made with ☕ and a deep nostalgia for Windows XP — by [Naudy Castellanos](https://github.com/nucket)*
+*Made with ☕ and deep nostalgia for Windows XP — by [Naudy Castellanos](https://github.com/nucket)*
 
 </div>
