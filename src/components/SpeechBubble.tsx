@@ -142,12 +142,17 @@ export function SpeechBubble({
   const handleKeyDown = useCallback(
     (e: KeyboardEvent<HTMLInputElement>) => {
       resetTimer(); // any key press resets inactivity
+      if (e.key === "Escape") {
+        e.preventDefault();
+        onClose();
+        return;
+      }
       if (e.key === "Enter" && !e.shiftKey) {
         e.preventDefault();
         handleSend();
       }
     },
-    [handleSend, resetTimer]
+    [handleSend, resetTimer, onClose]
   );
 
   // ── Render guard ───────────────────────────────────────────────────────────

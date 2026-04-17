@@ -1,10 +1,13 @@
 import { useState, useMemo, useCallback, useRef, useEffect } from "react";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { PhysicalPosition, PhysicalSize } from "@tauri-apps/api/dpi";
+import { listen } from "@tauri-apps/api/event";
+import { invoke } from "@tauri-apps/api/core";
 import { PetRenderer, AnimationDef } from "./pets/PetRenderer";
 import { usePetMovement } from "./hooks/usePetMovement";
 import { SpeechBubble } from "./components/SpeechBubble";
 import { SettingsPanel } from "./components/SettingsPanel";
+import { PetSelector } from "./components/PetSelector";
 import "./App.css";
 
 // ─── Layout constants ──────────────────────────────────────────────────────────
@@ -42,6 +45,8 @@ export default function App() {
   const [bubblePos, setBubblePos] = useState<"above" | "below">("above");
   const [dragging, setDragging] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [petSelectorOpen, setPetSelectorOpen] = useState(false);
+  const [activePetId, setActivePetId] = useState("classic-neko");
 
   // ── Pet definition loaded from disk ────────────────────────────────────────
   const [petDef, setPetDef] = useState<PetDefinition | null>(null);
@@ -76,6 +81,19 @@ export default function App() {
     loadPet();
   }, []);
 
+  // ── Tray event listeners ───────────────────────────────────────────────────
+  useEffect(() => {
+    const unlisteners = Promise.all([
+      listen("tray-settings", () => setSettingsOpen(true)),
+      listen<string>("tray-select-pet", (e) => {
+        setActivePetId(e.payload);
+        setPetSelectorOpen(true);
+      }),
+      listen("tray-quit", () => invoke("quit_app")),
+    ]);
+    return () => { unlisteners.then((fns) => fns.forEach((fn) => fn())); };
+  }, []);
+
   // ── Animations from pet.json, fallback to empty while loading ─────────────
   const animations = useMemo(
     () => petDef?.animations ?? {},
@@ -88,7 +106,7 @@ export default function App() {
     nearThreshold: 50,
     sleepTimeout: 5 * 60 * 1000,
     windowSize: SPRITE_SIZE,
-    enabled: !dragging && !bubbleOpen && !settingsOpen,
+    enabled: !dragging && !bubbleOpen && !settingsOpen && !petSelectorOpen,
   });
 
   // ── Open bubble ────────────────────────────────────────────────────────────
@@ -170,6 +188,13 @@ export default function App() {
       <SettingsPanel
         isOpen={settingsOpen}
         onClose={() => setSettingsOpen(false)}
+      />
+
+      <PetSelector
+        isOpen={petSelectorOpen}
+        activePetId={activePetId}
+        onSelect={setActivePetId}
+        onClose={() => setPetSelectorOpen(false)}
       />
 
       <SpeechBubble

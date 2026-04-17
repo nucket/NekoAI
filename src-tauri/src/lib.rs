@@ -1,5 +1,9 @@
 use serde::Serialize;
-use tauri::Manager;
+use tauri::{
+    menu::{Menu, MenuItem, PredefinedMenuItem, Submenu},
+    tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent},
+    Emitter, Manager,
+};
 
 mod storage;
 mod desktop_monitor;
@@ -15,7 +19,6 @@ struct Vec2 {
 
 // ─── Cursor position ──────────────────────────────────────────────────────────
 
-/// Returns the current cursor position in physical screen pixels.
 #[tauri::command]
 fn get_cursor_pos() -> Vec2 {
     use mouse_position::mouse_position::Mouse;
@@ -117,6 +120,39 @@ fn get_idle_millis() -> u64 {
     desktop_monitor::get_idle_millis()
 }
 
+// ─── Autostart commands ───────────────────────────────────────────────────────
+
+#[tauri::command]
+fn enable_autostart(app: tauri::AppHandle) -> Result<(), String> {
+    use tauri_plugin_autostart::ManagerExt;
+    app.autolaunch().enable().map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+fn disable_autostart(app: tauri::AppHandle) -> Result<(), String> {
+    use tauri_plugin_autostart::ManagerExt;
+    app.autolaunch().disable().map_err(|e| e.to_string())
+}
+
+// ─── Tray helpers ─────────────────────────────────────────────────────────────
+
+fn toggle_window(app: &tauri::AppHandle) {
+    if let Some(win) = app.get_webview_window("main") {
+        if win.is_visible().unwrap_or(false) {
+            win.hide().ok();
+        } else {
+            show_window(app);
+        }
+    }
+}
+
+fn show_window(app: &tauri::AppHandle) {
+    if let Some(win) = app.get_webview_window("main") {
+        win.show().ok();
+        win.set_focus().ok();
+    }
+}
+
 // ─── Entry point ──────────────────────────────────────────────────────────────
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -124,9 +160,68 @@ pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_fs::init())
         .plugin(tauri_plugin_shell::init())
+        .plugin(tauri_plugin_autostart::init(
+            tauri_plugin_autostart::MacosLauncher::LaunchAgent,
+            None,
+        ))
+        .on_window_event(|window, event| {
+            if let tauri::WindowEvent::CloseRequested { api, .. } = event {
+                window.hide().ok();
+                api.prevent_close();
+            }
+        })
         .setup(|app| {
             let window = app.get_webview_window("main").unwrap();
             window.set_always_on_top(true).ok();
+
+            // ── Tray menu ──────────────────────────────────────────────────
+            let show_hide   = MenuItem::with_id(app, "show_hide",   "Show/Hide NekoAI",     true, None::<&str>)?;
+            let settings    = MenuItem::with_id(app, "settings",    "Settings",              true, None::<&str>)?;
+            let pet_classic = MenuItem::with_id(app, "pet_classic", "Classic Neko",          true, None::<&str>)?;
+            let select_pet  = Submenu::with_items(app, "Select Pet", true, &[&pet_classic])?;
+            let sep         = PredefinedMenuItem::separator(app)?;
+            let about       = MenuItem::with_id(app, "about",       "About NekoAI v0.1.0",  true, None::<&str>)?;
+            let quit        = MenuItem::with_id(app, "quit",        "Quit",                  true, None::<&str>)?;
+
+            let menu = Menu::with_items(app, &[
+                &show_hide,
+                &settings,
+                &select_pet,
+                &sep,
+                &about,
+                &quit,
+            ])?;
+
+            TrayIconBuilder::new()
+                .icon(app.default_window_icon().unwrap().clone())
+                .tooltip("NekoAI")
+                .menu(&menu)
+                .show_menu_on_left_click(false)
+                .on_menu_event(|app, event| match event.id.as_ref() {
+                    "show_hide" => toggle_window(app),
+                    "settings" => {
+                        show_window(app);
+                        app.emit("tray-settings", ()).ok();
+                    }
+                    "pet_classic" => {
+                        show_window(app);
+                        app.emit("tray-select-pet", "classic-neko").ok();
+                    }
+                    "quit" => app.exit(0),
+                    _ => {}
+                })
+                .on_tray_icon_event(|tray, event| {
+                    if let TrayIconEvent::Click {
+                        button: MouseButton::Left,
+                        button_state: MouseButtonState::Up,
+                        ..
+                    } = event
+                    {
+                        toggle_window(tray.app_handle());
+                    }
+                })
+                .build(app)?;
+
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
@@ -144,6 +239,8 @@ pub fn run() {
             get_active_window,
             get_all_windows,
             get_idle_millis,
+            enable_autostart,
+            disable_autostart,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

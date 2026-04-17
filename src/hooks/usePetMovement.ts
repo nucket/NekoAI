@@ -23,7 +23,6 @@ export interface UsePetMovementResult {
 // ─── Internal constants ───────────────────────────────────────────────────────
 
 const CURSOR_POLL_MS = 50;
-const POS_RESYNC_MS = 500;
 const CURSOR_MOVE_PX = 4;
 const NEAR_LEAVE_FACTOR = 1.5;
 
@@ -79,7 +78,6 @@ export function usePetMovement({
   const animRef = useRef("idle");
   const rafIdRef = useRef(0);
   const pollTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const resyncTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const halfSize = windowSize / 2;
 
@@ -113,22 +111,30 @@ export function usePetMovement({
     }
   }, []);
 
-  // ── Sync window position from OS ───────────────────────────────────────────
+  // ── Sync window position from OS (once on enable, then on visibility change) ──
   useEffect(() => {
     if (!enabled) return;
+    getCurrentWindow()
+      .outerPosition()
+      .then((p) => { winPosRef.current = { x: p.x, y: p.y }; })
+      .catch(() => {});
+  }, [enabled]);
 
+  // ── Re-sync on window show (prevents stale position after hide/show) ────────
+  useEffect(() => {
+    if (!enabled) return;
     const win = getCurrentWindow();
-    const sync = () =>
-      win
-        .outerPosition()
-        .then((p) => { winPosRef.current = { x: p.x, y: p.y }; })
-        .catch(() => { });
-
-    sync();
-    resyncTimerRef.current = setInterval(sync, POS_RESYNC_MS);
-    return () => {
-      if (resyncTimerRef.current) clearInterval(resyncTimerRef.current);
+    const onVisibility = () => {
+      if (!document.hidden) {
+        win.outerPosition()
+          .then((p) => { winPosRef.current = { x: p.x, y: p.y }; })
+          .catch(() => {});
+        // Reset idle clock so pet doesn't immediately sleep on show
+        lastCursorMoveRef.current = Date.now();
+      }
     };
+    document.addEventListener("visibilitychange", onVisibility);
+    return () => document.removeEventListener("visibilitychange", onVisibility);
   }, [enabled]);
 
   // ── Poll cursor position via Tauri backend ─────────────────────────────────
@@ -164,6 +170,11 @@ export function usePetMovement({
     const win = getCurrentWindow();
 
     const loop = () => {
+      rafIdRef.current = requestAnimationFrame(loop);
+      // Skip movement updates while window is hidden (WebView2 throttles rAF
+      // when hidden, so winPosRef drifts; we resume only when fully visible)
+      if (document.hidden) return;
+
       const cursor = cursorRef.current;
       const winPos = winPosRef.current;
       const state = stateRef.current;
@@ -228,7 +239,6 @@ export function usePetMovement({
         }
       }
 
-      rafIdRef.current = requestAnimationFrame(loop);
     };
 
     rafIdRef.current = requestAnimationFrame(loop);
