@@ -32,12 +32,23 @@ fn get_cursor_pos() -> Vec2 {
     }
 }
 
-// ─── Window positioning ───────────────────────────────────────────────────────
+// ─── Window positioning & sizing ─────────────────────────────────────────────
 
 #[tauri::command]
 fn move_window(window: tauri::WebviewWindow, x: f64, y: f64) -> Result<(), String> {
     window
         .set_position(tauri::PhysicalPosition::new(x as i32, y as i32))
+        .map_err(|e| e.to_string())
+}
+
+/// Resize the window in logical pixels, bypassing the JS resizable restriction.
+/// `resizable: false` in tauri.conf.json removes WS_THICKFRAME on Windows which
+/// silently blocks `window.setSize()` from JS. The Rust side calls SetWindowPos
+/// directly and is not subject to that limitation.
+#[tauri::command]
+fn resize_window(window: tauri::WebviewWindow, width: f64, height: f64) -> Result<(), String> {
+    window
+        .set_size(tauri::LogicalSize::new(width, height))
         .map_err(|e| e.to_string())
 }
 
@@ -256,6 +267,7 @@ pub fn run() {
             quit_app,
             get_cursor_pos,
             move_window,
+            resize_window,
             set_always_on_top,
             set_ignore_cursor_events,
             get_config,
