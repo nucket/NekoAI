@@ -7,6 +7,7 @@ import { PetRenderer, AnimationDef } from "./pets/PetRenderer";
 import { usePetMovement } from "./hooks/usePetMovement";
 import { SpeechBubble } from "./components/SpeechBubble";
 import { SettingsPanel } from "./components/SettingsPanel";
+import { ContextMenu } from "./components/ContextMenu";
 import { PetSelector } from "./components/PetSelector";
 import { useConfigStore } from "./store/configStore";
 import { useAppStore } from "./store";
@@ -18,10 +19,8 @@ import "./App.css";
 
 // ─── Layout constants ──────────────────────────────────────────────────────────
 
-const SPRITE_SIZE = 48;
 const WIN_OPEN_W = 300;
 const WIN_OPEN_H = 300;
-const SPRITE_INSET_X = Math.round((WIN_OPEN_W - SPRITE_SIZE) / 2);
 
 // ─── Pet definition type ───────────────────────────────────────────────────────
 
@@ -36,7 +35,9 @@ interface PetDefinition {
 // ─── App ───────────────────────────────────────────────────────────────────────
 
 export default function App() {
-  const { isLoaded, loadConfig } = useConfigStore();
+  const { config, isLoaded, loadConfig } = useConfigStore();
+  const spriteSize = config.petSize ?? 48;
+  const spriteInsetX = Math.round((WIN_OPEN_W - spriteSize) / 2);
 
   useEffect(() => {
     if (!isLoaded) loadConfig();
@@ -46,6 +47,7 @@ export default function App() {
   const [bubblePos, setBubblePos] = useState<"above" | "below">("above");
   const [dragging, setDragging] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [contextMenuOpen, setContextMenuOpen] = useState(false);
   const [petSelectorOpen, setPetSelectorOpen] = useState(false);
   const [activePetId, setActivePetId] = useState("classic-neko");
 
@@ -103,8 +105,8 @@ export default function App() {
     speed: 3,
     nearThreshold: 50,
     sleepTimeout: 5 * 60 * 1000,
-    windowSize: SPRITE_SIZE,
-    enabled: !dragging && !bubbleOpen && !settingsOpen && !petSelectorOpen,
+    windowSize: spriteSize,
+    enabled: !dragging && !bubbleOpen && !settingsOpen && !contextMenuOpen && !petSelectorOpen,
   });
 
   // ── Mood engine (updates store + emits animation overrides) ──────────────
@@ -152,6 +154,9 @@ export default function App() {
     const pos = await win.outerPosition();
     const scale = await win.scaleFactor();
 
+    const sz = useConfigStore.getState().config.petSize ?? 48;
+    const insetX = Math.round((WIN_OPEN_W - sz) / 2);
+
     // Convert physical → logical so all math matches CSS pixel units
     const logX = pos.x / scale;
     const logY = pos.y / scale;
@@ -166,10 +171,10 @@ export default function App() {
     setBubblePos(side);
     setBubbleOpen(true);
 
-    let newX = logX - SPRITE_INSET_X;
+    let newX = logX - insetX;
     let newY =
       side === "above"
-        ? logY - (WIN_OPEN_H - SPRITE_SIZE)
+        ? logY - (WIN_OPEN_H - sz)
         : logY;
 
     // Clamp so the expanded window never goes off-screen
@@ -186,8 +191,8 @@ export default function App() {
     const win = getCurrentWindow();
     if (savedPos.current) {
       const { x, y } = savedPos.current;
-      // LogicalSize ensures the window matches the CSS size regardless of DPI scale
-      await win.setSize(new LogicalSize(SPRITE_SIZE, SPRITE_SIZE));
+      const sz = useConfigStore.getState().config.petSize ?? 48;
+      await win.setSize(new LogicalSize(sz, sz));
       await win.setPosition(new LogicalPosition(x, y));
       savedPos.current = null;
     }
@@ -200,8 +205,8 @@ export default function App() {
 
   const handleRightClick = useCallback((e: React.MouseEvent) => {
     e.preventDefault();
-    if (!bubbleOpen) setSettingsOpen((v) => !v);
-  }, [bubbleOpen]);
+    if (!bubbleOpen && !settingsOpen) setContextMenuOpen((v) => !v);
+  }, [bubbleOpen, settingsOpen]);
 
   const handleMouseDown = useCallback(
     async (e: React.MouseEvent) => {
@@ -214,10 +219,11 @@ export default function App() {
         const scale = await win.scaleFactor();
         const logX = pos.x / scale;
         const logY = pos.y / scale;
-        // Recompute the sprite's logical position from the expanded window position
-        const spriteLogX = logX + SPRITE_INSET_X;
+        const sz = useConfigStore.getState().config.petSize ?? 48;
+        const insetX = Math.round((WIN_OPEN_W - sz) / 2);
+        const spriteLogX = logX + insetX;
         const spriteLogY =
-          bubblePos === "above" ? logY + (WIN_OPEN_H - SPRITE_SIZE) : logY;
+          bubblePos === "above" ? logY + (WIN_OPEN_H - sz) : logY;
         savedPos.current = { x: spriteLogX, y: spriteLogY };
         setDragging(false);
         document.removeEventListener("mouseup", resume);
@@ -231,15 +237,22 @@ export default function App() {
   const spriteStyle = bubbleOpen
     ? ({
       position: "absolute" as const,
-      width: SPRITE_SIZE,
-      height: SPRITE_SIZE,
-      left: SPRITE_INSET_X,
-      top: bubblePos === "above" ? WIN_OPEN_H - SPRITE_SIZE : 0,
+      width: spriteSize,
+      height: spriteSize,
+      left: spriteInsetX,
+      top: bubblePos === "above" ? WIN_OPEN_H - spriteSize : 0,
     } as React.CSSProperties)
     : undefined;
 
   return (
     <div className={`app-container${bubbleOpen ? " app-container--open" : ""}`}>
+      <ContextMenu
+        isOpen={contextMenuOpen}
+        onClose={() => setContextMenuOpen(false)}
+        onSettings={() => setSettingsOpen(true)}
+        onSelectPet={() => setPetSelectorOpen(true)}
+      />
+
       <SettingsPanel
         isOpen={settingsOpen}
         onClose={() => setSettingsOpen(false)}
@@ -269,7 +282,7 @@ export default function App() {
         title={
           bubbleOpen
             ? "Drag to reposition · Click X to close"
-            : `${petState} — click to chat · right-click for settings`
+            : `${petState} — click to chat · right-click for menu`
         }
       >
         {/* Show pet only after sprites are loaded */}
@@ -278,14 +291,14 @@ export default function App() {
             spritesDir={spritesDir}
             currentAnimation={moodOverride ?? currentAnimation}
             animations={animations}
-            displaySize={SPRITE_SIZE}
+            displaySize={spriteSize}
           />
         ) : (
           // Loading indicator while pet.json is being read
           <div
             style={{
-              width: SPRITE_SIZE,
-              height: SPRITE_SIZE,
+              width: spriteSize,
+              height: spriteSize,
               display: "flex",
               alignItems: "center",
               justifyContent: "center",

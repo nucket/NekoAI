@@ -27,7 +27,7 @@ interface Props {
 }
 
 export function SettingsPanel({ isOpen, onClose }: Props) {
-  const { config, isLoaded, loadConfig, setProvider, setApiKey, setModel, setBaseUrl } =
+  const { config, isLoaded, loadConfig, setProvider, setApiKey, setModel, setBaseUrl, setPetSize } =
     useConfigStore();
 
   const [userName, setUserName]     = useState('');
@@ -52,17 +52,17 @@ export function SettingsPanel({ isOpen, onClose }: Props) {
   useEffect(() => {
     const win = getCurrentWindow();
     if (isOpen) {
+      const sz = useConfigStore.getState().config.petSize ?? SPRITE_SIZE;
       Promise.all([win.outerPosition(), win.scaleFactor()]).then(([pos, scale]) => {
         setSavedPos({ x: pos.x, y: pos.y });
-        // Convert logical panel offsets to physical before applying
-        const newX = pos.x - Math.round(((PANEL_W - SPRITE_SIZE) / 2) * scale);
-        const newY = pos.y - Math.round((PANEL_H - SPRITE_SIZE) * scale);
+        const newX = pos.x - Math.round(((PANEL_W - sz) / 2) * scale);
+        const newY = pos.y - Math.round((PANEL_H - sz) * scale);
         win.setPosition(new PhysicalPosition(newX, newY));
         win.setSize(new PhysicalSize(PANEL_W * scale, PANEL_H * scale));
       });
     } else if (savedPos) {
-      // Restore: use LogicalSize so DPI scaling doesn't shrink the window below 48×48 CSS px
-      win.setSize(new LogicalSize(SPRITE_SIZE, SPRITE_SIZE)).then(() => {
+      const sz = useConfigStore.getState().config.petSize ?? SPRITE_SIZE;
+      win.setSize(new LogicalSize(sz, sz)).then(() => {
         win.setPosition(new PhysicalPosition(savedPos.x, savedPos.y));
       });
       setSavedPos(null);
@@ -192,6 +192,24 @@ export function SettingsPanel({ isOpen, onClose }: Props) {
         onBlur={handleUserNameBlur}
         placeholder="e.g. Alex"
       />
+
+      {/* ── Pet Size ────────────────────────────────────────────────────── */}
+      <label style={styles.label}>Pet Size</label>
+      <div style={styles.sizeRow}>
+        {([{ label: 'S', value: 32 }, { label: 'M', value: 48 }, { label: 'L', value: 64 }, { label: 'XL', value: 80 }] as const).map(({ label, value }) => (
+          <button
+            key={value}
+            style={{
+              ...styles.sizeBtn,
+              ...((config.petSize ?? 48) === value ? styles.sizeBtnActive : {}),
+            }}
+            onClick={() => setPetSize(value)}
+            title={`${value}px`}
+          >
+            {label}
+          </button>
+        ))}
+      </div>
 
       {/* ── Test button ─────────────────────────────────────────────────── */}
       <button
@@ -364,6 +382,27 @@ const styles: Record<string, React.CSSProperties> = {
     fontSize:        13,
     fontWeight:      600,
     marginBottom:    4,
+  },
+  sizeRow: {
+    display:       'flex',
+    gap:           6,
+    flexWrap:      'wrap' as const,
+  },
+  sizeBtn: {
+    background:    '#1e1e2e',
+    border:        '1px solid #444',
+    borderRadius:  6,
+    color:         '#aaa',
+    cursor:        'pointer',
+    fontSize:      12,
+    fontWeight:    600,
+    padding:       '4px 10px',
+    flex:          1,
+  },
+  sizeBtnActive: {
+    background:    '#3a3a6c',
+    borderColor:   '#7878cc',
+    color:         '#cceeff',
   },
   gear: {
     position:        'absolute',

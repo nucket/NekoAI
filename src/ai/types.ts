@@ -7,6 +7,7 @@ export type AIConfig = {
   apiKey?: string;
   model: string;
   baseUrl?: string;
+  petSize?: number;
 };
 
 export type Message = {

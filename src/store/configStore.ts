@@ -10,6 +10,7 @@ interface ConfigStore {
   setApiKey: (apiKey: string) => Promise<void>;
   setModel: (model: string) => Promise<void>;
   setBaseUrl: (baseUrl: string) => Promise<void>;
+  setPetSize: (petSize: number) => Promise<void>;
 }
 
 const DEFAULT_CONFIG: AIConfig = {
@@ -50,6 +51,12 @@ export const useConfigStore = create<ConfigStore>((set, get) => ({
 
   setBaseUrl: async (baseUrl) => {
     const config = { ...get().config, baseUrl };
+    set({ config });
+    await persist(config);
+  },
+
+  setPetSize: async (petSize) => {
+    const config = { ...get().config, petSize };
     set({ config });
     await persist(config);
   },
