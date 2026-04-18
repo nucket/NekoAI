@@ -53,6 +53,8 @@ Neko:   *walks over, pops a bubble*
 | 🎭 Multiple pets — Classic Neko, Ghost, Shiba (more via community) | ✅ |
 | 🔔 Proactive nudges ("coding 90 min — take a break!") | ✅ |
 | 🖥️ System tray — hide/show, switch pets, settings | ✅ |
+| 📏 Adjustable pet size (S/M/L/XL) with pixel-perfect scaling | ✅ |
+| 🖱️ Right-click context menu — quick settings & pet size adjustment | ✅ |
 | 🌐 Cross-platform (Windows, macOS, Linux) | 🔜 Planned |
 | 🧩 Plugin system for custom behaviors | 🔜 Planned |
 | 🗣️ Voice interaction (TTS/STT) | 🔜 Planned |
@@ -115,7 +117,12 @@ npm run tauri build      # Production build
 
 ## ⚙️ Configuration
 
-On first launch, right-click the pet to open Settings. You only need to add **your own API key** — your key never leaves your device.
+**Right-click the pet** to open the context menu where you can:
+- ⚙ **Settings** — configure AI provider, API key, model, and your name
+- 🐾 **Select Pet** — switch between available pets
+- 📏 **Size** — adjust pet size (S=32px, M=64px, L=96px, XL=128px) for pixel-perfect rendering
+
+Configuration is auto-created on first run:
 
 ```toml
 # ~/.config/nekoai/config.toml  (auto-created on first run)
@@ -123,6 +130,7 @@ On first launch, right-click the pet to open Settings. You only need to add **yo
 provider = "anthropic"           # "anthropic" | "openai" | "ollama"
 api_key  = "sk-ant-..."          # Stored locally, never sent anywhere
 model    = "claude-haiku-4-5-20251001"
+pet_size = 64                    # pixels (32, 64, 96, or 128)
 ```
 
 > 🔒 **Privacy first**: NekoAI has no backend server. All data stays on your machine. The only outbound calls are the AI API calls *you* configure.
@@ -198,7 +206,7 @@ Want to create your own? See [Creating a Pet](docs/creating-a-pet.md).
 NekoAI/
 ├── src-tauri/                   # Rust backend (Tauri v2)
 │   └── src/
-│       ├── lib.rs               # App setup, tray, Tauri commands
+│       ├── lib.rs               # App setup, tray, Tauri commands, resize_window
 │       ├── desktop_monitor.rs   # Win32 APIs — active window, idle time
 │       └── storage.rs           # SQLite: conversation history, user facts, config
 │
@@ -210,20 +218,21 @@ NekoAI/
 │   │   └── providers/           # anthropic.ts · openai.ts · ollama.ts
 │   ├── components/
 │   │   ├── SpeechBubble.tsx     # Animated chat bubble with typewriter effect
-│   │   ├── SettingsPanel.tsx    # Right-click settings UI
+│   │   ├── SettingsPanel.tsx    # Settings panel (API key, model, pet size)
+│   │   ├── ContextMenu.tsx      # Right-click context menu (settings, pet, size)
 │   │   └── PetSelector.tsx      # Pet picker (loads from pets/manifest.json)
 │   ├── hooks/
 │   │   ├── usePetMovement.ts    # 8-direction cursor tracking & rAF loop
 │   │   ├── useMoodEngine.ts     # Energy/happiness/curiosity + animation overrides
 │   │   ├── useDesktopContext.ts # Active window detection & app categorization
-│   │   └── usePetAnimation.ts  # Sprite frame ticker
+│   │   └── usePetAnimation.ts   # Sprite frame ticker
 │   ├── pets/
 │   │   ├── PetRenderer.tsx      # Renders frame-by-frame sprite animations
 │   │   ├── PetBrain.ts          # Behavioral state machine (coding alert, sleep)
 │   │   └── loader.ts            # pet.json validation & loading
 │   └── store/
 │       ├── index.ts             # Zustand store (mood, active pet, animation)
-│       └── configStore.ts       # AI config persisted via Tauri commands
+│       └── configStore.ts       # AI config & pet size persisted via Tauri commands
 │
 └── pets/                        # Pet definitions (bundled with app)
     ├── manifest.json            # Registry of all available pets
@@ -231,6 +240,26 @@ NekoAI/
     ├── ghost-pixel/             # 👻 pet.json + sprites/ (add sprite PNGs)
     └── shiba-pixel/             # 🐕 pet.json + sprites/ (add sprite PNGs)
 ```
+
+### Window Resizing on Windows
+
+NekoAI uses a Tauri command (`resize_window`) to bypass OS-level restrictions when the window has `resizable: false` in its configuration. This is necessary because:
+
+- **Why `resizable: false`?** — Creates a truly frameless window (no title bar, borders, or resize handles)
+- **The problem:** The Windows API removes the `WS_THICKFRAME` window style when a window is created as non-resizable, and JavaScript APIs cannot restore it at runtime
+- **The solution:** A Rust-side command calls `window.set_size()` directly, completely bypassing the JS API limitation
+
+This allows the speech bubble, settings panel, and context menu to dynamically expand/collapse without the user seeing the resize handles.
+
+### Pixel-Perfect Sprite Scaling
+
+All pet sizes are integer multiples of the native 32px sprite:
+- **S** = 32px (1×)
+- **M** = 64px (2×)
+- **L** = 96px (3×)
+- **XL** = 128px (4×)
+
+This ensures crisp, pixelated rendering without anti-aliasing artifacts. Non-integer scales (like 48px = 1.5×) cause uneven pixel mapping and visible borders. CSS sizes are injected dynamically via inline styles in `App.tsx`, not hardcoded in `App.css`.
 
 ---
 

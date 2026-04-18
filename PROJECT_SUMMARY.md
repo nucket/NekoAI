@@ -53,8 +53,10 @@ The pet wanders freely across your desktop, reacts to cursor movement and window
 | Persistence | SQLite via rusqlite |
 | AI (cloud) | Anthropic Claude API, OpenAI API |
 | AI (local) | Ollama |
-| Sprites | PNG (RGBA, 32×32 px, 2× scaled) |
+| Sprites | PNG (RGBA, 32×32 px native, 1×/2×/3×/4× integer scaling) |
 | Pet format | JSON (pet.json schema) |
+| State management | Zustand |
+| Styling | Inline CSS-in-JS + dynamic inline styles for responsive sizing |
 
 ---
 
@@ -72,6 +74,10 @@ The pet wanders freely across your desktop, reacts to cursor movement and window
 - [x] Multi-provider AI (Anthropic, OpenAI, Ollama)
 - [x] SQLite persistence for conversation history
 - [x] System tray icon with context menu
+- [x] Right-click context menu (`ContextMenu.tsx`) — quick access to settings, pet selection, and size adjustment
+- [x] Adjustable pet size with integer-multiple scaling (32, 64, 96, 128 px) for pixel-perfect rendering
+- [x] Rust `resize_window` command to bypass Windows OS-level window resizing restrictions
+- [x] Dynamic CSS sizing via inline styles (no hardcoded pixel values in stylesheets)
 
 ### In Progress
 
@@ -103,12 +109,39 @@ Community pets live in `pets-community/` and are listed in the in-app gallery.
 
 ---
 
+## Architectural Decisions
+
+### Window Resizing on Windows (`resize_window` Command)
+
+**Challenge:** The app has `resizable: false` in `tauri.conf.json` to create a truly frameless window. However, when Windows creates a non-resizable window, it removes the `WS_THICKFRAME` window style, which JavaScript APIs cannot restore at runtime.
+
+**Solution:** A Rust command-side implementation of `resize_window()` calls `window.set_size()` directly from the backend, completely bypassing the JS API limitation. This allows:
+- Speech bubbles to expand/collapse without showing resize handles
+- Settings and context menus to appear/disappear smoothly
+- Dynamic pet size adjustment via UI controls
+
+**Implementation:** `src-tauri/src/lib.rs` registers the command and handles resizing for all interactive panels.
+
+### Pixel-Perfect Sprite Scaling
+
+**Challenge:** Arbitrary pet sizes (like 48px = 1.5× of the 32px native sprite) cause uneven pixel mapping, resulting in visible borders and artifacts in pixelated art.
+
+**Solution:** Restrict all pet sizes to integer multiples of 32px:
+- S = 32px (1×), M = 64px (2×), L = 96px (3×), XL = 128px (4×)
+- This ensures each sprite pixel maps to an exact integer of screen pixels with no anti-aliasing
+
+**Implementation Details:**
+- CSS sizes are **not hardcoded** in `App.css`; instead they're injected as inline styles from `App.tsx` using the `spriteSize` state
+- `PetRenderer.tsx` has `imageRendering: "pixelated"` and `display: block` to prevent baseline gaps and sub-pixel rendering
+- Container styles dynamically update when the user changes size via the context menu
+
 ## Privacy
 
 NekoAI has no backend servers and no telemetry. All data stays on the user's machine:
 
 - API keys: `~/.config/nekoai/config.toml`
 - Conversation history: `~/.local/share/nekoai/memory.db` (SQLite)
+- Pet size preference: persisted in `configStore.ts` via `save_config` command
 - The only outbound network requests are direct calls to the AI provider the user configures
 
 ---
