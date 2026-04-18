@@ -50,23 +50,40 @@ export function SettingsPanel({ isOpen, onClose }: Props) {
 
   // ── Expand / collapse the Tauri window ────────────────────────────────────
   useEffect(() => {
+    let cancelled = false;
     const win = getCurrentWindow();
-    if (isOpen) {
+
+    async function expand() {
       const sz = useConfigStore.getState().config.petSize ?? SPRITE_SIZE;
-      Promise.all([win.outerPosition(), win.scaleFactor()]).then(([pos, scale]) => {
+      try {
+        const [pos, scale] = await Promise.all([win.outerPosition(), win.scaleFactor()]);
+        if (cancelled) return;
         setSavedPos({ x: pos.x, y: pos.y });
         const newX = pos.x - Math.round(((PANEL_W - sz) / 2) * scale);
         const newY = pos.y - Math.round((PANEL_H - sz) * scale);
-        win.setPosition(new PhysicalPosition(newX, newY));
-        win.setSize(new PhysicalSize(PANEL_W * scale, PANEL_H * scale));
-      });
-    } else if (savedPos) {
-      const sz = useConfigStore.getState().config.petSize ?? SPRITE_SIZE;
-      win.setSize(new LogicalSize(sz, sz)).then(() => {
-        win.setPosition(new PhysicalPosition(savedPos.x, savedPos.y));
-      });
-      setSavedPos(null);
+        await win.setPosition(new PhysicalPosition(newX, newY));
+        await win.setSize(new PhysicalSize(PANEL_W * scale, PANEL_H * scale));
+      } catch (err) {
+        console.error('[SettingsPanel] expand error:', err);
+      }
     }
+
+    async function collapse() {
+      if (!savedPos) return;
+      const sz = useConfigStore.getState().config.petSize ?? SPRITE_SIZE;
+      const snap = { ...savedPos };
+      setSavedPos(null);
+      try {
+        await win.setSize(new LogicalSize(sz, sz));
+        if (!cancelled) await win.setPosition(new PhysicalPosition(snap.x, snap.y));
+      } catch (err) {
+        console.error('[SettingsPanel] collapse error:', err);
+      }
+    }
+
+    if (isOpen) expand(); else collapse();
+
+    return () => { cancelled = true; };
   }, [isOpen]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── Escape key closes without saving ─────────────────────────────────────

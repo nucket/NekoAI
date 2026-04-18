@@ -33,30 +33,47 @@ export function ContextMenu({ isOpen, onClose, onSettings, onSelectPet }: Props)
 
   // ── Expand / collapse Tauri window ────────────────────────────────────────
   useEffect(() => {
+    let cancelled = false;
     const win = getCurrentWindow();
-    if (isOpen) {
-      setWindowReady(false);
+
+    async function expand() {
       const spriteSize = useConfigStore.getState().config.petSize ?? 48;
-      Promise.all([win.outerPosition(), win.scaleFactor()]).then(([pos, scale]) => {
-        const snap = { x: pos.x, y: pos.y };
-        savedPosRef.current = snap;
+      try {
+        const [pos, scale] = await Promise.all([win.outerPosition(), win.scaleFactor()]);
+        if (cancelled) return;
+        savedPosRef.current = { x: pos.x, y: pos.y };
         const newX = pos.x - Math.round(((MENU_W - spriteSize) / 2) * scale);
         const newY = pos.y - Math.round((MENU_H - spriteSize) * scale);
-        win.setPosition(new PhysicalPosition(newX, newY));
-        // Show menu only after resize is done → no partial-rectangle flash
-        win.setSize(new PhysicalSize(MENU_W * scale, MENU_H * scale)).then(() => {
-          setWindowReady(true);
-        });
-      });
-    } else if (savedPosRef.current) {
-      setWindowReady(false);
-      const spriteSize = useConfigStore.getState().config.petSize ?? 48;
+        await win.setPosition(new PhysicalPosition(newX, newY));
+        await win.setSize(new PhysicalSize(MENU_W * scale, MENU_H * scale));
+      } catch (err) {
+        console.error('[ContextMenu] expand error:', err);
+      }
+      // Always reveal menu even if resize failed (window may still be readable)
+      if (!cancelled) setWindowReady(true);
+    }
+
+    async function collapse() {
       const snap = savedPosRef.current;
       savedPosRef.current = null;
-      win.setSize(new LogicalSize(spriteSize, spriteSize)).then(() => {
-        win.setPosition(new PhysicalPosition(snap.x, snap.y));
-      });
+      if (!snap) return;
+      const spriteSize = useConfigStore.getState().config.petSize ?? 48;
+      try {
+        await win.setSize(new LogicalSize(spriteSize, spriteSize));
+        if (!cancelled) await win.setPosition(new PhysicalPosition(snap.x, snap.y));
+      } catch (err) {
+        console.error('[ContextMenu] collapse error:', err);
+      }
     }
+
+    if (isOpen) {
+      setWindowReady(false);
+      expand();
+    } else {
+      collapse();
+    }
+
+    return () => { cancelled = true; };
   }, [isOpen]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── Escape key closes ─────────────────────────────────────────────────────
