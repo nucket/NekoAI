@@ -1,8 +1,6 @@
-/* ─── Base: 64×64 transparent window ───────────────────────────────────────── */
+/* ─── Base: transparent window, size set dynamically via inline style ────────── */
 
 .app-container {
-  width:    48px;
-  height:   48px;
   position: relative;
   background: transparent;
   /* Prevent accidental text selection while clicking / dragging */
@@ -19,10 +17,8 @@
 
 /* ─── Sprite container ───────────────────────────────────────────────────────── */
 
-/* Default (closed): fills the 64×64 window */
+/* Size is injected as inline style from App.tsx to match the current petSize */
 .sprite-container {
-  width:    48px;
-  height:   48px;
   display:  flex;
   align-items: center;
   justify-content: center;

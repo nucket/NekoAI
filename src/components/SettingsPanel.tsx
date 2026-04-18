@@ -213,7 +213,7 @@ export function SettingsPanel({ isOpen, onClose }: Props) {
       {/* ── Pet Size ────────────────────────────────────────────────────── */}
       <label style={styles.label}>Pet Size</label>
       <div style={styles.sizeRow}>
-        {([{ label: 'S', value: 32 }, { label: 'M', value: 48 }, { label: 'L', value: 64 }, { label: 'XL', value: 80 }] as const).map(({ label, value }) => (
+        {([{ label: 'S', value: 32 }, { label: 'M', value: 64 }, { label: 'L', value: 96 }, { label: 'XL', value: 128 }] as const).map(({ label, value }) => (
           <button
             key={value}
             style={{

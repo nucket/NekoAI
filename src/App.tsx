@@ -36,7 +36,7 @@ interface PetDefinition {
 
 export default function App() {
   const { config, isLoaded, loadConfig } = useConfigStore();
-  const spriteSize = config.petSize ?? 48;
+  const spriteSize = config.petSize ?? 64;
   const spriteInsetX = Math.round((WIN_OPEN_W - spriteSize) / 2);
 
   useEffect(() => {
@@ -244,8 +244,16 @@ export default function App() {
     } as React.CSSProperties)
     : undefined;
 
+  // Container size must match petSize exactly to avoid a visible border/gap
+  const containerStyle = bubbleOpen
+    ? undefined
+    : { width: spriteSize, height: spriteSize };
+
   return (
-    <div className={`app-container${bubbleOpen ? " app-container--open" : ""}`}>
+    <div
+      className={`app-container${bubbleOpen ? " app-container--open" : ""}`}
+      style={containerStyle}
+    >
       <ContextMenu
         isOpen={contextMenuOpen}
         onClose={() => setContextMenuOpen(false)}
@@ -274,7 +282,7 @@ export default function App() {
 
       <div
         className="sprite-container"
-        style={spriteStyle}
+        style={spriteStyle ?? containerStyle}
         onClick={handleSpriteClick}
         onMouseDown={handleMouseDown}
         onContextMenu={handleRightClick}

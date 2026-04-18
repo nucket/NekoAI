@@ -95,6 +95,7 @@ export function PetRenderer({
       alt="neko"
       draggable={false}
       style={{
+        display: "block",
         width: displaySize,
         height: displaySize,
         imageRendering: "pixelated",

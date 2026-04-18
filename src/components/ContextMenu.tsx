@@ -9,11 +9,12 @@ import { useConfigStore } from '../store/configStore';
 const MENU_W = 190;
 const MENU_H = 220;
 
+// Integer multiples of the 32px native sprite → pixel-perfect scaling
 const PET_SIZES: { label: string; value: number }[] = [
-  { label: 'S',  value: 32 },
-  { label: 'M',  value: 48 },
-  { label: 'L',  value: 64 },
-  { label: 'XL', value: 80 },
+  { label: 'S',  value: 32  },  // 1×
+  { label: 'M',  value: 64  },  // 2×
+  { label: 'L',  value: 96  },  // 3×
+  { label: 'XL', value: 128 },  // 4×
 ];
 
 // ─── Component ────────────────────────────────────────────────────────────────
