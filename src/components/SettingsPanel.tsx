@@ -61,8 +61,10 @@ export function SettingsPanel({ isOpen, onClose }: Props) {
         setSavedPos({ x: pos.x, y: pos.y });
         const newX = pos.x - Math.round(((PANEL_W - sz) / 2) * scale);
         const newY = pos.y - Math.round((PANEL_H - sz) * scale);
+        await win.setResizable(true);
         await win.setPosition(new PhysicalPosition(newX, newY));
         await win.setSize(new PhysicalSize(PANEL_W * scale, PANEL_H * scale));
+        await win.setResizable(false);
       } catch (err) {
         console.error('[SettingsPanel] expand error:', err);
       }
@@ -74,7 +76,9 @@ export function SettingsPanel({ isOpen, onClose }: Props) {
       const snap = { ...savedPos };
       setSavedPos(null);
       try {
+        await win.setResizable(true);
         await win.setSize(new LogicalSize(sz, sz));
+        await win.setResizable(false);
         if (!cancelled) await win.setPosition(new PhysicalPosition(snap.x, snap.y));
       } catch (err) {
         console.error('[SettingsPanel] collapse error:', err);

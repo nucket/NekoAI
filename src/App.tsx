@@ -181,8 +181,10 @@ export default function App() {
     newX = Math.max(0, Math.min(newX, screenW - WIN_OPEN_W));
     newY = Math.max(0, Math.min(newY, screenH - WIN_OPEN_H));
 
+    await win.setResizable(true);
     await win.setPosition(new LogicalPosition(newX, newY));
     await win.setSize(new LogicalSize(WIN_OPEN_W, WIN_OPEN_H));
+    await win.setResizable(false);
   }, []);
 
   // ── Close bubble ───────────────────────────────────────────────────────────
@@ -192,7 +194,9 @@ export default function App() {
     if (savedPos.current) {
       const { x, y } = savedPos.current;
       const sz = useConfigStore.getState().config.petSize ?? 48;
+      await win.setResizable(true);
       await win.setSize(new LogicalSize(sz, sz));
+      await win.setResizable(false);
       await win.setPosition(new LogicalPosition(x, y));
       savedPos.current = null;
     }

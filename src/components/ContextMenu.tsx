@@ -44,12 +44,14 @@ export function ContextMenu({ isOpen, onClose, onSettings, onSelectPet }: Props)
         savedPosRef.current = { x: pos.x, y: pos.y };
         const newX = pos.x - Math.round(((MENU_W - spriteSize) / 2) * scale);
         const newY = pos.y - Math.round((MENU_H - spriteSize) * scale);
+        await win.setResizable(true);
         await win.setPosition(new PhysicalPosition(newX, newY));
         await win.setSize(new PhysicalSize(MENU_W * scale, MENU_H * scale));
+        await win.setResizable(false);
       } catch (err) {
         console.error('[ContextMenu] expand error:', err);
       }
-      // Always reveal menu even if resize failed (window may still be readable)
+      // Always reveal menu even if resize failed
       if (!cancelled) setWindowReady(true);
     }
 
@@ -59,7 +61,9 @@ export function ContextMenu({ isOpen, onClose, onSettings, onSelectPet }: Props)
       if (!snap) return;
       const spriteSize = useConfigStore.getState().config.petSize ?? 48;
       try {
+        await win.setResizable(true);
         await win.setSize(new LogicalSize(spriteSize, spriteSize));
+        await win.setResizable(false);
         if (!cancelled) await win.setPosition(new PhysicalPosition(snap.x, snap.y));
       } catch (err) {
         console.error('[ContextMenu] collapse error:', err);
