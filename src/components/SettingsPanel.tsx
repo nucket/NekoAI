@@ -132,132 +132,134 @@ export function SettingsPanel({ isOpen, onClose }: Props) {
   const isOllama = config.provider === 'ollama';
 
   return (
-    <div style={styles.overlay} onClick={(e) => e.stopPropagation()}>
-      {/* ── Header ──────────────────────────────────────────────────────── */}
-      <div style={styles.header}>
-        <span style={styles.title}>⚙ Settings</span>
-        <button style={styles.closeBtn} onClick={onClose} title="Close">✕</button>
-      </div>
+    <div style={styles.overlay} onClick={onClose}>
+      <div style={styles.panel} onClick={(e) => e.stopPropagation()}>
+        {/* ── Header ──────────────────────────────────────────────────────── */}
+        <div style={styles.header}>
+          <span style={styles.title}>⚙ Settings</span>
+          <button style={styles.closeBtn} onClick={onClose} title="Close">✕</button>
+        </div>
 
-      {/* ── Provider ────────────────────────────────────────────────────── */}
-      <label style={styles.label}>AI Provider</label>
-      <select
-        style={styles.select}
-        value={config.provider}
-        onChange={(e) => handleProviderChange(e.target.value)}
-      >
-        <option value="anthropic">Anthropic (Claude)</option>
-        <option value="openai">OpenAI (GPT)</option>
-        <option value="ollama">Ollama (local)</option>
-      </select>
+        {/* ── Provider ────────────────────────────────────────────────────── */}
+        <label style={styles.label}>AI Provider</label>
+        <select
+          style={styles.select}
+          value={config.provider}
+          onChange={(e) => handleProviderChange(e.target.value)}
+        >
+          <option value="anthropic">Anthropic (Claude)</option>
+          <option value="openai">OpenAI (GPT)</option>
+          <option value="ollama">Ollama (local)</option>
+        </select>
 
-      {/* ── Model ───────────────────────────────────────────────────────── */}
-      <label style={styles.label}>Model</label>
-      <input
-        style={styles.input}
-        type="text"
-        value={config.model}
-        onChange={(e) => setModel(e.target.value)}
-        placeholder={PROVIDER_DEFAULTS[config.provider]?.model ?? ''}
-      />
+        {/* ── Model ───────────────────────────────────────────────────────── */}
+        <label style={styles.label}>Model</label>
+        <input
+          style={styles.input}
+          type="text"
+          value={config.model}
+          onChange={(e) => setModel(e.target.value)}
+          placeholder={PROVIDER_DEFAULTS[config.provider]?.model ?? ''}
+        />
 
-      {/* ── API key (hidden for Ollama) ──────────────────────────────────── */}
-      {!isOllama && (
-        <>
-          <label style={styles.label}>API Key</label>
-          <div style={styles.keyRow}>
+        {/* ── API key (hidden for Ollama) ──────────────────────────────────── */}
+        {!isOllama && (
+          <>
+            <label style={styles.label}>API Key</label>
+            <div style={styles.keyRow}>
+              <input
+                style={{ ...styles.input, flex: 1 }}
+                type={showKey ? 'text' : 'password'}
+                value={config.apiKey ?? ''}
+                onChange={(e) => setApiKey(e.target.value)}
+                placeholder={PROVIDER_DEFAULTS[config.provider]?.placeholder ?? ''}
+                autoComplete="off"
+              />
+              <button
+                style={styles.eyeBtn}
+                onClick={() => setShowKey((v) => !v)}
+                title={showKey ? 'Hide' : 'Show'}
+              >
+                {showKey ? '🙈' : '👁'}
+              </button>
+            </div>
+          </>
+        )}
+
+        {/* ── Ollama base URL ──────────────────────────────────────────────── */}
+        {isOllama && (
+          <>
+            <label style={styles.label}>Base URL</label>
             <input
-              style={{ ...styles.input, flex: 1 }}
-              type={showKey ? 'text' : 'password'}
-              value={config.apiKey ?? ''}
-              onChange={(e) => setApiKey(e.target.value)}
-              placeholder={PROVIDER_DEFAULTS[config.provider]?.placeholder ?? ''}
-              autoComplete="off"
+              style={styles.input}
+              type="text"
+              value={config.baseUrl ?? 'http://localhost:11434'}
+              onChange={(e) => setBaseUrl(e.target.value)}
+              placeholder="http://localhost:11434"
             />
+          </>
+        )}
+
+        {/* ── User name ───────────────────────────────────────────────────── */}
+        <label style={styles.label}>Your Name (optional)</label>
+        <input
+          style={styles.input}
+          type="text"
+          value={userName}
+          onChange={(e) => setUserName(e.target.value)}
+          onBlur={handleUserNameBlur}
+          placeholder="e.g. Alex"
+        />
+
+        {/* ── Pet Size ────────────────────────────────────────────────────── */}
+        <label style={styles.label}>Pet Size</label>
+        <div style={styles.sizeRow}>
+          {([{ label: 'S', value: 32 }, { label: 'M', value: 64 }, { label: 'L', value: 96 }, { label: 'XL', value: 128 }] as const).map(({ label, value }) => (
             <button
-              style={styles.eyeBtn}
-              onClick={() => setShowKey((v) => !v)}
-              title={showKey ? 'Hide' : 'Show'}
+              key={value}
+              style={{
+                ...styles.sizeBtn,
+                ...((config.petSize ?? 48) === value ? styles.sizeBtnActive : {}),
+              }}
+              onClick={() => setPetSize(value)}
+              title={`${value}px`}
             >
-              {showKey ? '🙈' : '👁'}
+              {label}
             </button>
-          </div>
-        </>
-      )}
+          ))}
+        </div>
 
-      {/* ── Ollama base URL ──────────────────────────────────────────────── */}
-      {isOllama && (
-        <>
-          <label style={styles.label}>Base URL</label>
-          <input
-            style={styles.input}
-            type="text"
-            value={config.baseUrl ?? 'http://localhost:11434'}
-            onChange={(e) => setBaseUrl(e.target.value)}
-            placeholder="http://localhost:11434"
-          />
-        </>
-      )}
+        {/* ── Test button ─────────────────────────────────────────────────── */}
+        <button
+          style={{
+            ...styles.testBtn,
+            ...(testStatus === 'ok'    ? styles.testOk    : {}),
+            ...(testStatus === 'error' ? styles.testError : {}),
+          }}
+          onClick={handleTest}
+          disabled={testStatus === 'loading'}
+        >
+          {testStatus === 'loading' ? 'Testing…' : 'Test connection'}
+        </button>
 
-      {/* ── User name ───────────────────────────────────────────────────── */}
-      <label style={styles.label}>Your Name (optional)</label>
-      <input
-        style={styles.input}
-        type="text"
-        value={userName}
-        onChange={(e) => setUserName(e.target.value)}
-        onBlur={handleUserNameBlur}
-        placeholder="e.g. Alex"
-      />
+        {testMsg !== '' && (
+          <p style={{
+            ...styles.testFeedback,
+            color: testStatus === 'ok' ? '#4caf50' : '#f44336',
+          }}>
+            {testMsg}
+          </p>
+        )}
 
-      {/* ── Pet Size ────────────────────────────────────────────────────── */}
-      <label style={styles.label}>Pet Size</label>
-      <div style={styles.sizeRow}>
-        {([{ label: 'S', value: 32 }, { label: 'M', value: 64 }, { label: 'L', value: 96 }, { label: 'XL', value: 128 }] as const).map(({ label, value }) => (
-          <button
-            key={value}
-            style={{
-              ...styles.sizeBtn,
-              ...((config.petSize ?? 48) === value ? styles.sizeBtnActive : {}),
-            }}
-            onClick={() => setPetSize(value)}
-            title={`${value}px`}
-          >
-            {label}
-          </button>
-        ))}
+        {/* ── Quit ────────────────────────────────────────────────────────── */}
+        <div style={styles.divider} />
+        <button
+          style={styles.quitBtn}
+          onClick={() => invoke('quit_app')}
+        >
+          Quit NekoAI
+        </button>
       </div>
-
-      {/* ── Test button ─────────────────────────────────────────────────── */}
-      <button
-        style={{
-          ...styles.testBtn,
-          ...(testStatus === 'ok'    ? styles.testOk    : {}),
-          ...(testStatus === 'error' ? styles.testError : {}),
-        }}
-        onClick={handleTest}
-        disabled={testStatus === 'loading'}
-      >
-        {testStatus === 'loading' ? 'Testing…' : 'Test connection'}
-      </button>
-
-      {testMsg !== '' && (
-        <p style={{
-          ...styles.testFeedback,
-          color: testStatus === 'ok' ? '#4caf50' : '#f44336',
-        }}>
-          {testMsg}
-        </p>
-      )}
-
-      {/* ── Quit ────────────────────────────────────────────────────────── */}
-      <div style={styles.divider} />
-      <button
-        style={styles.quitBtn}
-        onClick={() => invoke('quit_app')}
-      >
-        Quit NekoAI
-      </button>
     </div>
   );
 }
@@ -287,6 +289,11 @@ const styles: Record<string, React.CSSProperties> = {
     position:        'fixed',
     inset:           0,
     zIndex:          100,
+    display:         'flex',
+    alignItems:      'center',
+    justifyContent:  'center',
+  },
+  panel: {
     background:      'rgba(20, 20, 30, 0.96)',
     color:           '#e0e0e0',
     borderRadius:    12,
@@ -297,6 +304,8 @@ const styles: Record<string, React.CSSProperties> = {
     fontFamily:      'system-ui, sans-serif',
     fontSize:        13,
     boxSizing:       'border-box',
+    width:           '280px',
+    maxHeight:       '90vh',
     overflowY:       'auto',
   },
   header: {

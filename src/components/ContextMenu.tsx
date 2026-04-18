@@ -162,10 +162,8 @@ const styles: Record<string, React.CSSProperties> = {
     inset:          0,
     zIndex:         200,
     display:        'flex',
-    // menu anchored to top; window expands upward so menu fills from top down
-    alignItems:     'flex-start',
+    alignItems:     'center',
     justifyContent: 'center',
-    paddingTop:     4,
   },
   menu: {
     background:  'rgba(20, 20, 30, 0.97)',
