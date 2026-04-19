@@ -33,7 +33,7 @@ export function PanelWindow({ route }: Props) {
 // ─── Context menu panel ───────────────────────────────────────────────────────
 
 function ContextMenuPanel() {
-  const { config, loadConfig, isLoaded, setPetSize } = useConfigStore();
+  const { config, loadConfig, isLoaded } = useConfigStore();
 
   useEffect(() => { if (!isLoaded) loadConfig(); }, [isLoaded, loadConfig]);
 
@@ -50,15 +50,13 @@ function ContextMenuPanel() {
 
   const close = () => invoke("close_panel_window").catch(() => {});
 
-  const openSettings = () => {
-    // Ask the main window to take over for settings (single expanded window
-    // pattern stays in place for settings/pet-selector for now)
-    emit("panel-action", "settings").catch(() => {});
+  const openSettings = async () => {
+    await emit("panel-action", "settings").catch(() => {});
     close();
   };
 
-  const openSelectPet = () => {
-    emit("panel-action", "select-pet").catch(() => {});
+  const openSelectPet = async () => {
+    await emit("panel-action", "select-pet").catch(() => {});
     close();
   };
 
@@ -90,8 +88,7 @@ function ContextMenuPanel() {
                   ...styles.sizeBtn,
                   ...(currentSize === value ? styles.sizeBtnActive : {}),
                 }}
-                onClick={async () => {
-                  await setPetSize(value);
+                onClick={() => {
                   emit("panel-action", `pet-size:${value}`).catch(() => {});
                 }}
                 title={`${value}px`}

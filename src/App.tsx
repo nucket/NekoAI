@@ -96,6 +96,9 @@ export default function App() {
           setSettingsOpen(true);
         } else if (action === "select-pet") {
           setPetSelectorOpen(true);
+        } else if (action.startsWith("pet-size:")) {
+          const size = parseInt(action.split(":")[1], 10);
+          if (!isNaN(size)) useConfigStore.getState().setPetSize(size);
         }
       }),
     ]);
