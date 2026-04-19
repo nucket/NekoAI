@@ -38,14 +38,35 @@ export function ContextMenu({ isOpen, onClose, onSettings, onSelectPet }: Props)
     const win = getCurrentWindow();
 
     async function expand() {
-      const spriteSize = useConfigStore.getState().config.petSize ?? 48;
       try {
-        const [pos, scale] = await Promise.all([win.outerPosition(), win.scaleFactor()]);
+        const [pos, scale, cursor] = await Promise.all([
+          win.outerPosition(),
+          win.scaleFactor(),
+          invoke<{ x: number; y: number }>('get_cursor_pos'),
+        ]);
         if (cancelled) return;
         savedPosRef.current = { x: pos.x, y: pos.y };
-        const newX = pos.x - Math.round(((MENU_W - spriteSize) / 2) * scale);
-        const newY = pos.y - Math.round((MENU_H - spriteSize) * scale);
-        await win.setPosition(new PhysicalPosition(newX, newY));
+
+        const screenW = window.screen.availWidth;
+        const screenH = window.screen.availHeight;
+
+        // Cursor position in logical pixels
+        const cursorLogX = cursor.x / scale;
+        const cursorLogY = cursor.y / scale;
+
+        // Top half → open below cursor; bottom half → open above cursor
+        // Left half → open to the right; right half → open to the left
+        const openBelow = cursorLogY < screenH / 2;
+        const openRight = cursorLogX < screenW / 2;
+
+        let newXLog = openRight ? cursorLogX : cursorLogX - MENU_W;
+        let newYLog = openBelow ? cursorLogY : cursorLogY - MENU_H;
+
+        // Clamp to screen so menu never goes off-screen
+        newXLog = Math.max(0, Math.min(newXLog, screenW - MENU_W));
+        newYLog = Math.max(0, Math.min(newYLog, screenH - MENU_H));
+
+        await win.setPosition(new PhysicalPosition(Math.round(newXLog * scale), Math.round(newYLog * scale)));
         // Use Rust command — JS setSize is silently blocked by resizable:false on Windows
         await invoke('resize_window', { width: MENU_W, height: MENU_H });
       } catch (err) {
@@ -162,8 +183,9 @@ const styles: Record<string, React.CSSProperties> = {
     inset:          0,
     zIndex:         200,
     display:        'flex',
-    alignItems:     'center',
+    alignItems:     'flex-start',
     justifyContent: 'center',
+    paddingTop:     6,
   },
   menu: {
     background:  'rgba(20, 20, 30, 0.97)',
