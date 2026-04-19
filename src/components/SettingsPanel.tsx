@@ -8,7 +8,7 @@ import { createAIProvider, buildContextBlock } from '../ai';
 // ─── Layout constants ─────────────────────────────────────────────────────────
 
 const PANEL_W = 280;
-const PANEL_H = 360;
+const PANEL_H = 500;
 const SPRITE_SIZE = 48;
 
 // ─── Provider defaults ────────────────────────────────────────────────────────
@@ -326,8 +326,7 @@ const styles: Record<string, React.CSSProperties> = {
     fontSize:        13,
     boxSizing:       'border-box',
     width:           '280px',
-    maxHeight:       '90vh',
-    overflowY:       'auto',
+    overflowY:       'hidden',
   },
   header: {
     display:         'flex',
