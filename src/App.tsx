@@ -125,7 +125,9 @@ export default function App() {
     nearThreshold: 50,
     sleepTimeout: 5 * 60 * 1000,
     windowSize: spriteSize,
-    enabled: !dragging && !bubbleOpen && !settingsOpen && !contextMenuOpen && !petSelectorOpen,
+    // panelActive stays true for 200ms after all panels close, preventing
+    // the rAF loop from fighting collapse() over win.setPosition()
+    enabled: !dragging && !bubbleOpen && !panelActive,
   });
 
   // ── Mood engine (updates store + emits animation overrides) ──────────────

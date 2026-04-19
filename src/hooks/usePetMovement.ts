@@ -112,17 +112,12 @@ export function usePetMovement({
   }, []);
 
   // ── Sync window position from OS (once on enable, then on visibility change) ──
-  // Delay 200 ms so any panel collapse() IPC calls finish moving the window back
-  // to the sprite position before we capture it.
   useEffect(() => {
     if (!enabled) return;
-    const t = setTimeout(() => {
-      getCurrentWindow()
-        .outerPosition()
-        .then((p) => { winPosRef.current = { x: p.x, y: p.y }; })
-        .catch(() => {});
-    }, 200);
-    return () => clearTimeout(t);
+    getCurrentWindow()
+      .outerPosition()
+      .then((p) => { winPosRef.current = { x: p.x, y: p.y }; })
+      .catch(() => {});
   }, [enabled]);
 
   // ── Re-sync on window show (prevents stale position after hide/show) ────────
