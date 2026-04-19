@@ -54,14 +54,35 @@ export function SettingsPanel({ isOpen, onClose }: Props) {
     const win = getCurrentWindow();
 
     async function expand() {
-      const sz = useConfigStore.getState().config.petSize ?? SPRITE_SIZE;
       try {
-        const [pos, scale] = await Promise.all([win.outerPosition(), win.scaleFactor()]);
+        const [pos, scale, cursor] = await Promise.all([
+          win.outerPosition(),
+          win.scaleFactor(),
+          invoke<{ x: number; y: number }>('get_cursor_pos'),
+        ]);
         if (cancelled) return;
         setSavedPos({ x: pos.x, y: pos.y });
-        const newX = pos.x - Math.round(((PANEL_W - sz) / 2) * scale);
-        const newY = pos.y - Math.round((PANEL_H - sz) * scale);
-        await win.setPosition(new PhysicalPosition(newX, newY));
+
+        const screenW = window.screen.availWidth;
+        const screenH = window.screen.availHeight;
+
+        // Cursor position in logical pixels
+        const cursorLogX = cursor.x / scale;
+        const cursorLogY = cursor.y / scale;
+
+        // Top half → open below cursor; bottom half → open above cursor
+        // Left half → open to the right; right half → open to the left
+        const openBelow = cursorLogY < screenH / 2;
+        const openRight = cursorLogX < screenW / 2;
+
+        let newXLog = openRight ? cursorLogX : cursorLogX - PANEL_W;
+        let newYLog = openBelow ? cursorLogY : cursorLogY - PANEL_H;
+
+        // Clamp to screen bounds
+        newXLog = Math.max(0, Math.min(newXLog, screenW - PANEL_W));
+        newYLog = Math.max(0, Math.min(newYLog, screenH - PANEL_H));
+
+        await win.setPosition(new PhysicalPosition(Math.round(newXLog * scale), Math.round(newYLog * scale)));
         await invoke('resize_window', { width: PANEL_W, height: PANEL_H });
       } catch (err) {
         console.error('[SettingsPanel] expand error:', err);
