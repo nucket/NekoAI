@@ -7,7 +7,6 @@ import { PetRenderer, AnimationDef } from "./pets/PetRenderer";
 import { usePetMovement } from "./hooks/usePetMovement";
 import { SpeechBubble } from "./components/SpeechBubble";
 import { SettingsPanel } from "./components/SettingsPanel";
-import { ContextMenu } from "./components/ContextMenu";
 import { PetSelector } from "./components/PetSelector";
 import { useConfigStore } from "./store/configStore";
 import { useAppStore } from "./store";
@@ -47,11 +46,12 @@ export default function App() {
   const [bubblePos, setBubblePos] = useState<"above" | "below">("above");
   const [dragging, setDragging] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
-  const [contextMenuOpen, setContextMenuOpen] = useState(false);
   const [petSelectorOpen, setPetSelectorOpen] = useState(false);
   const [activePetId, setActivePetId] = useState("classic-neko");
 
-  const anyPanelOpen = contextMenuOpen || settingsOpen || petSelectorOpen;
+  // Context menu lives in a separate Tauri window — the main window never
+  // gets taken over, so the sprite stays free to follow the cursor.
+  const anyPanelOpen = settingsOpen || petSelectorOpen;
 
   // ── Pet definition loaded from disk ────────────────────────────────────────
   const [petDef, setPetDef] = useState<PetDefinition | null>(null);
@@ -89,6 +89,15 @@ export default function App() {
         setPetSelectorOpen(true);
       }),
       listen("tray-quit", () => invoke("quit_app")),
+      // Actions emitted from the secondary panel window (context menu)
+      listen<string>("panel-action", (e) => {
+        const action = e.payload;
+        if (action === "settings") {
+          setSettingsOpen(true);
+        } else if (action === "select-pet") {
+          setPetSelectorOpen(true);
+        }
+      }),
     ]);
     return () => { unlisteners.then((fns) => fns.forEach((fn) => fn())); };
   }, []);
@@ -205,10 +214,41 @@ export default function App() {
     if (!bubbleOpen && !settingsOpen) openBubble();
   }, [bubbleOpen, settingsOpen, openBubble]);
 
-  const handleRightClick = useCallback((e: React.MouseEvent) => {
+  const handleRightClick = useCallback(async (e: React.MouseEvent) => {
     e.preventDefault();
-    if (!bubbleOpen && !settingsOpen) setContextMenuOpen((v) => !v);
-  }, [bubbleOpen, settingsOpen]);
+    if (bubbleOpen || settingsOpen || petSelectorOpen) return;
+
+    // Position the panel near the cursor, in the screen quadrant opposite to
+    // where the cursor is, so it never goes off-screen.
+    const MENU_W = 190;
+    const MENU_H = 220;
+    try {
+      const cursor = await invoke<{ x: number; y: number }>("get_cursor_pos");
+      const scale = await getCurrentWindow().scaleFactor();
+      const cursorLogX = cursor.x / scale;
+      const cursorLogY = cursor.y / scale;
+      const screenW = window.screen.availWidth;
+      const screenH = window.screen.availHeight;
+
+      const openBelow = cursorLogY < screenH / 2;
+      const openRight = cursorLogX < screenW / 2;
+      let x = openRight ? cursorLogX : cursorLogX - MENU_W;
+      let y = openBelow ? cursorLogY : cursorLogY - MENU_H;
+      x = Math.max(0, Math.min(x, screenW - MENU_W));
+      y = Math.max(0, Math.min(y, screenH - MENU_H));
+
+      // Convert logical → physical for Tauri's position API
+      await invoke("open_panel_window", {
+        x: x * scale,
+        y: y * scale,
+        width: MENU_W,
+        height: MENU_H,
+        route: "context-menu",
+      });
+    } catch (err) {
+      console.error("[NekoAI] open context menu failed:", err);
+    }
+  }, [bubbleOpen, settingsOpen, petSelectorOpen]);
 
   const handleMouseDown = useCallback(
     async (e: React.MouseEvent) => {
@@ -256,13 +296,6 @@ export default function App() {
       className={`app-container${bubbleOpen ? " app-container--open" : ""}`}
       style={containerStyle}
     >
-      <ContextMenu
-        isOpen={contextMenuOpen}
-        onClose={() => setContextMenuOpen(false)}
-        onSettings={() => setSettingsOpen(true)}
-        onSelectPet={() => setPetSelectorOpen(true)}
-      />
-
       <SettingsPanel
         isOpen={settingsOpen}
         onClose={() => setSettingsOpen(false)}

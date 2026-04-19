@@ -78,6 +78,79 @@ fn quit_app(app: tauri::AppHandle) {
     app.exit(0);
 }
 
+// ─── Secondary window (context menu) ──────────────────────────────────────────
+//
+// The sprite lives in the `main` window, which must never move or resize while
+// a panel is showing. For context-menu / settings / pet-selector we spawn a
+// separate `panel` window so the pet can keep following the cursor freely.
+
+#[tauri::command]
+async fn open_panel_window(
+    app: tauri::AppHandle,
+    x: f64,
+    y: f64,
+    width: f64,
+    height: f64,
+    route: String,
+) -> Result<(), String> {
+    // If an existing panel window is around, reposition + resize and show it.
+    if let Some(win) = app.get_webview_window("panel") {
+        win.set_size(tauri::LogicalSize::new(width, height))
+            .map_err(|e| e.to_string())?;
+        win.set_position(tauri::PhysicalPosition::new(x as i32, y as i32))
+            .map_err(|e| e.to_string())?;
+        // Navigate in case the requested route changed
+        let url = format!("index.html#{}", route);
+        win.eval(&format!("window.location.hash = '{}'", route))
+            .ok();
+        let _ = url;
+        win.show().map_err(|e| e.to_string())?;
+        win.set_focus().ok();
+        return Ok(());
+    }
+
+    let url = format!("index.html#{}", route);
+    let builder = tauri::WebviewWindowBuilder::new(
+        &app,
+        "panel",
+        tauri::WebviewUrl::App(url.into()),
+    )
+    .title("NekoAI Panel")
+    .inner_size(width, height)
+    .position(x, y)
+    .decorations(false)
+    .transparent(true)
+    .always_on_top(true)
+    .skip_taskbar(true)
+    .resizable(false)
+    .shadow(false)
+    .focused(true);
+
+    builder.build().map_err(|e| e.to_string())?;
+    Ok(())
+}
+
+#[tauri::command]
+async fn close_panel_window(app: tauri::AppHandle) -> Result<(), String> {
+    if let Some(win) = app.get_webview_window("panel") {
+        win.close().map_err(|e| e.to_string())?;
+    }
+    Ok(())
+}
+
+#[tauri::command]
+async fn resize_panel_window(
+    app: tauri::AppHandle,
+    width: f64,
+    height: f64,
+) -> Result<(), String> {
+    if let Some(win) = app.get_webview_window("panel") {
+        win.set_size(tauri::LogicalSize::new(width, height))
+            .map_err(|e| e.to_string())?;
+    }
+    Ok(())
+}
+
 // ─── Config commands ──────────────────────────────────────────────────────────
 
 #[tauri::command]
@@ -265,6 +338,9 @@ pub fn run() {
         })
         .invoke_handler(tauri::generate_handler![
             quit_app,
+            open_panel_window,
+            close_panel_window,
+            resize_panel_window,
             get_cursor_pos,
             move_window,
             resize_window,
