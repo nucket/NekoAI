@@ -280,7 +280,9 @@ export default function App() {
         onSendMessage={handleSendMessage}
       />
 
-      <div
+      {/* Sprite is hidden while a panel occupies the window to avoid it
+          appearing in the transparent area behind the menu/settings card */}
+      {!contextMenuOpen && !settingsOpen && !petSelectorOpen && <div
         className="sprite-container"
         style={spriteStyle ?? containerStyle}
         onClick={handleSpriteClick}
@@ -317,7 +319,7 @@ export default function App() {
           </div>
         )}
 
-      </div>
+      </div>}
     </div>
   );
 }
