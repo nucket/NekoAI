@@ -51,24 +51,7 @@ export default function App() {
   const [petSelectorOpen, setPetSelectorOpen] = useState(false);
   const [activePetId, setActivePetId] = useState("classic-neko");
 
-  // True while any panel is open OR collapsing (window returning to sprite size).
-  // Sprite is hidden during this period to avoid a flash at the wrong size/position.
-  const [panelActive, setPanelActive] = useState(false);
-  const panelTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  useEffect(() => {
-    const anyOpen = contextMenuOpen || settingsOpen || petSelectorOpen;
-    if (panelTimerRef.current) clearTimeout(panelTimerRef.current);
-    if (anyOpen) {
-      setPanelActive(true);
-    } else {
-      // Delay matches collapse() IPC round-trips and winPosRef re-sync delay
-      panelTimerRef.current = setTimeout(() => setPanelActive(false), 200);
-    }
-    return () => {
-      if (panelTimerRef.current) clearTimeout(panelTimerRef.current);
-    };
-  }, [contextMenuOpen, settingsOpen, petSelectorOpen]);
+  const anyPanelOpen = contextMenuOpen || settingsOpen || petSelectorOpen;
 
   // ── Pet definition loaded from disk ────────────────────────────────────────
   const [petDef, setPetDef] = useState<PetDefinition | null>(null);
@@ -125,9 +108,7 @@ export default function App() {
     nearThreshold: 50,
     sleepTimeout: 5 * 60 * 1000,
     windowSize: spriteSize,
-    // panelActive stays true for 200ms after all panels close, preventing
-    // the rAF loop from fighting collapse() over win.setPosition()
-    enabled: !dragging && !bubbleOpen && !panelActive,
+    enabled: !dragging && !bubbleOpen && !anyPanelOpen,
   });
 
   // ── Mood engine (updates store + emits animation overrides) ──────────────
@@ -301,9 +282,9 @@ export default function App() {
         onSendMessage={handleSendMessage}
       />
 
-      {/* Sprite hidden while panel is open or collapsing (window returning
-          to sprite size) — prevents flash at wrong size/position */}
-      {!panelActive && <div
+      {/* Hide sprite while any panel occupies the window so it doesn't
+          leak into the transparent area behind the menu/settings card */}
+      {!anyPanelOpen && <div
         className="sprite-container"
         style={spriteStyle ?? containerStyle}
         onClick={handleSpriteClick}
