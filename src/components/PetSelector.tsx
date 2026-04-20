@@ -1,4 +1,13 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { invoke } from "@tauri-apps/api/core";
+import { getCurrentWindow, currentMonitor } from "@tauri-apps/api/window";
+import { PhysicalPosition } from "@tauri-apps/api/dpi";
+import { useConfigStore } from "../store/configStore";
+
+// ─── Layout constants ─────────────────────────────────────────────────────────
+
+const SELECTOR_W = 240;
+const SELECTOR_H = 280;
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -34,6 +43,63 @@ interface Props {
 
 export function PetSelector({ isOpen, activePetId, onSelect, onClose }: Props) {
   const [pets, setPets] = useState<PetManifestEntry[]>(FALLBACK_PETS);
+  const savedPosRef = useRef<{ x: number; y: number } | null>(null);
+
+  // ── Expand / collapse the main Tauri window ────────────────────────────────
+  useEffect(() => {
+    let cancelled = false;
+    const win = getCurrentWindow();
+
+    async function expand() {
+      try {
+        const [pos, monitor, cursor] = await Promise.all([
+          win.outerPosition(),
+          currentMonitor(),
+          invoke<{ x: number; y: number }>("get_cursor_pos"),
+        ]);
+        if (cancelled) return;
+        savedPosRef.current = { x: pos.x, y: pos.y };
+
+        const scale = monitor?.scaleFactor ?? window.devicePixelRatio ?? 1;
+        const monX  = monitor?.position.x  ?? 0;
+        const monY  = monitor?.position.y  ?? 0;
+        const monW  = monitor?.size.width  ?? window.screen.availWidth  * scale;
+        const monH  = monitor?.size.height ?? window.screen.availHeight * scale;
+
+        const panelPhysW = SELECTOR_W * scale;
+        const panelPhysH = SELECTOR_H * scale;
+
+        const openBelow = (cursor.y - monY) < monH / 2;
+        const openRight = (cursor.x - monX) < monW / 2;
+
+        let x = cursor.x + (openRight ? 0 : -panelPhysW);
+        let y = cursor.y + (openBelow ? 0 : -panelPhysH);
+        x = Math.max(monX, Math.min(x, monX + monW - panelPhysW));
+        y = Math.max(monY, Math.min(y, monY + monH - panelPhysH));
+
+        await win.setPosition(new PhysicalPosition(Math.round(x), Math.round(y)));
+        await invoke("resize_window", { width: SELECTOR_W, height: SELECTOR_H });
+      } catch (err) {
+        console.error("[PetSelector] expand error:", err);
+      }
+    }
+
+    async function collapse() {
+      const snap = savedPosRef.current;
+      savedPosRef.current = null;
+      if (!snap) return;
+      const sz = useConfigStore.getState().config.petSize ?? 48;
+      try {
+        await invoke("resize_window", { width: sz, height: sz });
+        if (!cancelled) await win.setPosition(new PhysicalPosition(snap.x, snap.y));
+      } catch (err) {
+        console.error("[PetSelector] collapse error:", err);
+      }
+    }
+
+    if (isOpen) expand(); else collapse();
+    return () => { cancelled = true; };
+  }, [isOpen]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     if (!isOpen) return;
