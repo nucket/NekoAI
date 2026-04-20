@@ -9,6 +9,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [0.2.0] — Unreleased
 
+### Added — Google Gemini provider
+- `src/ai/providers/gemini.ts`: new `GeminiProvider` class using the Gemini REST API (`generativelanguage.googleapis.com/v1beta`)
+  - Translates `assistant` role to `model` (Gemini's convention)
+  - System prompt sent via `system_instruction` field
+  - Default model: `gemini-1.5-flash`
+- `src/ai/types.ts`: added `'gemini'` to the `provider` union type
+- `src/ai/index.ts`: registered `GeminiProvider` in the factory
+- `src/components/SettingsPanel.tsx`: added "Google (Gemini)" option to the provider dropdown with `AIza…` key placeholder
+
 ### Fixed — UI & Animations
 - `src/components/PetSelector.tsx`: 
   - Add window expand/collapse effect when opening/closing pet selector (fixes invisible panel)

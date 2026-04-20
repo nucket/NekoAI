@@ -14,9 +14,10 @@ const SPRITE_SIZE = 48;
 // ─── Provider defaults ────────────────────────────────────────────────────────
 
 const PROVIDER_DEFAULTS: Record<string, { model: string; placeholder: string }> = {
-  anthropic: { model: 'claude-haiku-4-5-20251001', placeholder: 'sk-ant-…' },
-  openai:    { model: 'gpt-4o-mini',               placeholder: 'sk-…'      },
+  anthropic: { model: 'claude-haiku-4-5-20251001', placeholder: 'sk-ant-…'  },
+  openai:    { model: 'gpt-4o-mini',               placeholder: 'sk-…'       },
   ollama:    { model: 'llama3',                     placeholder: '(not required)' },
+  gemini:    { model: 'gemini-1.5-flash',           placeholder: 'AIza…'     },
 };
 
 // ─── Component ────────────────────────────────────────────────────────────────
@@ -173,6 +174,7 @@ export function SettingsPanel({ isOpen, onClose }: Props) {
         >
           <option value="anthropic">Anthropic (Claude)</option>
           <option value="openai">OpenAI (GPT)</option>
+          <option value="gemini">Google (Gemini)</option>
           <option value="ollama">Ollama (local)</option>
         </select>
 

@@ -4,6 +4,7 @@ import type { AIProvider, AIConfig } from './types';
 import { AnthropicProvider } from './providers/anthropic';
 import { OpenAIProvider } from './providers/openai';
 import { OllamaProvider } from './providers/ollama';
+import { GeminiProvider } from './providers/gemini';
 
 export function createAIProvider(config: AIConfig): AIProvider {
   switch (config.provider) {
@@ -13,6 +14,8 @@ export function createAIProvider(config: AIConfig): AIProvider {
       return new OpenAIProvider(config.apiKey ?? '', config.model);
     case 'ollama':
       return new OllamaProvider(config.model, config.baseUrl);
+    case 'gemini':
+      return new GeminiProvider(config.apiKey ?? '', config.model);
     default:
       throw new Error(`Unknown AI provider: ${(config as AIConfig).provider}`);
   }

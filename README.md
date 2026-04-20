@@ -48,7 +48,7 @@ Neko:   *walks over, pops a bubble*
 | 🖱️ 8-direction cursor following & movement | ✅ |
 | 💬 AI chat via animated speech bubble | ✅ |
 | 🧠 Persistent memory — remembers your name, projects, preferences | ✅ |
-| 🔌 Multi-provider AI (Claude, OpenAI, Ollama local) | ✅ |
+| 🔌 Multi-provider AI (Claude, OpenAI, Gemini, Ollama local) | ✅ |
 | 😴 Dynamic mood — energy changes with time of day & idle time | ✅ |
 | 🎭 Multiple pets — Classic Neko, Ghost, Shiba (more via community) | ✅ |
 | 🔔 Proactive nudges ("coding 90 min — take a break!") | ✅ |
@@ -164,6 +164,7 @@ sqlite3 ~/.local/share/nekoai/memory.db "SELECT * FROM user_facts;"
 |---|---|---|
 | **Anthropic** | Claude Haiku, Sonnet | API Key |
 | **OpenAI** | GPT-4o mini, GPT-4o | API Key |
+| **Google** | Gemini 1.5 Flash, Gemini 2.0 Flash... | API Key ([Google AI Studio](https://aistudio.google.com)) |
 | **Ollama** | Llama 3, Mistral, Phi-3... | [Ollama](https://ollama.ai) running locally |
 
 > 💡 **For full privacy**: Use Ollama — 100% local, no API costs, no data leaves your machine.
