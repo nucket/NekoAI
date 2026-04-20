@@ -1,6 +1,5 @@
 import { useEffect } from "react";
 import { invoke } from "@tauri-apps/api/core";
-import { emit, listen } from "@tauri-apps/api/event";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { useConfigStore } from "./store/configStore";
 
@@ -48,19 +47,15 @@ function ContextMenuPanel() {
     getCurrentWindow().setFocus().catch(() => {});
   }, []);
 
-  const close = () => invoke("close_panel_window").catch(() => {});
+  const close = () => invoke("close_panel_window").catch(console.error);
 
-  const openSettings = async () => {
-    await emit("panel-action", "settings").catch(() => {});
-    close();
-  };
+  // Use Rust relay: JS emit() may not reach other windows reliably in Tauri v2.
+  const panelAction = (action: string) =>
+    invoke("panel_action", { action }).catch(console.error);
 
-  const openSelectPet = async () => {
-    await emit("panel-action", "select-pet").catch(() => {});
-    close();
-  };
-
-  const quit = () => invoke("quit_app").catch(() => {});
+  const openSettings  = () => panelAction("settings");
+  const openSelectPet = () => panelAction("select-pet");
+  const quit          = () => invoke("quit_app").catch(console.error);
 
   const currentSize = config.petSize ?? 48;
 
@@ -88,9 +83,7 @@ function ContextMenuPanel() {
                   ...styles.sizeBtn,
                   ...(currentSize === value ? styles.sizeBtnActive : {}),
                 }}
-                onClick={() => {
-                  emit("panel-action", `pet-size:${value}`).catch(() => {});
-                }}
+                onClick={() => panelAction(`pet-size:${value}`)}
                 title={`${value}px`}
               >
                 {label}
@@ -107,8 +100,6 @@ function ContextMenuPanel() {
   );
 }
 
-// Keep this export available so listen/emit stays referenced
-void listen;
 
 const styles: Record<string, React.CSSProperties> = {
   root: {
@@ -121,6 +112,8 @@ const styles: Record<string, React.CSSProperties> = {
     justifyContent: "center",
     paddingTop:     6,
     boxSizing:      "border-box",
+    // Prevent Windows transparent-window click-through on alpha=0 areas
+    background:     "rgba(0,0,0,0.01)",
   },
   menu: {
     background:  "rgba(20, 20, 30, 0.97)",
@@ -142,12 +135,12 @@ const styles: Record<string, React.CSSProperties> = {
   },
   title: { fontWeight: 700, fontSize: 13, color: "#fff" },
   closeBtn: {
-    background: "transparent", border: "none", color: "#666",
+    background: "rgba(0,0,0,0.01)", border: "none", color: "#666",
     cursor: "pointer", fontSize: 14, lineHeight: 1, padding: "0 2px",
   },
   divider: { borderTop: "1px solid #2a2a3c", margin: "2px 0" },
   item: {
-    display: "block", width: "100%", background: "transparent", border: "none",
+    display: "block", width: "100%", background: "rgba(0,0,0,0.01)", border: "none",
     color: "#e0e0e0", textAlign: "left", padding: "8px 12px",
     fontSize: 13, cursor: "pointer",
   },
@@ -167,7 +160,7 @@ const styles: Record<string, React.CSSProperties> = {
   },
   sizeBtnActive: { background: "#3a3a6c", borderColor: "#7878cc", color: "#cceeff" },
   quitItem: {
-    display: "block", width: "100%", background: "transparent", border: "none",
+    display: "block", width: "100%", background: "rgba(0,0,0,0.01)", border: "none",
     color: "#e05555", textAlign: "left", padding: "8px 12px",
     fontSize: 13, cursor: "pointer",
   },

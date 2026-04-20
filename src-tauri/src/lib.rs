@@ -151,6 +151,20 @@ async fn resize_panel_window(
     Ok(())
 }
 
+/// Relay an action from the panel window to all windows via the Rust backend.
+/// JS `emit()` may not reach other windows reliably; Rust `app.emit()` is global.
+#[tauri::command]
+async fn panel_action(app: tauri::AppHandle, action: String) -> Result<(), String> {
+    app.emit("panel-action", &action).map_err(|e| e.to_string())?;
+    // Hide the panel after any action that opens a new view
+    if action == "settings" || action == "select-pet" {
+        if let Some(win) = app.get_webview_window("panel") {
+            win.hide().ok();
+        }
+    }
+    Ok(())
+}
+
 // ─── Config commands ──────────────────────────────────────────────────────────
 
 #[tauri::command]
@@ -341,6 +355,7 @@ pub fn run() {
             open_panel_window,
             close_panel_window,
             resize_panel_window,
+            panel_action,
             get_cursor_pos,
             move_window,
             resize_window,
