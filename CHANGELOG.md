@@ -18,6 +18,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `src/ai/index.ts`: registered `GeminiProvider` in the factory
 - `src/components/SettingsPanel.tsx`: added "Google (Gemini)" option to the provider dropdown with `AIza…` key placeholder
 
+### Added — About NekoAI menu
+- `src/PanelWindow.tsx`: 
+  - Added "ℹ About NekoAI" button to context menu (before Quit)
+  - About sub-view displays project info, creator (Naudy Castellanos), contact email, and GitHub star button
+  - Panel resizes to 300px when showing About view; Escape/Back returns to menu
+- `src-tauri/src/lib.rs`: added `open_url` command using `tauri_plugin_shell::ShellExt` to open URLs/mailto links
+
+### Fixed — Size selector
+- `src/PanelWindow.tsx`: size buttons now call `setPetSize()` locally before relaying via `panelAction`, so the active-size highlight updates immediately (mode buttons already followed this pattern; size buttons did not)
+- `src/App.tsx`: added `useEffect([spriteSize, isLoaded])` that calls `resize_window` whenever pet size changes — previously the store updated but the OS window never resized, clipping larger sprites; also fixes initial load when saved size differs from the 32×32 default window
+
 ### Fixed — UI & Animations
 - `src/components/PetSelector.tsx`: 
   - Add window expand/collapse effect when opening/closing pet selector (fixes invisible panel)

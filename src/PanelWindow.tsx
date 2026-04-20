@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { useConfigStore } from "./store/configStore";
@@ -6,6 +6,7 @@ import { useConfigStore } from "./store/configStore";
 // Layout constants — keep in sync with the parent App's expectations
 const MENU_W = 190;
 const MENU_H = 260;
+const ABOUT_H = 300;
 
 const PET_SIZES: { label: string; value: number }[] = [
   { label: "S",  value: 32  },
@@ -33,32 +34,92 @@ export function PanelWindow({ route }: Props) {
 
 function ContextMenuPanel() {
   const { config, loadConfig, isLoaded, setPetMode, setPetSize } = useConfigStore();
+  const [view, setView] = useState<"menu" | "about">("menu");
 
   useEffect(() => { if (!isLoaded) loadConfig(); }, [isLoaded, loadConfig]);
 
   useEffect(() => {
-    const handler = (e: KeyboardEvent) => { if (e.key === "Escape") close(); };
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        if (view === "about") showMenu();
+        else close();
+      }
+    };
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
-  }, []);
+  }, [view]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
-    // Focus the panel so keyboard events register immediately
     getCurrentWindow().setFocus().catch(() => {});
   }, []);
 
   const close = () => invoke("close_panel_window").catch(console.error);
 
-  // Use Rust relay: JS emit() may not reach other windows reliably in Tauri v2.
   const panelAction = (action: string) =>
     invoke("panel_action", { action }).catch(console.error);
 
   const openSettings  = () => panelAction("settings");
   const openSelectPet = () => panelAction("select-pet");
   const quit          = () => invoke("quit_app").catch(console.error);
+  const openUrl       = (url: string) => invoke("open_url", { url }).catch(console.error);
+
+  const showAbout = async () => {
+    await invoke("resize_panel_window", { width: MENU_W, height: ABOUT_H }).catch(console.error);
+    setView("about");
+  };
+
+  const showMenu = async () => {
+    await invoke("resize_panel_window", { width: MENU_W, height: MENU_H }).catch(console.error);
+    setView("menu");
+  };
 
   const currentSize = config.petSize ?? 32;
-  const currentMode = config.petMode ?? 'work';
+  const currentMode = config.petMode ?? "work";
+
+  if (view === "about") {
+    return (
+      <div style={{ ...styles.root, height: ABOUT_H }} onClick={close}>
+        <div style={styles.menu} onClick={(e) => e.stopPropagation()}>
+          <div style={styles.header}>
+            <span style={styles.title}>🐱 NekoAI</span>
+            <button style={styles.closeBtn} onClick={close} title="Close">✕</button>
+          </div>
+          <div style={styles.divider} />
+
+          <button style={styles.backBtn} onClick={showMenu}>← Back</button>
+
+          <div style={aboutStyles.appBlock}>
+            <div style={aboutStyles.appName}>NekoAI</div>
+            <div style={aboutStyles.appDesc}>Desktop AI Companion • v0.1.0</div>
+          </div>
+
+          <div style={styles.divider} />
+
+          <div style={aboutStyles.row}>
+            <span style={aboutStyles.label}>Creator</span>
+            <button style={aboutStyles.link} onClick={() => openUrl("https://github.com/nucket")}>
+              Naudy Castellanos
+            </button>
+          </div>
+          <div style={aboutStyles.row}>
+            <span style={aboutStyles.label}>Contact</span>
+            <button style={aboutStyles.link} onClick={() => openUrl("mailto:nekoai@naudycastellanos.com")}>
+              nekoai@naudycastellanos.com
+            </button>
+          </div>
+
+          <div style={styles.divider} />
+
+          <button
+            style={aboutStyles.starBtn}
+            onClick={() => openUrl("https://github.com/nucket/nekoai")}
+          >
+            ⭐ Star on GitHub
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div style={styles.root} onClick={close}>
@@ -78,15 +139,15 @@ function ContextMenuPanel() {
           <span style={styles.modeLabel}>Mode</span>
           <div style={styles.modeBtns}>
             <button
-              style={{ ...styles.modeBtn, ...(currentMode === 'work' ? styles.modeBtnActive : {}) }}
-              onClick={() => { setPetMode('work'); panelAction('pet-mode:work'); }}
+              style={{ ...styles.modeBtn, ...(currentMode === "work" ? styles.modeBtnActive : {}) }}
+              onClick={() => { setPetMode("work"); panelAction("pet-mode:work"); }}
               title="Follow mouse cursor"
             >
               💼 Work
             </button>
             <button
-              style={{ ...styles.modeBtn, ...(currentMode === 'play' ? styles.modeBtnActive : {}) }}
-              onClick={() => { setPetMode('play'); panelAction('pet-mode:play'); }}
+              style={{ ...styles.modeBtn, ...(currentMode === "play" ? styles.modeBtnActive : {}) }}
+              onClick={() => { setPetMode("play"); panelAction("pet-mode:play"); }}
               title="Wander freely"
             >
               🎮 Play
@@ -114,6 +175,10 @@ function ContextMenuPanel() {
             ))}
           </div>
         </div>
+
+        <div style={styles.divider} />
+
+        <button style={styles.item} onClick={showAbout}>ℹ About NekoAI</button>
 
         <div style={styles.divider} />
 
@@ -201,5 +266,43 @@ const styles: Record<string, React.CSSProperties> = {
     display: "block", width: "100%", background: "rgba(0,0,0,0.01)", border: "none",
     color: "#e05555", textAlign: "left", padding: "8px 12px",
     fontSize: 13, cursor: "pointer",
+  },
+  backBtn: {
+    display: "block", width: "100%", background: "rgba(0,0,0,0.01)", border: "none",
+    color: "#8888cc", textAlign: "left", padding: "6px 12px",
+    fontSize: 12, cursor: "pointer",
+  },
+};
+
+const aboutStyles: Record<string, React.CSSProperties> = {
+  appBlock: {
+    padding: "10px 12px 8px",
+    textAlign: "center",
+  },
+  appName: {
+    fontSize: 15, fontWeight: 700, color: "#fff", marginBottom: 2,
+  },
+  appDesc: {
+    fontSize: 11, color: "#777",
+  },
+  row: {
+    display: "flex", alignItems: "center", justifyContent: "space-between",
+    padding: "6px 12px",
+  },
+  label: {
+    fontSize: 11, color: "#666",
+    textTransform: "uppercase" as const, letterSpacing: "0.05em", flexShrink: 0,
+  },
+  link: {
+    background: "none", border: "none", color: "#8888ee",
+    cursor: "pointer", fontSize: 11, textDecoration: "underline",
+    padding: 0, textAlign: "right" as const, maxWidth: 120,
+    wordBreak: "break-all" as const,
+  },
+  starBtn: {
+    display: "block", width: "calc(100% - 24px)", margin: "8px 12px",
+    background: "#2a2a4c", border: "1px solid #5555aa",
+    borderRadius: 6, color: "#ccccff", cursor: "pointer",
+    fontSize: 12, fontWeight: 600, padding: "7px 0", textAlign: "center" as const,
   },
 };

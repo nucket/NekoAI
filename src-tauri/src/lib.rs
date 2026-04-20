@@ -151,6 +151,13 @@ async fn resize_panel_window(
     Ok(())
 }
 
+#[tauri::command]
+async fn open_url(app: tauri::AppHandle, url: String) -> Result<(), String> {
+    use tauri_plugin_shell::ShellExt;
+    app.shell().open(&url, None).map_err(|e| e.to_string())?;
+    Ok(())
+}
+
 /// Relay an action from the panel window to all windows via the Rust backend.
 /// JS `emit()` may not reach other windows reliably; Rust `app.emit()` is global.
 #[tauri::command]
@@ -373,6 +380,7 @@ pub fn run() {
             get_idle_millis,
             enable_autostart,
             disable_autostart,
+            open_url,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
