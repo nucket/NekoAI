@@ -1,6 +1,6 @@
 import { useState, useMemo, useCallback, useRef, useEffect } from "react";
 import { getCurrentWindow, currentMonitor } from "@tauri-apps/api/window";
-import { LogicalPosition } from "@tauri-apps/api/dpi";
+import { PhysicalPosition } from "@tauri-apps/api/dpi";
 import { listen } from "@tauri-apps/api/event";
 import { invoke } from "@tauri-apps/api/core";
 import { PetRenderer, AnimationDef } from "./pets/PetRenderer";
@@ -169,37 +169,44 @@ export default function App() {
   // ── Open bubble ────────────────────────────────────────────────────────────
   const openBubble = useCallback(async () => {
     const win = getCurrentWindow();
-    const pos = await win.outerPosition();
-    const scale = await win.scaleFactor();
+    const [pos, monitor] = await Promise.all([
+      win.outerPosition(),
+      currentMonitor(),
+    ]);
 
-    const sz = useConfigStore.getState().config.petSize ?? 48;
-    const insetX = Math.round((WIN_OPEN_W - sz) / 2);
+    const sz    = useConfigStore.getState().config.petSize ?? 48;
+    const scale = monitor?.scaleFactor ?? window.devicePixelRatio ?? 1;
 
-    // Convert physical → logical so all math matches CSS pixel units
-    const logX = pos.x / scale;
-    const logY = pos.y / scale;
+    // Physical bounds of the active monitor
+    const monX = monitor?.position.x  ?? 0;
+    const monY = monitor?.position.y  ?? 0;
+    const monW = monitor?.size.width  ?? window.screen.availWidth  * scale;
+    const monH = monitor?.size.height ?? window.screen.availHeight * scale;
 
-    // screen.availWidth/Height are already in logical (CSS) pixels
-    const screenW = window.screen.availWidth;
-    const screenH = window.screen.availHeight;
+    // Physical sizes
+    const openPhysW  = WIN_OPEN_W * scale;
+    const openPhysH  = WIN_OPEN_H * scale;
+    const insetPhysX = Math.round(((WIN_OPEN_W - sz) / 2) * scale);
 
-    const side: "above" | "below" = logY > screenH / 2 ? "above" : "below";
+    // Bubble above or below based on position within the active monitor
+    const side: "above" | "below" = (pos.y - monY) > monH / 2 ? "above" : "below";
 
-    savedPos.current = { x: logX, y: logY };
+    // Save original sprite physical position to restore on close
+    savedPos.current = { x: pos.x, y: pos.y };
     setBubblePos(side);
     setBubbleOpen(true);
 
-    let newX = logX - insetX;
-    let newY =
-      side === "above"
-        ? logY - (WIN_OPEN_H - sz)
-        : logY;
+    // Expanded window position: keep sprite visually in place
+    let newX = pos.x - insetPhysX;
+    let newY = side === "above"
+      ? pos.y - Math.round((WIN_OPEN_H - sz) * scale)
+      : pos.y;
 
-    // Clamp so the expanded window never goes off-screen
-    newX = Math.max(0, Math.min(newX, screenW - WIN_OPEN_W));
-    newY = Math.max(0, Math.min(newY, screenH - WIN_OPEN_H));
+    // Clamp inside the active monitor
+    newX = Math.max(monX, Math.min(newX, monX + monW - openPhysW));
+    newY = Math.max(monY, Math.min(newY, monY + monH - openPhysH));
 
-    await win.setPosition(new LogicalPosition(newX, newY));
+    await win.setPosition(new PhysicalPosition(Math.round(newX), Math.round(newY)));
     await invoke("resize_window", { width: WIN_OPEN_W, height: WIN_OPEN_H });
   }, []);
 
@@ -208,10 +215,10 @@ export default function App() {
     setBubbleOpen(false);
     const win = getCurrentWindow();
     if (savedPos.current) {
-      const { x, y } = savedPos.current;
+      const { x, y } = savedPos.current; // physical coords
       const sz = useConfigStore.getState().config.petSize ?? 48;
       await invoke("resize_window", { width: sz, height: sz });
-      await win.setPosition(new LogicalPosition(x, y));
+      await win.setPosition(new PhysicalPosition(x, y));
       savedPos.current = null;
     }
   }, []);
@@ -275,16 +282,19 @@ export default function App() {
       const win = getCurrentWindow();
       await win.startDragging();
       const resume = async () => {
-        const pos = await win.outerPosition();
-        const scale = await win.scaleFactor();
-        const logX = pos.x / scale;
-        const logY = pos.y / scale;
-        const sz = useConfigStore.getState().config.petSize ?? 48;
-        const insetX = Math.round((WIN_OPEN_W - sz) / 2);
-        const spriteLogX = logX + insetX;
-        const spriteLogY =
-          bubblePos === "above" ? logY + (WIN_OPEN_H - sz) : logY;
-        savedPos.current = { x: spriteLogX, y: spriteLogY };
+        const [pos, monitor] = await Promise.all([
+          win.outerPosition(),
+          currentMonitor(),
+        ]);
+        const scale      = monitor?.scaleFactor ?? window.devicePixelRatio ?? 1;
+        const sz         = useConfigStore.getState().config.petSize ?? 48;
+        const insetPhysX = Math.round(((WIN_OPEN_W - sz) / 2) * scale);
+        // Sprite physical top-left within the expanded window
+        const spritePhysX = pos.x + insetPhysX;
+        const spritePhysY = bubblePos === "above"
+          ? pos.y + Math.round((WIN_OPEN_H - sz) * scale)
+          : pos.y;
+        savedPos.current = { x: spritePhysX, y: spritePhysY };
         setDragging(false);
         document.removeEventListener("mouseup", resume);
       };
