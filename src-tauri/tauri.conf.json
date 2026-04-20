@@ -14,8 +14,8 @@
       {
         "label": "main",
         "title": "NekoAI",
-        "width": 64,
-        "height": 64,
+        "width": 32,
+        "height": 32,
         "resizable": false,
         "fullscreen": false,
         "decorations": false,

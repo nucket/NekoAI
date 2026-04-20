@@ -88,7 +88,7 @@ export function PetSelector({ isOpen, activePetId, onSelect, onClose }: Props) {
       const snap = savedPosRef.current;
       savedPosRef.current = null;
       if (!snap) return;
-      const sz = useConfigStore.getState().config.petSize ?? 48;
+      const sz = useConfigStore.getState().config.petSize ?? 32;
       try {
         await invoke("resize_window", { width: sz, height: sz });
         if (!cancelled) await win.setPosition(new PhysicalPosition(snap.x, snap.y));

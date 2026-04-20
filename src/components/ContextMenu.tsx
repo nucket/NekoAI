@@ -79,7 +79,7 @@ export function ContextMenu({ isOpen, onClose, onSettings, onSelectPet }: Props)
       const snap = savedPosRef.current;
       savedPosRef.current = null;
       if (!snap) return;
-      const spriteSize = useConfigStore.getState().config.petSize ?? 48;
+      const spriteSize = useConfigStore.getState().config.petSize ?? 32;
       try {
         await invoke('resize_window', { width: spriteSize, height: spriteSize });
         if (!cancelled) await win.setPosition(new PhysicalPosition(snap.x, snap.y));
@@ -118,7 +118,7 @@ export function ContextMenu({ isOpen, onClose, onSettings, onSelectPet }: Props)
 
   if (!isOpen || !windowReady) return null;
 
-  const currentSize = config.petSize ?? 48;
+  const currentSize = config.petSize ?? 32;
 
   return (
     <div style={styles.overlay} onClick={onClose}>

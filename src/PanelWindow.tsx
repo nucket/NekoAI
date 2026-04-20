@@ -57,7 +57,7 @@ function ContextMenuPanel() {
   const openSelectPet = () => panelAction("select-pet");
   const quit          = () => invoke("quit_app").catch(console.error);
 
-  const currentSize = config.petSize ?? 48;
+  const currentSize = config.petSize ?? 32;
   const currentMode = config.petMode ?? 'work';
 
   return (

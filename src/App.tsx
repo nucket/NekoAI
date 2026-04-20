@@ -35,7 +35,7 @@ interface PetDefinition {
 
 export default function App() {
   const { config, isLoaded, loadConfig } = useConfigStore();
-  const spriteSize = config.petSize ?? 64;
+  const spriteSize = config.petSize ?? 32;
   const spriteInsetX = Math.round((WIN_OPEN_W - spriteSize) / 2);
 
   useEffect(() => {
@@ -174,7 +174,7 @@ export default function App() {
       currentMonitor(),
     ]);
 
-    const sz    = useConfigStore.getState().config.petSize ?? 48;
+    const sz    = useConfigStore.getState().config.petSize ?? 32;
     const scale = monitor?.scaleFactor ?? window.devicePixelRatio ?? 1;
 
     // Physical bounds of the active monitor
@@ -216,7 +216,7 @@ export default function App() {
     const win = getCurrentWindow();
     if (savedPos.current) {
       const { x, y } = savedPos.current; // physical coords
-      const sz = useConfigStore.getState().config.petSize ?? 48;
+      const sz = useConfigStore.getState().config.petSize ?? 32;
       await invoke("resize_window", { width: sz, height: sz });
       await win.setPosition(new PhysicalPosition(x, y));
       savedPos.current = null;
@@ -287,7 +287,7 @@ export default function App() {
           currentMonitor(),
         ]);
         const scale      = monitor?.scaleFactor ?? window.devicePixelRatio ?? 1;
-        const sz         = useConfigStore.getState().config.petSize ?? 48;
+        const sz         = useConfigStore.getState().config.petSize ?? 32;
         const insetPhysX = Math.round(((WIN_OPEN_W - sz) / 2) * scale);
         // Sprite physical top-left within the expanded window
         const spritePhysX = pos.x + insetPhysX;

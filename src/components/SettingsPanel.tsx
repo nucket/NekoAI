@@ -9,7 +9,7 @@ import { createAIProvider, buildContextBlock } from '../ai';
 
 const PANEL_W = 280;
 const PANEL_H = 500;
-const SPRITE_SIZE = 48;
+const SPRITE_SIZE = 32;
 
 // ─── Provider defaults ────────────────────────────────────────────────────────
 
