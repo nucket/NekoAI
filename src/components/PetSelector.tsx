@@ -163,7 +163,9 @@ const styles: Record<string, React.CSSProperties> = {
   overlay: {
     position: "fixed",
     inset: 0,
-    background: "rgba(0,0,0,0.5)",
+    // rgba(0,0,0,0.01) prevents Windows click-through on fully-transparent areas
+    // without painting a visible dark backdrop over the transparent window
+    background: "rgba(0,0,0,0.01)",
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
@@ -173,11 +175,12 @@ const styles: Record<string, React.CSSProperties> = {
     background: "rgba(20,20,30,0.97)",
     borderRadius: 12,
     padding: "12px 14px",
-    minWidth: 200,
+    width: `${SELECTOR_W - 16}px`,
     color: "#e0e0e0",
     fontFamily: "system-ui, sans-serif",
     fontSize: 13,
     boxShadow: "0 4px 24px rgba(0,0,0,0.6)",
+    overflowY: "auto" as const,
   },
   header: {
     display: "flex",

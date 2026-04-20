@@ -27,8 +27,10 @@ export interface SpeechBubbleProps {
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
-const INACTIVITY_MS   = 30_000; // auto-close after 30 s of inactivity
-const TYPEWRITER_MS   = 26;     // ms between each character reveal
+const INACTIVITY_MS      = 30_000;
+const SCRAMBLE_FRAME_MS  = 30;
+const SCRAMBLE_CHARS     = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789@#$%!?<>[]{}";
+const SCRAMBLE_LOOKAHEAD = 5; // scrambled chars visible ahead of the locked position
 
 // ─── Component ───────────────────────────────────────────────────────────────
 
@@ -85,29 +87,42 @@ export function SpeechBubble({
     msgsEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, typedSoFar, isLoading]);
 
-  // ── Typewriter effect ──────────────────────────────────────────────────────
-  // Runs when `pendingText` is set (a new AI response arrived).
+  // ── Scramble text reveal effect ────────────────────────────────────────────
+  // Characters lock in left-to-right at SCRAMBLE_FRAME_MS per char.
+  // A lookahead window of random noise stays visible just ahead of the locked
+  // position, giving the "decoding" feel. Spaces/newlines pass through as-is.
   useEffect(() => {
     if (pendingText === null) return;
 
     if (typewriterRef.current) clearInterval(typewriterRef.current);
-    let i = 0;
+    let frame = 0;
+    const total = pendingText.length;
     setTypedSoFar("");
 
+    const rndChar = () =>
+      SCRAMBLE_CHARS[Math.floor(Math.random() * SCRAMBLE_CHARS.length)];
+
     typewriterRef.current = setInterval(() => {
-      i++;
-      setTypedSoFar(pendingText.slice(0, i));
-      if (i >= pendingText.length) {
+      frame++;
+      if (frame >= total) {
         clearInterval(typewriterRef.current!);
-        // Commit the full text to messages and clear pending
         setMessages((prev) => [
           ...prev,
           { role: "assistant", content: pendingText },
         ]);
         setPendingText(null);
         setTypedSoFar("");
+        return;
       }
-    }, TYPEWRITER_MS);
+
+      // Locked prefix + scrambled lookahead window
+      let display = pendingText.slice(0, frame);
+      for (let i = frame; i < Math.min(frame + SCRAMBLE_LOOKAHEAD, total); i++) {
+        const ch = pendingText[i];
+        display += ch === " " || ch === "\n" ? ch : rndChar();
+      }
+      setTypedSoFar(display);
+    }, SCRAMBLE_FRAME_MS);
 
     return () => {
       if (typewriterRef.current) clearInterval(typewriterRef.current);
