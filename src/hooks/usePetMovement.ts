@@ -13,6 +13,7 @@ export interface UsePetMovementOptions {
   sleepTimeout?: number;
   windowSize?: number;
   enabled?: boolean;
+  mode?: 'work' | 'play';
 }
 
 export interface UsePetMovementResult {
@@ -65,6 +66,7 @@ export function usePetMovement({
   sleepTimeout = 5 * 60 * 1000,
   windowSize = 128,
   enabled = true,
+  mode = 'work',
 }: UsePetMovementOptions = {}): UsePetMovementResult {
 
   const [petState, setPetState] = useState<PetState>("IDLE");
@@ -78,6 +80,10 @@ export function usePetMovement({
   const animRef = useRef("idle");
   const rafIdRef = useRef(0);
   const pollTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  // Play-mode wander state
+  const wanderTargetRef  = useRef<Vec2 | null>(null);
+  const wanderWaitUntil  = useRef(0);
 
   const halfSize = windowSize / 2;
 
@@ -191,51 +197,128 @@ export function usePetMovement({
 
       // ── State machine ────────────────────────────────────────────────────
 
-      switch (state) {
+      if (mode === 'play') {
+        // ── Play Mode: pet wanders to random screen positions autonomously ──
 
-        case "SLEEPING":
-          if (dist > nearThreshold * NEAR_LEAVE_FACTOR) {
-            transition("IDLE", dx, dy);
-            lastCursorMoveRef.current = now;
-          }
-          break;
+        // If cursor gets very close, react briefly
+        if (dist <= nearThreshold && state !== 'NEAR_CURSOR' && state !== 'SLEEPING') {
+          transition('NEAR_CURSOR', dx, dy);
+          wanderWaitUntil.current = now + 1500;
+        }
 
-        case "NEAR_CURSOR":
-          if (idleMs >= sleepTimeout) {
-            transition("SLEEPING", dx, dy);
-          } else if (dist > nearThreshold * NEAR_LEAVE_FACTOR) {
-            transition("WALKING", dx, dy);
-          }
-          break;
+        switch (state) {
+          case 'SLEEPING':
+            // In play mode sleep is never entered via idleMs;
+            // wake up if the cursor moves (user comes back)
+            if (idleMs < sleepTimeout) {
+              transition('IDLE', 0, 1);
+              lastCursorMoveRef.current = now;
+            }
+            break;
 
-        case "IDLE":
-          if (idleMs >= sleepTimeout) {
-            transition("SLEEPING", dx, dy);
-          } else if (dist > nearThreshold) {
-            transition("WALKING", dx, dy);
-          }
-          break;
+          case 'NEAR_CURSOR':
+            // Brief reaction to cursor proximity, then resume wandering
+            if (dist > nearThreshold * NEAR_LEAVE_FACTOR && now >= wanderWaitUntil.current) {
+              transition('IDLE', 0, 1);
+            }
+            break;
 
-        case "WALKING": {
-          if (dist <= nearThreshold) {
-            transition("NEAR_CURSOR", dx, dy);
+          case 'IDLE': {
+            if (now >= wanderWaitUntil.current) {
+              // Pick a new random screen target (physical coords)
+              const scale = window.devicePixelRatio || 1;
+              const screenW = window.screen.availWidth  * scale;
+              const screenH = window.screen.availHeight * scale;
+              const margin  = windowSize * scale;
+              wanderTargetRef.current = {
+                x: margin + Math.random() * (screenW - margin * 2),
+                y: margin + Math.random() * (screenH - margin * 2),
+              };
+              transition('WALKING', 1, 0);
+            }
             break;
           }
 
-          // Update walk direction using full dx/dy vector
-          setWalkDir(dx, dy);
+          case 'WALKING': {
+            const wt = wanderTargetRef.current;
+            if (!wt) { transition('IDLE', 0, 1); break; }
 
-          const step = Math.min(speed, dist);
-          const nx = dx / dist;
-          const ny = dy / dist;
-          const newX = winPos.x + nx * step;
-          const newY = winPos.y + ny * step;
+            const wtDx   = wt.x - centre.x;
+            const wtDy   = wt.y - centre.y;
+            const wtDist = distance(wt, centre);
 
-          winPosRef.current = { x: newX, y: newY };
-          win
-            .setPosition(new PhysicalPosition(Math.round(newX), Math.round(newY)))
-            .catch(() => { });
-          break;
+            if (wtDist <= nearThreshold) {
+              // Reached target — rest for 2–5 s then pick next
+              wanderTargetRef.current = null;
+              wanderWaitUntil.current = now + 2000 + Math.random() * 3000;
+              transition('IDLE', 0, 1);
+              // Pet moved, reset idle clock so it never sleeps mid-play
+              lastCursorMoveRef.current = now;
+              break;
+            }
+
+            setWalkDir(wtDx, wtDy);
+
+            const step = Math.min(speed, wtDist);
+            const nx   = wtDx / wtDist;
+            const ny   = wtDy / wtDist;
+            const newX = winPos.x + nx * step;
+            const newY = winPos.y + ny * step;
+
+            winPosRef.current = { x: newX, y: newY };
+            win.setPosition(new PhysicalPosition(Math.round(newX), Math.round(newY))).catch(() => {});
+            break;
+          }
+        }
+
+      } else {
+        // ── Work Mode: pet follows cursor (original behaviour) ──────────────
+
+        switch (state) {
+
+          case "SLEEPING":
+            if (dist > nearThreshold * NEAR_LEAVE_FACTOR) {
+              transition("IDLE", dx, dy);
+              lastCursorMoveRef.current = now;
+            }
+            break;
+
+          case "NEAR_CURSOR":
+            if (idleMs >= sleepTimeout) {
+              transition("SLEEPING", dx, dy);
+            } else if (dist > nearThreshold * NEAR_LEAVE_FACTOR) {
+              transition("WALKING", dx, dy);
+            }
+            break;
+
+          case "IDLE":
+            if (idleMs >= sleepTimeout) {
+              transition("SLEEPING", dx, dy);
+            } else if (dist > nearThreshold) {
+              transition("WALKING", dx, dy);
+            }
+            break;
+
+          case "WALKING": {
+            if (dist <= nearThreshold) {
+              transition("NEAR_CURSOR", dx, dy);
+              break;
+            }
+
+            setWalkDir(dx, dy);
+
+            const step = Math.min(speed, dist);
+            const nx = dx / dist;
+            const ny = dy / dist;
+            const newX = winPos.x + nx * step;
+            const newY = winPos.y + ny * step;
+
+            winPosRef.current = { x: newX, y: newY };
+            win
+              .setPosition(new PhysicalPosition(Math.round(newX), Math.round(newY)))
+              .catch(() => { });
+            break;
+          }
         }
       }
 
@@ -243,7 +326,7 @@ export function usePetMovement({
 
     rafIdRef.current = requestAnimationFrame(loop);
     return () => cancelAnimationFrame(rafIdRef.current);
-  }, [enabled, speed, nearThreshold, sleepTimeout, halfSize, transition, setWalkDir]);
+  }, [enabled, speed, nearThreshold, sleepTimeout, halfSize, mode, transition, setWalkDir]);
 
   return { petState, currentAnimation };
 }

@@ -27,7 +27,7 @@ interface Props {
 }
 
 export function SettingsPanel({ isOpen, onClose }: Props) {
-  const { config, isLoaded, loadConfig, setProvider, setApiKey, setModel, setBaseUrl, setPetSize } =
+  const { config, isLoaded, loadConfig, setProvider, setApiKey, setModel, setBaseUrl, setPetMode } =
     useConfigStore();
 
   const [userName, setUserName]     = useState('');
@@ -232,22 +232,33 @@ export function SettingsPanel({ isOpen, onClose }: Props) {
           placeholder="e.g. Alex"
         />
 
-        {/* ── Pet Size ────────────────────────────────────────────────────── */}
-        <label style={styles.label}>Pet Size</label>
-        <div style={styles.sizeRow}>
-          {([{ label: 'S', value: 32 }, { label: 'M', value: 64 }, { label: 'L', value: 96 }, { label: 'XL', value: 128 }] as const).map(({ label, value }) => (
-            <button
-              key={value}
-              style={{
-                ...styles.sizeBtn,
-                ...((config.petSize ?? 48) === value ? styles.sizeBtnActive : {}),
-              }}
-              onClick={() => setPetSize(value)}
-              title={`${value}px`}
-            >
-              {label}
-            </button>
-          ))}
+        {/* ── Pet Mode ────────────────────────────────────────────────────── */}
+        <label style={styles.label}>Pet Mode</label>
+        <div style={styles.modeRow}>
+          <button
+            style={{
+              ...styles.modeBtn,
+              ...(config.petMode !== 'play' ? styles.modeBtnActive : {}),
+            }}
+            onClick={() => setPetMode('work')}
+            title="Pet follows the mouse cursor"
+          >
+            <span style={styles.modeIcon}>💼</span>
+            <span style={styles.modeName}>Work Mode</span>
+            <span style={styles.modeDesc}>follow mouse</span>
+          </button>
+          <button
+            style={{
+              ...styles.modeBtn,
+              ...(config.petMode === 'play' ? styles.modeBtnActive : {}),
+            }}
+            onClick={() => setPetMode('play')}
+            title="Pet wanders around on its own"
+          >
+            <span style={styles.modeIcon}>🎮</span>
+            <span style={styles.modeName}>Play Mode</span>
+            <span style={styles.modeDesc}>follow instinct</span>
+          </button>
         </div>
 
         {/* ── Test button ─────────────────────────────────────────────────── */}
@@ -429,26 +440,41 @@ const styles: Record<string, React.CSSProperties> = {
     fontWeight:      600,
     marginBottom:    4,
   },
-  sizeRow: {
-    display:       'flex',
-    gap:           6,
-    flexWrap:      'wrap' as const,
+  modeRow: {
+    display:        'flex',
+    gap:            6,
   },
-  sizeBtn: {
-    background:    '#1e1e2e',
-    border:        '1px solid #444',
-    borderRadius:  6,
-    color:         '#aaa',
-    cursor:        'pointer',
-    fontSize:      12,
-    fontWeight:    600,
-    padding:       '4px 10px',
-    flex:          1,
+  modeBtn: {
+    flex:           1,
+    display:        'flex',
+    flexDirection:  'column' as const,
+    alignItems:     'center',
+    gap:            2,
+    background:     '#1e1e2e',
+    border:         '1px solid #444',
+    borderRadius:   8,
+    color:          '#aaa',
+    cursor:         'pointer',
+    padding:        '8px 6px',
   },
-  sizeBtnActive: {
-    background:    '#3a3a6c',
-    borderColor:   '#7878cc',
-    color:         '#cceeff',
+  modeBtnActive: {
+    background:     '#2a2a4c',
+    borderColor:    '#7878cc',
+    color:          '#cceeff',
+  },
+  modeIcon: {
+    fontSize:       18,
+    lineHeight:     1,
+  },
+  modeName: {
+    fontSize:       11,
+    fontWeight:     700 as const,
+    letterSpacing:  '0.02em',
+  },
+  modeDesc: {
+    fontSize:       10,
+    color:          '#666',
+    fontStyle:      'italic' as const,
   },
   gear: {
     position:        'absolute',

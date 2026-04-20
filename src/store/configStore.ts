@@ -11,6 +11,7 @@ interface ConfigStore {
   setModel: (model: string) => Promise<void>;
   setBaseUrl: (baseUrl: string) => Promise<void>;
   setPetSize: (petSize: number) => Promise<void>;
+  setPetMode: (petMode: AIConfig['petMode']) => Promise<void>;
 }
 
 const DEFAULT_CONFIG: AIConfig = {
@@ -57,6 +58,12 @@ export const useConfigStore = create<ConfigStore>((set, get) => ({
 
   setPetSize: async (petSize) => {
     const config = { ...get().config, petSize };
+    set({ config });
+    await persist(config);
+  },
+
+  setPetMode: async (petMode) => {
+    const config = { ...get().config, petMode };
     set({ config });
     await persist(config);
   },

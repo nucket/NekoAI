@@ -121,6 +121,7 @@ export default function App() {
     sleepTimeout: 5 * 60 * 1000,
     windowSize: spriteSize,
     enabled: !dragging && !bubbleOpen && !anyPanelOpen,
+    mode: config.petMode ?? 'work',
   });
 
   // ── Mood engine (updates store + emits animation overrides) ──────────────

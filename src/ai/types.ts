@@ -8,6 +8,7 @@ export type AIConfig = {
   model: string;
   baseUrl?: string;
   petSize?: number;
+  petMode?: 'work' | 'play';
 };
 
 export type Message = {

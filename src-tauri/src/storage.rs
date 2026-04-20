@@ -13,6 +13,8 @@ pub struct AIConfig {
     pub model: String,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub base_url: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub pet_mode: Option<String>,
 }
 
 impl Default for AIConfig {
@@ -22,6 +24,7 @@ impl Default for AIConfig {
             api_key: None,
             model: "claude-haiku-4-5-20251001".to_string(),
             base_url: None,
+            pet_mode: None,
         }
     }
 }
