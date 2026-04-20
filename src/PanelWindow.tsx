@@ -32,7 +32,7 @@ export function PanelWindow({ route }: Props) {
 // ─── Context menu panel ───────────────────────────────────────────────────────
 
 function ContextMenuPanel() {
-  const { config, loadConfig, isLoaded, setPetMode } = useConfigStore();
+  const { config, loadConfig, isLoaded, setPetMode, setPetSize } = useConfigStore();
 
   useEffect(() => { if (!isLoaded) loadConfig(); }, [isLoaded, loadConfig]);
 
@@ -106,7 +106,7 @@ function ContextMenuPanel() {
                   ...styles.sizeBtn,
                   ...(currentSize === value ? styles.sizeBtnActive : {}),
                 }}
-                onClick={() => panelAction(`pet-size:${value}`)}
+                onClick={() => { setPetSize(value); panelAction(`pet-size:${value}`); }}
                 title={`${value}px`}
               >
                 {label}

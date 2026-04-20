@@ -108,6 +108,14 @@ export default function App() {
     return () => { unlisteners.then((fns) => fns.forEach((fn) => fn())); };
   }, []);
 
+  // ── Resize OS window when pet size changes ────────────────────────────────
+  // Panels and bubble have their own resize logic; guard them here so they
+  // are not disrupted when the store updates mid-session.
+  useEffect(() => {
+    if (!isLoaded || bubbleOpen || settingsOpen || petSelectorOpen) return;
+    invoke('resize_window', { width: spriteSize, height: spriteSize }).catch(console.error);
+  }, [spriteSize, isLoaded]); // eslint-disable-line react-hooks/exhaustive-deps
+
   // ── Animations from pet.json, fallback to empty while loading ─────────────
   const animations = useMemo(
     () => petDef?.animations ?? {},
