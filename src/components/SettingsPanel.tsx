@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { invoke } from '@tauri-apps/api/core';
-import { getCurrentWindow } from '@tauri-apps/api/window';
+import { getCurrentWindow, currentMonitor } from '@tauri-apps/api/window';
 import { PhysicalPosition } from '@tauri-apps/api/dpi';
 import { useConfigStore } from '../store/configStore';
 import { createAIProvider, buildContextBlock } from '../ai';
@@ -55,34 +55,37 @@ export function SettingsPanel({ isOpen, onClose }: Props) {
 
     async function expand() {
       try {
-        const [pos, scale, cursor] = await Promise.all([
+        const [pos, monitor, cursor] = await Promise.all([
           win.outerPosition(),
-          win.scaleFactor(),
+          currentMonitor(),
           invoke<{ x: number; y: number }>('get_cursor_pos'),
         ]);
         if (cancelled) return;
         setSavedPos({ x: pos.x, y: pos.y });
 
-        const screenW = window.screen.availWidth;
-        const screenH = window.screen.availHeight;
+        // Physical bounds of the active monitor
+        const scale  = monitor?.scaleFactor ?? window.devicePixelRatio ?? 1;
+        const monX   = monitor?.position.x  ?? 0;
+        const monY   = monitor?.position.y  ?? 0;
+        const monW   = monitor?.size.width  ?? window.screen.availWidth  * scale;
+        const monH   = monitor?.size.height ?? window.screen.availHeight * scale;
 
-        // Cursor position in logical pixels
-        const cursorLogX = cursor.x / scale;
-        const cursorLogY = cursor.y / scale;
+        // Panel physical size
+        const panelPhysW = PANEL_W * scale;
+        const panelPhysH = PANEL_H * scale;
 
-        // Top half → open below cursor; bottom half → open above cursor
-        // Left half → open to the right; right half → open to the left
-        const openBelow = cursorLogY < screenH / 2;
-        const openRight = cursorLogX < screenW / 2;
+        // Quadrant relative to the current monitor
+        const openBelow = (cursor.y - monY) < monH / 2;
+        const openRight = (cursor.x - monX) < monW / 2;
 
-        let newXLog = openRight ? cursorLogX : cursorLogX - PANEL_W;
-        let newYLog = openBelow ? cursorLogY : cursorLogY - PANEL_H;
+        let x = cursor.x + (openRight ? 0 : -panelPhysW);
+        let y = cursor.y + (openBelow ? 0 : -panelPhysH);
 
-        // Clamp to screen bounds
-        newXLog = Math.max(0, Math.min(newXLog, screenW - PANEL_W));
-        newYLog = Math.max(0, Math.min(newYLog, screenH - PANEL_H));
+        // Clamp inside the monitor
+        x = Math.max(monX, Math.min(x, monX + monW - panelPhysW));
+        y = Math.max(monY, Math.min(y, monY + monH - panelPhysH));
 
-        await win.setPosition(new PhysicalPosition(Math.round(newXLog * scale), Math.round(newYLog * scale)));
+        await win.setPosition(new PhysicalPosition(Math.round(x), Math.round(y)));
         await invoke('resize_window', { width: PANEL_W, height: PANEL_H });
       } catch (err) {
         console.error('[SettingsPanel] expand error:', err);

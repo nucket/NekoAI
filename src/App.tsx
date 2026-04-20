@@ -1,5 +1,5 @@
 import { useState, useMemo, useCallback, useRef, useEffect } from "react";
-import { getCurrentWindow } from "@tauri-apps/api/window";
+import { getCurrentWindow, currentMonitor } from "@tauri-apps/api/window";
 import { LogicalPosition } from "@tauri-apps/api/dpi";
 import { listen } from "@tauri-apps/api/event";
 import { invoke } from "@tauri-apps/api/core";
@@ -225,31 +225,42 @@ export default function App() {
     e.preventDefault();
     if (bubbleOpen || settingsOpen || petSelectorOpen) return;
 
-    // Position the panel near the cursor, in the screen quadrant opposite to
-    // where the cursor is, so it never goes off-screen.
+    // Position the panel near the cursor on whichever monitor the pet is on,
+    // in the opposite quadrant so it never goes off that screen.
     const MENU_W = 190;
     const MENU_H = 260;
     try {
-      const cursor = await invoke<{ x: number; y: number }>("get_cursor_pos");
-      const scale = await getCurrentWindow().scaleFactor();
-      const cursorLogX = cursor.x / scale;
-      const cursorLogY = cursor.y / scale;
-      const screenW = window.screen.availWidth;
-      const screenH = window.screen.availHeight;
+      const [cursor, monitor] = await Promise.all([
+        invoke<{ x: number; y: number }>("get_cursor_pos"),
+        currentMonitor(),
+      ]);
 
-      const openBelow = cursorLogY < screenH / 2;
-      const openRight = cursorLogX < screenW / 2;
-      let x = openRight ? cursorLogX : cursorLogX - MENU_W;
-      let y = openBelow ? cursorLogY : cursorLogY - MENU_H;
-      x = Math.max(0, Math.min(x, screenW - MENU_W));
-      y = Math.max(0, Math.min(y, screenH - MENU_H));
+      // Physical bounds of the active monitor (fall back to primary-screen guess)
+      const scale  = monitor?.scaleFactor ?? window.devicePixelRatio ?? 1;
+      const monX   = monitor?.position.x  ?? 0;
+      const monY   = monitor?.position.y  ?? 0;
+      const monW   = monitor?.size.width  ?? window.screen.availWidth  * scale;
+      const monH   = monitor?.size.height ?? window.screen.availHeight * scale;
 
-      // Convert logical → physical for Tauri's position API
+      // Menu size in physical pixels
+      const menuPhysW = MENU_W * scale;
+      const menuPhysH = MENU_H * scale;
+
+      // Quadrant relative to the current monitor
+      const openBelow = (cursor.y - monY) < monH / 2;
+      const openRight = (cursor.x - monX) < monW / 2;
+
+      // Anchor position (physical) then clamp inside the monitor
+      let x = cursor.x + (openRight ? 0 : -menuPhysW);
+      let y = cursor.y + (openBelow ? 0 : -menuPhysH);
+      x = Math.max(monX, Math.min(x, monX + monW - menuPhysW));
+      y = Math.max(monY, Math.min(y, monY + monH - menuPhysH));
+
       await invoke("open_panel_window", {
-        x: x * scale,
-        y: y * scale,
-        width: MENU_W,
-        height: MENU_H,
+        x,           // physical
+        y,           // physical
+        width:  MENU_W,   // logical
+        height: MENU_H,   // logical
         route: "context-menu",
       });
     } catch (err) {
