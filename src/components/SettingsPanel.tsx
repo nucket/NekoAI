@@ -27,7 +27,7 @@ interface Props {
 }
 
 export function SettingsPanel({ isOpen, onClose }: Props) {
-  const { config, isLoaded, loadConfig, setProvider, setApiKey, setModel, setBaseUrl, setPetMode } =
+  const { config, isLoaded, loadConfig, setProvider, setApiKey, setModel, setBaseUrl } =
     useConfigStore();
 
   const [userName, setUserName]     = useState('');
@@ -232,34 +232,6 @@ export function SettingsPanel({ isOpen, onClose }: Props) {
           placeholder="e.g. Alex"
         />
 
-        {/* ── Pet Mode ────────────────────────────────────────────────────── */}
-        <label style={styles.label}>Pet Mode</label>
-        <div style={styles.modeRow}>
-          <button
-            style={{
-              ...styles.modeBtn,
-              ...(config.petMode !== 'play' ? styles.modeBtnActive : {}),
-            }}
-            onClick={() => setPetMode('work')}
-            title="Pet follows the mouse cursor"
-          >
-            <span style={styles.modeIcon}>💼</span>
-            <span style={styles.modeName}>Work Mode</span>
-            <span style={styles.modeDesc}>follow mouse</span>
-          </button>
-          <button
-            style={{
-              ...styles.modeBtn,
-              ...(config.petMode === 'play' ? styles.modeBtnActive : {}),
-            }}
-            onClick={() => setPetMode('play')}
-            title="Pet wanders around on its own"
-          >
-            <span style={styles.modeIcon}>🎮</span>
-            <span style={styles.modeName}>Play Mode</span>
-            <span style={styles.modeDesc}>follow instinct</span>
-          </button>
-        </div>
 
         {/* ── Test button ─────────────────────────────────────────────────── */}
         <button
@@ -439,42 +411,6 @@ const styles: Record<string, React.CSSProperties> = {
     fontSize:        13,
     fontWeight:      600,
     marginBottom:    4,
-  },
-  modeRow: {
-    display:        'flex',
-    gap:            6,
-  },
-  modeBtn: {
-    flex:           1,
-    display:        'flex',
-    flexDirection:  'column' as const,
-    alignItems:     'center',
-    gap:            2,
-    background:     '#1e1e2e',
-    border:         '1px solid #444',
-    borderRadius:   8,
-    color:          '#aaa',
-    cursor:         'pointer',
-    padding:        '8px 6px',
-  },
-  modeBtnActive: {
-    background:     '#2a2a4c',
-    borderColor:    '#7878cc',
-    color:          '#cceeff',
-  },
-  modeIcon: {
-    fontSize:       18,
-    lineHeight:     1,
-  },
-  modeName: {
-    fontSize:       11,
-    fontWeight:     700 as const,
-    letterSpacing:  '0.02em',
-  },
-  modeDesc: {
-    fontSize:       10,
-    color:          '#666',
-    fontStyle:      'italic' as const,
   },
   gear: {
     position:        'absolute',

@@ -5,7 +5,7 @@ import { useConfigStore } from "./store/configStore";
 
 // Layout constants — keep in sync with the parent App's expectations
 const MENU_W = 190;
-const MENU_H = 220;
+const MENU_H = 260;
 
 const PET_SIZES: { label: string; value: number }[] = [
   { label: "S",  value: 32  },
@@ -58,6 +58,7 @@ function ContextMenuPanel() {
   const quit          = () => invoke("quit_app").catch(console.error);
 
   const currentSize = config.petSize ?? 48;
+  const currentMode = config.petMode ?? 'work';
 
   return (
     <div style={styles.root} onClick={close}>
@@ -70,6 +71,28 @@ function ContextMenuPanel() {
 
         <button style={styles.item} onClick={openSettings}>⚙ Settings</button>
         <button style={styles.item} onClick={openSelectPet}>🐾 Select Pet</button>
+
+        <div style={styles.divider} />
+
+        <div style={styles.modeRow}>
+          <span style={styles.modeLabel}>Mode</span>
+          <div style={styles.modeBtns}>
+            <button
+              style={{ ...styles.modeBtn, ...(currentMode === 'work' ? styles.modeBtnActive : {}) }}
+              onClick={() => panelAction('pet-mode:work')}
+              title="Follow mouse cursor"
+            >
+              💼 Work
+            </button>
+            <button
+              style={{ ...styles.modeBtn, ...(currentMode === 'play' ? styles.modeBtnActive : {}) }}
+              onClick={() => panelAction('pet-mode:play')}
+              title="Wander freely"
+            >
+              🎮 Play
+            </button>
+          </div>
+        </div>
 
         <div style={styles.divider} />
 
@@ -159,6 +182,21 @@ const styles: Record<string, React.CSSProperties> = {
     padding: "3px 7px", minWidth: 28,
   },
   sizeBtnActive: { background: "#3a3a6c", borderColor: "#7878cc", color: "#cceeff" },
+  modeRow: {
+    display: "flex", alignItems: "center", justifyContent: "space-between",
+    padding: "7px 12px",
+  },
+  modeLabel: {
+    fontSize: 11, color: "#777",
+    textTransform: "uppercase" as const, letterSpacing: "0.05em",
+  },
+  modeBtns: { display: "flex", gap: 4 },
+  modeBtn: {
+    background: "#1a1a2e", border: "1px solid #3a3a5c", borderRadius: 5,
+    color: "#999", cursor: "pointer", fontSize: 11, fontWeight: 600,
+    padding: "3px 8px",
+  },
+  modeBtnActive: { background: "#3a3a6c", borderColor: "#7878cc", color: "#cceeff" },
   quitItem: {
     display: "block", width: "100%", background: "rgba(0,0,0,0.01)", border: "none",
     color: "#e05555", textAlign: "left", padding: "8px 12px",

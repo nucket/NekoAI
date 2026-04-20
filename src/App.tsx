@@ -99,6 +99,9 @@ export default function App() {
         } else if (action.startsWith("pet-size:")) {
           const size = parseInt(action.split(":")[1], 10);
           if (!isNaN(size)) useConfigStore.getState().setPetSize(size);
+        } else if (action.startsWith("pet-mode:")) {
+          const m = action.split(":")[1] as 'work' | 'play';
+          if (m === 'work' || m === 'play') useConfigStore.getState().setPetMode(m);
         }
       }),
     ]);
@@ -225,7 +228,7 @@ export default function App() {
     // Position the panel near the cursor, in the screen quadrant opposite to
     // where the cursor is, so it never goes off-screen.
     const MENU_W = 190;
-    const MENU_H = 220;
+    const MENU_H = 260;
     try {
       const cursor = await invoke<{ x: number; y: number }>("get_cursor_pos");
       const scale = await getCurrentWindow().scaleFactor();
