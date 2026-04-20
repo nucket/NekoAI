@@ -32,7 +32,7 @@ export function PanelWindow({ route }: Props) {
 // ─── Context menu panel ───────────────────────────────────────────────────────
 
 function ContextMenuPanel() {
-  const { config, loadConfig, isLoaded } = useConfigStore();
+  const { config, loadConfig, isLoaded, setPetMode } = useConfigStore();
 
   useEffect(() => { if (!isLoaded) loadConfig(); }, [isLoaded, loadConfig]);
 
@@ -79,14 +79,14 @@ function ContextMenuPanel() {
           <div style={styles.modeBtns}>
             <button
               style={{ ...styles.modeBtn, ...(currentMode === 'work' ? styles.modeBtnActive : {}) }}
-              onClick={() => panelAction('pet-mode:work')}
+              onClick={() => { setPetMode('work'); panelAction('pet-mode:work'); }}
               title="Follow mouse cursor"
             >
               💼 Work
             </button>
             <button
               style={{ ...styles.modeBtn, ...(currentMode === 'play' ? styles.modeBtnActive : {}) }}
-              onClick={() => panelAction('pet-mode:play')}
+              onClick={() => { setPetMode('play'); panelAction('pet-mode:play'); }}
               title="Wander freely"
             >
               🎮 Play
