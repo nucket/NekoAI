@@ -217,10 +217,10 @@ NekoAI/
 │   │   ├── types.ts             # AIProvider interface, Message type
 │   │   └── providers/           # anthropic.ts · openai.ts · ollama.ts
 │   ├── components/
-│   │   ├── SpeechBubble.tsx     # Animated chat bubble with typewriter effect
+│   │   ├── SpeechBubble.tsx     # Animated chat bubble with scramble text effect
 │   │   ├── SettingsPanel.tsx    # Settings panel (API key, model, pet size)
 │   │   ├── ContextMenu.tsx      # Right-click context menu (settings, pet, size)
-│   │   └── PetSelector.tsx      # Pet picker (loads from pets/manifest.json)
+│   │   └── PetSelector.tsx      # Pet picker with dynamic window resizing
 │   ├── hooks/
 │   │   ├── usePetMovement.ts    # 8-direction cursor tracking & rAF loop
 │   │   ├── useMoodEngine.ts     # Energy/happiness/curiosity + animation overrides
@@ -249,7 +249,7 @@ NekoAI uses a Tauri command (`resize_window`) to bypass OS-level restrictions wh
 - **The problem:** The Windows API removes the `WS_THICKFRAME` window style when a window is created as non-resizable, and JavaScript APIs cannot restore it at runtime
 - **The solution:** A Rust-side command calls `window.set_size()` directly, completely bypassing the JS API limitation
 
-This allows the speech bubble, settings panel, and context menu to dynamically expand/collapse without the user seeing the resize handles.
+This allows the speech bubble, settings panel, pet selector, and context menu to dynamically expand/collapse without the user seeing the resize handles.
 
 ### Pixel-Perfect Sprite Scaling
 

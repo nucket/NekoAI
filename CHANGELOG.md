@@ -9,6 +9,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [0.2.0] — Unreleased
 
+### Fixed — UI & Animations
+- `src/components/PetSelector.tsx`: 
+  - Add window expand/collapse effect when opening/closing pet selector (fixes invisible panel)
+  - Remove dark overlay background (rgba(0,0,0,0.5)) that showed as outer rectangle; replace with nearly-invisible rgba(0,0,0,0.01)
+  - Set explicit panel width for consistent layout across window sizes
+- `src/components/SpeechBubble.tsx`:
+  - Replace typewriter animation with scramble text effect
+  - Characters progressively lock in left-to-right with 5-char lookahead of random noise
+  - Maintains ~30ms per character reveal speed for smooth decode feel
+  - Spaces and newlines pass through without scrambling for readability
+
 ### Added — Persistent memory
 - `storage.rs`: `get_all_user_facts()` Tauri command returns all stored facts as a map
 - `src/ai/memory.ts`: new module — `loadFacts()` and `extractAndSaveFacts()`
