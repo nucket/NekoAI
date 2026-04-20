@@ -30,3 +30,9 @@ Thumbs.db
 .env
 .env.local
 .env.*.local
+
+# Tauri signing keys — NEVER commit private keys
+*.key
+*.key.pub
+~/.tauri/
+.tauri/
