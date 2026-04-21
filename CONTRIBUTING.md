@@ -28,15 +28,15 @@ This project follows the [Contributor Covenant v2.1](CODE_OF_CONDUCT.md). By par
 
 ## Ways to Contribute
 
-| Type | How |
-|---|---|
-| 🐾 Create a pet skin | Add sprites + `pet.json` to `pets-community/` |
-| 🐛 Report a bug | Open a Bug Report issue |
-| 💡 Suggest a feature | Open a Feature Request issue |
-| 🌍 Translate the UI | Edit files in `src/i18n/` |
-| 📖 Improve docs | Edit any `.md` file and submit a PR |
+| Type                          | How                                                                                     |
+| ----------------------------- | --------------------------------------------------------------------------------------- |
+| 🐾 Create a pet skin          | Add sprites + `pet.json` to `pets-community/`                                           |
+| 🐛 Report a bug               | Open a Bug Report issue                                                                 |
+| 💡 Suggest a feature          | Open a Feature Request issue                                                            |
+| 🌍 Translate the UI           | Edit files in `src/i18n/`                                                               |
+| 📖 Improve docs               | Edit any `.md` file and submit a PR                                                     |
 | 🧑‍💻 Fix bugs or build features | Check [good first issues](https://github.com/nucket/nekoai/labels/good%20first%20issue) |
-| ⭐ Spread the word | Star the repo and share it |
+| ⭐ Spread the word            | Star the repo and share it                                                              |
 
 ---
 
@@ -44,12 +44,12 @@ This project follows the [Contributor Covenant v2.1](CODE_OF_CONDUCT.md). By par
 
 ### Prerequisites
 
-| Tool | Version | Install |
-|---|---|---|
-| Node.js | 20+ | https://nodejs.org |
-| Rust | 1.75+ | https://rustup.rs |
-| Tauri CLI | 2.x | `cargo install tauri-cli --version "^2.0"` |
-| Python | 3.8+ | https://python.org (for sprite scripts) |
+| Tool      | Version | Install                                    |
+| --------- | ------- | ------------------------------------------ |
+| Node.js   | 20+     | https://nodejs.org                         |
+| Rust      | 1.75+   | https://rustup.rs                          |
+| Tauri CLI | 2.x     | `cargo install tauri-cli --version "^2.0"` |
+| Python    | 3.8+    | https://python.org (for sprite scripts)    |
 
 ### First-time setup
 
@@ -136,25 +136,29 @@ pets-community/
     "walk_right": { "files": ["walk_r1.png", "walk_r2.png"], "fps": 8, "loop": true }
   },
   "triggers": {
-    "on_cursor_near":    "animation_name",
-    "on_chat_open":      "animation_name",
-    "on_ai_thinking":    "animation_name",
-    "on_idle_3min":      "animation_name",
-    "on_idle_5min":      "animation_name",
-    "on_idle_6min":      "animation_name",
-    "on_movement_start": "animation_name"
+    "on_cursor_near": "animation_name",
+    "on_chat_open": "animation_name",
+    "on_ai_thinking": "animation_name",
+    "on_ai_response": "animation_name",
+    "on_idle_3min": "animation_name",
+    "on_idle_5min": "animation_name",
+    "on_idle_6min": "animation_name",
+    "on_movement_start": "animation_name",
+    "on_happy": "animation_name",
+    "on_surprised": "animation_name",
+    "on_eating": "animation_name"
   }
 }
 ```
 
 ### Required animations
 
-| Animation | Description | fps | Loop |
-|---|---|---|---|
-| `idle` | Default resting state | 2–4 | true |
-| `walk_right` | Moving right | 8–12 | true |
-| `walk_left` | Moving left | 8–12 | true |
-| `sleep` | Sleeping | 2 | true |
+| Animation    | Description           | fps  | Loop |
+| ------------ | --------------------- | ---- | ---- |
+| `idle`       | Default resting state | 2–4  | true |
+| `walk_right` | Moving right          | 8–12 | true |
+| `walk_left`  | Moving left           | 8–12 | true |
+| `sleep`      | Sleeping              | 2    | true |
 
 ### Optional animations
 
@@ -171,12 +175,12 @@ pets-community/
 
 ## Sprite Guidelines
 
-| Property | Requirement |
-|---|---|
-| Format | PNG with alpha channel (RGBA) |
-| Frame size | 32×32 px native (displayed at 64×64 via 2× scale) |
-| Background | Fully transparent (alpha = 0) |
-| Naming | lowercase, snake_case, number suffix for sequences |
+| Property   | Requirement                                        |
+| ---------- | -------------------------------------------------- |
+| Format     | PNG with alpha channel (RGBA)                      |
+| Frame size | 32×32 px native (displayed at 64×64 via 2× scale)  |
+| Background | Fully transparent (alpha = 0)                      |
+| Naming     | lowercase, snake_case, number suffix for sequences |
 
 **Converting from ICO/BMP:**
 
@@ -218,22 +222,54 @@ sleep1.png       sleep2.png
 <type>(<scope>): <short description>
 ```
 
-| Type | Use for |
-|---|---|
-| `feat` | New feature or pet |
-| `fix` | Bug fix |
-| `chore` | Build, deps, tooling |
-| `docs` | Documentation only |
+| Type       | Use for                          |
+| ---------- | -------------------------------- |
+| `feat`     | New feature or pet               |
+| `fix`      | Bug fix                          |
+| `chore`    | Build, deps, tooling             |
+| `docs`     | Documentation only               |
 | `refactor` | Refactor without behavior change |
-| `perf` | Performance improvement |
-| `test` | Tests |
+| `perf`     | Performance improvement          |
+| `test`     | Tests                            |
 
 Examples:
+
 ```
 feat(pets): add fire dragon community pet
 fix(renderer): correct frame timing at low fps
 docs(contributing): add sprite conversion guide
 ```
+
+---
+
+## Code Style Guide
+
+### TypeScript / React
+
+The project uses ESLint (`eslint.config.js`) with `@eslint/js`, `typescript-eslint`, and `prettier`. Prettier is enforced on all `.ts`, `.tsx`, `.json`, `.css`, and `.md` files via lint-staged.
+
+| Rule             | Convention                                                               |
+| ---------------- | ------------------------------------------------------------------------ |
+| Component names  | PascalCase — `PetSprite`, `SpeechBubble`                                 |
+| Hook names       | camelCase prefixed `use` — `usePetMovement`, `useMoodEngine`             |
+| File names       | Match the exported symbol exactly — `PetSprite.tsx`, `usePetMovement.ts` |
+| Object shapes    | `interface` preferred over `type`                                        |
+| Unions / aliases | `type`                                                                   |
+| Default exports  | Components only; utilities use named exports                             |
+| Unused vars      | Error — prefix intentionally unused params with `_`                      |
+| `any`            | Forbidden — use proper types or `unknown`                                |
+
+Run `npm run lint` (zero warnings allowed) and `npm run format:check` before submitting.
+
+### Rust
+
+| Rule           | Convention                                                         |
+| -------------- | ------------------------------------------------------------------ |
+| Linting        | `cargo clippy` — all warnings are errors in CI                     |
+| Tauri commands | All `#[tauri::command]` functions go in `lib.rs` only              |
+| Error returns  | Use `.map_err(\|e\| e.to_string())` — Tauri serializes these to JS |
+
+Run `cargo clippy` from the `src-tauri/` directory before submitting any Rust changes.
 
 ---
 

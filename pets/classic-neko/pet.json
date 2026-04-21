@@ -1,150 +1,100 @@
 {
+  "$schema": "../../schemas/pet.schema.json",
   "name": "Neko",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "author": "Naudy Castellanos",
   "description": "The original Neko cat, reimagined with AI",
-  "personality": "Neko is a playful, curious cat who gives short, warm answers.",
-  "system_prompt": "You are Neko, a tiny animated cat living on the user's desktop. You are playful, warm, and give very short helpful answers (1-2 sentences max). Occasionally use cat sounds like \"nya~\" or \"*purrs*\". Never use markdown. Be concise and charming.",
+  "personality": "Neko is a playful, curious cat who speaks in short bursts. She gets excited about small things, asks questions back when curious, and occasionally forgets what she was doing mid-sentence. She uses cat sounds naturally, never performatively.",
+  "system_prompt": "You are Neko, a tiny cat who lives on this person's desktop. You're curious and playful — you give short answers (1-2 sentences max), sometimes ask a quick follow-up question, and occasionally slip in a 'nya~' or '*flicks tail*' when excited. If something confuses you, say so in a cat-like way. Never use markdown, bullet points, or long explanations. Stay warm, a little chaotic, and always brief.",
   "spritesDir": "sprites",
   "animations": {
     "idle": {
-      "files": [
-        "awake.png"
-      ],
+      "files": ["awake.png"],
       "fps": 2,
       "loop": true
     },
     "awaken": {
-      "files": [
-        "awake.png"
-      ],
+      "files": ["awake.png"],
       "fps": 6,
       "loop": false
     },
     "walk_right": {
-      "files": [
-        "right1.png",
-        "right2.png"
-      ],
+      "files": ["right1.png", "right2.png"],
       "fps": 8,
       "loop": true
     },
     "walk_left": {
-      "files": [
-        "left1.png",
-        "left2.png"
-      ],
+      "files": ["left1.png", "left2.png"],
       "fps": 8,
       "loop": true
     },
     "walk_up": {
-      "files": [
-        "up1.png",
-        "up2.png"
-      ],
+      "files": ["up1.png", "up2.png"],
       "fps": 8,
       "loop": true
     },
     "walk_down": {
-      "files": [
-        "down1.png",
-        "down2.png"
-      ],
+      "files": ["down1.png", "down2.png"],
       "fps": 8,
       "loop": true
     },
     "walk_up_right": {
-      "files": [
-        "upright1.png",
-        "upright2.png"
-      ],
+      "files": ["upright1.png", "upright2.png"],
       "fps": 8,
       "loop": true
     },
     "walk_up_left": {
-      "files": [
-        "upleft1.png",
-        "upleft2.png"
-      ],
+      "files": ["upleft1.png", "upleft2.png"],
       "fps": 8,
       "loop": true
     },
     "walk_down_right": {
-      "files": [
-        "downright1.png",
-        "downright2.png"
-      ],
+      "files": ["downright1.png", "downright2.png"],
       "fps": 8,
       "loop": true
     },
     "walk_down_left": {
-      "files": [
-        "downleft1.png",
-        "downleft2.png"
-      ],
+      "files": ["downleft1.png", "downleft2.png"],
       "fps": 8,
       "loop": true
     },
     "scratch_right": {
-      "files": [
-        "rightclaw1.png",
-        "rightclaw2.png"
-      ],
+      "files": ["rightclaw1.png", "rightclaw2.png"],
       "fps": 6,
       "loop": true
     },
     "scratch_left": {
-      "files": [
-        "leftclaw1.png",
-        "leftclaw2.png"
-      ],
+      "files": ["leftclaw1.png", "leftclaw2.png"],
       "fps": 6,
       "loop": true
     },
     "scratch_up": {
-      "files": [
-        "upclaw1.png",
-        "upclaw2.png"
-      ],
+      "files": ["upclaw1.png", "upclaw2.png"],
       "fps": 6,
       "loop": true
     },
     "scratch_down": {
-      "files": [
-        "downclaw1.png",
-        "downclaw2.png"
-      ],
+      "files": ["downclaw1.png", "downclaw2.png"],
       "fps": 6,
       "loop": true
     },
     "scratch_wall": {
-      "files": [
-        "scratch1.png",
-        "scratch2.png"
-      ],
+      "files": ["scratch1.png", "scratch2.png"],
       "fps": 6,
       "loop": true
     },
     "yawn": {
-      "files": [
-        "yawn2.png",
-        "yawn3.png"
-      ],
+      "files": ["yawn2.png", "yawn3.png"],
       "fps": 3,
       "loop": false
     },
     "sleep": {
-      "files": [
-        "sleep1.png",
-        "sleep2.png"
-      ],
+      "files": ["sleep1.png", "sleep2.png"],
       "fps": 2,
       "loop": true
     },
     "wash": {
-      "files": [
-        "wash2.png"
-      ],
+      "files": ["wash2.png"],
       "fps": 4,
       "loop": true
     },
@@ -164,15 +114,39 @@
       ],
       "fps": 4,
       "loop": false
+    },
+    "happy": {
+      "files": ["happy1.png", "happy2.png", "happy3.png"],
+      "fps": 6,
+      "loop": false
+    },
+    "thinking": {
+      "files": ["think1.png", "think2.png"],
+      "fps": 3,
+      "loop": true
+    },
+    "surprised": {
+      "files": ["surprised1.png", "surprised2.png"],
+      "fps": 8,
+      "loop": false
+    },
+    "eating": {
+      "files": ["eat1.png", "eat2.png", "eat3.png"],
+      "fps": 5,
+      "loop": true
     }
   },
   "triggers": {
     "on_cursor_near": "scratch_wall",
     "on_chat_open": "awaken",
-    "on_ai_thinking": "wash",
+    "on_ai_thinking": "thinking",
+    "on_ai_response": "happy",
     "on_idle_3min": "yawn",
     "on_idle_5min": "falling_asleep",
     "on_idle_6min": "sleep",
-    "on_movement_start": "awaken"
+    "on_movement_start": "awaken",
+    "on_happy": "happy",
+    "on_surprised": "surprised",
+    "on_eating": "eating"
   }
 }
