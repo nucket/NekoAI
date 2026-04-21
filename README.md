@@ -15,7 +15,7 @@
 
 <br/>
 
-> *Remember Neko chasing your cursor? Or eSheep roaming your taskbar?*
+> _Remember Neko chasing your cursor? Or eSheep roaming your taskbar?_
 > **NekoAI brings that magic back — but now your pet can actually talk, think, and help you.**
 
 <br/>
@@ -42,22 +42,25 @@ Neko:   *walks over, pops a bubble*
 
 ## 🌟 Features
 
-| Feature | Status |
-|---|---|
-| 🐱 Animated sprite pets that roam your desktop | ✅ |
-| 🖱️ 8-direction cursor following & movement | ✅ |
-| 💬 AI chat via animated speech bubble | ✅ |
-| 🧠 Persistent memory — remembers your name, projects, preferences | ✅ |
-| 🔌 Multi-provider AI (Claude, OpenAI, Gemini, Ollama local) | ✅ |
-| 😴 Dynamic mood — energy changes with time of day & idle time | ✅ |
-| 🎭 Multiple pets — Classic Neko, Ghost, Shiba (more via community) | ✅ |
-| 🔔 Proactive nudges ("coding 90 min — take a break!") | ✅ |
-| 🖥️ System tray — hide/show, switch pets, settings | ✅ |
-| 📏 Adjustable pet size (S/M/L/XL) with pixel-perfect scaling | ✅ |
-| 🖱️ Right-click context menu — quick settings & pet size adjustment | ✅ |
-| 🌐 Cross-platform (Windows, macOS, Linux) | 🔜 Planned |
-| 🧩 Plugin system for custom behaviors | 🔜 Planned |
-| 🗣️ Voice interaction (TTS/STT) | 🔜 Planned |
+| Feature                                                                        | Status     |
+| ------------------------------------------------------------------------------ | ---------- |
+| 🐱 Animated sprite pets that roam your desktop                                 | ✅         |
+| 🖱️ 8-direction cursor following & movement                                     | ✅         |
+| 💬 AI chat via animated speech bubble                                          | ✅         |
+| 🧠 Persistent memory — remembers your name, projects, preferences              | ✅         |
+| 🔌 Multi-provider AI (Claude, OpenAI, Gemini, Ollama local)                    | ✅         |
+| 😴 Dynamic mood — energy changes with time of day & idle time                  | ✅         |
+| 🎭 Multiple pets — Classic Neko, Ghost, Shiba (more via community)             | ✅         |
+| 🔔 Proactive nudges ("coding 90 min — take a break!")                          | ✅         |
+| 🖥️ System tray — hide/show, switch pets, settings                              | ✅         |
+| 📏 Adjustable pet size (S/M/L/XL) with pixel-perfect scaling                   | ✅         |
+| 🖱️ Right-click context menu — quick settings & pet size adjustment             | ✅         |
+| 📷 NekoCapture — screenshots with username/date/app/comment footer             | 🔜 v0.5    |
+| 🖼️ Customizable screenshot borders (color, thickness, rounded corners, shadow) | 🔜 v0.5    |
+| ✏️ NekoAnnotate — full-screen drawing overlay (pen, shapes, arrows, text)      | 🔜 v0.6    |
+| 🌐 Cross-platform (Windows, macOS, Linux)                                      | 🔜 Planned |
+| 🧩 Plugin system for custom behaviors                                          | 🔜 Planned |
+| 🗣️ Voice interaction (TTS/STT)                                                 | 🔜 Planned |
 
 ---
 
@@ -91,15 +94,15 @@ Neko:   *walks over, pops a bubble*
 
 ## 🚀 Installation
 
-### Option A — Download the installer *(easiest)*
+### Option A — Download the installer _(easiest)_
 
 Go to [Releases](https://github.com/nucket/nekoai/releases) and grab the latest installer for your OS.
 
-| Platform | File |
-|---|---|
-| Windows | `NekoAI_x.x.x_x64.msi` |
-| macOS | `NekoAI_x.x.x_aarch64.dmg` |
-| Linux | `NekoAI_x.x.x_amd64.AppImage` |
+| Platform | File                          |
+| -------- | ----------------------------- |
+| Windows  | `NekoAI_x.x.x_x64.msi`        |
+| macOS    | `NekoAI_x.x.x_aarch64.dmg`    |
+| Linux    | `NekoAI_x.x.x_amd64.AppImage` |
 
 ### Option B — Build from source
 
@@ -118,6 +121,7 @@ npm run tauri build      # Production build
 ## ⚙️ Configuration
 
 **Right-click the pet** to open the context menu where you can:
+
 - ⚙ **Settings** — configure AI provider, API key, model, and your name
 - 🐾 **Select Pet** — switch between available pets
 - 📏 **Size** — adjust pet size (S=32px, M=64px, L=96px, XL=128px) for pixel-perfect rendering
@@ -133,7 +137,7 @@ model    = "claude-haiku-4-5-20251001"
 pet_size = 64                    # pixels (32, 64, 96, or 128)
 ```
 
-> 🔒 **Privacy first**: NekoAI has no backend server. All data stays on your machine. The only outbound calls are the AI API calls *you* configure.
+> 🔒 **Privacy first**: NekoAI has no backend server. All data stays on your machine. The only outbound calls are the AI API calls _you_ configure.
 
 ---
 
@@ -160,12 +164,12 @@ sqlite3 ~/.local/share/nekoai/memory.db "SELECT * FROM user_facts;"
 
 ### Supported AI providers
 
-| Provider | Models | Requires |
-|---|---|---|
-| **Anthropic** | Claude Haiku, Sonnet | API Key |
-| **OpenAI** | GPT-4o mini, GPT-4o | API Key |
-| **Google** | Gemini 1.5 Flash, Gemini 2.0 Flash... | API Key ([Google AI Studio](https://aistudio.google.com)) |
-| **Ollama** | Llama 3, Mistral, Phi-3... | [Ollama](https://ollama.ai) running locally |
+| Provider      | Models                                | Requires                                                  |
+| ------------- | ------------------------------------- | --------------------------------------------------------- |
+| **Anthropic** | Claude Haiku, Sonnet                  | API Key                                                   |
+| **OpenAI**    | GPT-4o mini, GPT-4o                   | API Key                                                   |
+| **Google**    | Gemini 1.5 Flash, Gemini 2.0 Flash... | API Key ([Google AI Studio](https://aistudio.google.com)) |
+| **Ollama**    | Llama 3, Mistral, Phi-3...            | [Ollama](https://ollama.ai) running locally               |
 
 > 💡 **For full privacy**: Use Ollama — 100% local, no API costs, no data leaves your machine.
 
@@ -175,13 +179,14 @@ sqlite3 ~/.local/share/nekoai/memory.db "SELECT * FROM user_facts;"
 
 The pet's mood updates every 60 seconds based on:
 
-| Signal | Effect |
-|---|---|
-| Time of day (6am–8pm) | Energy peaks at midday, drops at night |
-| OS idle time | Energy drains gradually while inactive |
-| Active app category | Curiosity rises when coding; relaxes otherwise |
+| Signal                | Effect                                         |
+| --------------------- | ---------------------------------------------- |
+| Time of day (6am–8pm) | Energy peaks at midday, drops at night         |
+| OS idle time          | Energy drains gradually while inactive         |
+| Active app category   | Curiosity rises when coding; relaxes otherwise |
 
 Mood affects:
+
 - **Animations** — yawns after 3 min idle, falls asleep after 5 min
 - **AI tone** — sleepy pet gives shorter, quieter answers; curious pet asks follow-ups
 
@@ -189,11 +194,11 @@ Mood affects:
 
 ## 🎭 Available Pets
 
-| Pet | ID | Personality |
-|---|---|---|
-| 🐱 Classic Neko | `classic-neko` | Playful, curious, gives warm short answers |
-| 👻 Ghost | `ghost-pixel` | Ethereal, gentle, slightly mysterious |
-| 🐕 Shiba | `shiba-pixel` | Loyal, energetic, enthusiastic about everything |
+| Pet             | ID             | Personality                                     |
+| --------------- | -------------- | ----------------------------------------------- |
+| 🐱 Classic Neko | `classic-neko` | Playful, curious, gives warm short answers      |
+| 👻 Ghost        | `ghost-pixel`  | Ethereal, gentle, slightly mysterious           |
+| 🐕 Shiba        | `shiba-pixel`  | Loyal, energetic, enthusiastic about everything |
 
 Switch pets via right-click → Settings, or from the system tray menu.
 
@@ -255,6 +260,7 @@ This allows the speech bubble, settings panel, pet selector, and context menu to
 ### Pixel-Perfect Sprite Scaling
 
 All pet sizes are integer multiples of the native 32px sprite:
+
 - **S** = 32px (1×)
 - **M** = 64px (2×)
 - **L** = 96px (3×)
@@ -279,13 +285,15 @@ Read [CONTRIBUTING.md](CONTRIBUTING.md) before submitting.
 
 ## 🗺️ Roadmap
 
-| Version | Focus |
-|---|---|
-| **v0.1** ✅ | Core: transparent window, Neko sprite, cursor tracking, AI chat |
-| **v0.2** ✅ | Persistent memory, dynamic mood engine, multiple pets |
-| **v0.3** 🚧 | Accessories/skins system, sound effects, sprite scale slider |
-| **v0.4** 🔜 | Community pet gallery in-app, mini-games |
-| **v1.0** 🔜 | Cross-platform stable release, plugin API, voice support |
+| Version     | Focus                                                                                                                                                               |
+| ----------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **v0.1** ✅ | Core: transparent window, Neko sprite, cursor tracking, AI chat                                                                                                     |
+| **v0.2** ✅ | Persistent memory, dynamic mood engine, multiple pets                                                                                                               |
+| **v0.3** 🚧 | Accessories/skins system, sound effects, sprite scale slider                                                                                                        |
+| **v0.4** 🔜 | Community pet gallery in-app, mini-games                                                                                                                            |
+| **v0.5** 🔜 | **NekoCapture** — native screenshots with metadata footer (username, timestamp, app name, comments), customizable borders & shadows, clipboard/file export, hotkeys |
+| **v0.6** 🔜 | **NekoAnnotate** — full-screen drawing overlay (pen, shapes, arrows, text, highlighter) with undo/redo, inspired by ZoomIt Draw; annotate before saving screenshots |
+| **v1.0** 🔜 | Cross-platform stable release, plugin API, voice support                                                                                                            |
 
 ---
 
@@ -293,7 +301,7 @@ Read [CONTRIBUTING.md](CONTRIBUTING.md) before submitting.
 
 This project is a love letter to:
 
-- **[Neko](https://en.wikipedia.org/wiki/Neko_(software))** — the original X11 cat, 1989
+- **[Neko](<https://en.wikipedia.org/wiki/Neko_(software)>)** — the original X11 cat, 1989
 - **[eSheep](https://github.com/Adrianotiger/desktopPet)** — the Windows XP classic
 - **[Shimeji](https://kilkakon.com/shimeji/)** — the Japanese desktop mascot framework
 - **[Tauri](https://tauri.app)** — for making lightweight native desktop apps possible
@@ -312,6 +320,6 @@ Free to use, modify, and distribute. Attribution appreciated.
 
 **If NekoAI made you smile, give it a ⭐ — it helps a lot!**
 
-*Made with ☕ and deep nostalgia for Windows XP — by [Naudy Castellanos](https://github.com/nucket)*
+_Made with ☕ and deep nostalgia for Windows XP — by [Naudy Castellanos](https://github.com/nucket)_
 
 </div>
