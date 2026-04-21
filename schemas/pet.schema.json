@@ -1,0 +1,170 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://github.com/nucket/nekoai/schemas/pet.schema.json",
+  "title": "NekoAI Pet Definition",
+  "description": "Schema for a NekoAI pet definition file (pet.json)",
+  "type": "object",
+  "required": [
+    "name",
+    "version",
+    "author",
+    "description",
+    "personality",
+    "system_prompt",
+    "spritesDir",
+    "animations",
+    "triggers"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "Display name of the pet shown in the UI",
+      "minLength": 1,
+      "maxLength": 32
+    },
+    "version": {
+      "type": "string",
+      "description": "Semantic version of this pet definition (e.g. 1.0.0)",
+      "pattern": "^\\d+\\.\\d+\\.\\d+$"
+    },
+    "author": {
+      "type": "string",
+      "description": "GitHub username or display name of the pet creator",
+      "minLength": 1
+    },
+    "description": {
+      "type": "string",
+      "description": "One-line description of the pet shown in the pet selector",
+      "minLength": 1,
+      "maxLength": 120
+    },
+    "personality": {
+      "type": "string",
+      "description": "Human-readable personality summary (for contributors and maintainers)",
+      "minLength": 1,
+      "maxLength": 256
+    },
+    "system_prompt": {
+      "type": "string",
+      "description": "Prompt sent to the AI model to define the pet's voice and behavior. Keep under 500 characters. Must instruct for short responses and no markdown.",
+      "minLength": 10,
+      "maxLength": 500
+    },
+    "spritesDir": {
+      "type": "string",
+      "description": "Path to the sprites directory, relative to pet.json. Almost always 'sprites'.",
+      "default": "sprites"
+    },
+    "animations": {
+      "type": "object",
+      "description": "Map of animation names to their definitions. Must include at least: idle, walk_right, walk_left, sleep.",
+      "required": ["idle", "walk_right", "walk_left", "sleep"],
+      "minProperties": 1,
+      "additionalProperties": {
+        "$ref": "#/definitions/animation"
+      },
+      "properties": {
+        "idle": { "$ref": "#/definitions/animation" },
+        "walk_right": { "$ref": "#/definitions/animation" },
+        "walk_left": { "$ref": "#/definitions/animation" },
+        "walk_up": { "$ref": "#/definitions/animation" },
+        "walk_down": { "$ref": "#/definitions/animation" },
+        "walk_up_right": { "$ref": "#/definitions/animation" },
+        "walk_up_left": { "$ref": "#/definitions/animation" },
+        "walk_down_right": { "$ref": "#/definitions/animation" },
+        "walk_down_left": { "$ref": "#/definitions/animation" },
+        "awaken": { "$ref": "#/definitions/animation" },
+        "yawn": { "$ref": "#/definitions/animation" },
+        "falling_asleep": { "$ref": "#/definitions/animation" },
+        "sleep": { "$ref": "#/definitions/animation" },
+        "happy": { "$ref": "#/definitions/animation" },
+        "thinking": { "$ref": "#/definitions/animation" },
+        "surprised": { "$ref": "#/definitions/animation" },
+        "eating": { "$ref": "#/definitions/animation" },
+        "wash": { "$ref": "#/definitions/animation" },
+        "scratch_wall": { "$ref": "#/definitions/animation" },
+        "scratch_right": { "$ref": "#/definitions/animation" },
+        "scratch_left": { "$ref": "#/definitions/animation" },
+        "scratch_up": { "$ref": "#/definitions/animation" },
+        "scratch_down": { "$ref": "#/definitions/animation" }
+      }
+    },
+    "triggers": {
+      "type": "object",
+      "description": "Maps system events to animation names. Each value must match a key in 'animations'.",
+      "additionalProperties": false,
+      "properties": {
+        "on_cursor_near": { "$ref": "#/definitions/triggerValue" },
+        "on_chat_open": { "$ref": "#/definitions/triggerValue" },
+        "on_ai_thinking": { "$ref": "#/definitions/triggerValue" },
+        "on_ai_response": { "$ref": "#/definitions/triggerValue" },
+        "on_idle_3min": { "$ref": "#/definitions/triggerValue" },
+        "on_idle_5min": { "$ref": "#/definitions/triggerValue" },
+        "on_idle_6min": { "$ref": "#/definitions/triggerValue" },
+        "on_movement_start": { "$ref": "#/definitions/triggerValue" },
+        "on_happy": { "$ref": "#/definitions/triggerValue" },
+        "on_surprised": { "$ref": "#/definitions/triggerValue" },
+        "on_eating": { "$ref": "#/definitions/triggerValue" }
+      }
+    }
+  },
+  "definitions": {
+    "animation": {
+      "type": "object",
+      "description": "A single animation clip",
+      "required": ["files", "fps", "loop"],
+      "additionalProperties": false,
+      "properties": {
+        "files": {
+          "type": "array",
+          "description": "Ordered list of sprite filenames (relative to spritesDir). Each file is one frame.",
+          "items": {
+            "type": "string",
+            "pattern": "^[a-z0-9_.-]+\\.png$"
+          },
+          "minItems": 1
+        },
+        "fps": {
+          "type": "number",
+          "description": "Frames per second for this animation",
+          "minimum": 1,
+          "maximum": 60
+        },
+        "loop": {
+          "type": "boolean",
+          "description": "Whether the animation loops (true) or plays once (false)"
+        }
+      }
+    },
+    "triggerValue": {
+      "type": "string",
+      "description": "Name of the animation to play when this event fires",
+      "enum": [
+        "idle",
+        "walk_right",
+        "walk_left",
+        "walk_up",
+        "walk_down",
+        "walk_up_right",
+        "walk_up_left",
+        "walk_down_right",
+        "walk_down_left",
+        "awaken",
+        "yawn",
+        "falling_asleep",
+        "sleep",
+        "happy",
+        "thinking",
+        "surprised",
+        "eating",
+        "wash",
+        "scratch_wall",
+        "scratch_right",
+        "scratch_left",
+        "scratch_up",
+        "scratch_down"
+      ]
+    }
+  }
+}
