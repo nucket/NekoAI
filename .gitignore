@@ -13,9 +13,11 @@ src-tauri/gen/
 *.log
 npm-debug.log*
 
-# Editor
+# Editor & Local Config
 .vscode/
 .idea/
+.claude/
+CLAUDE.md
 *.suo
 *.ntvs*
 *.njsproj
