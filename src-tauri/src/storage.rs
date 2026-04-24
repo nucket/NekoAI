@@ -63,22 +63,22 @@ fn exe_dir() -> PathBuf {
 
 pub fn config_path() -> PathBuf {
     if is_portable() {
-        exe_dir().join("data").join("config.toml")
-    } else {
-        home_dir().join(".config").join("nekoai").join("config.toml")
+        return exe_dir().join("data").join("config.toml");
     }
+    let base = std::env::var("XDG_CONFIG_HOME")
+        .map(PathBuf::from)
+        .unwrap_or_else(|_| home_dir().join(".config"));
+    base.join("nekoai").join("config.toml")
 }
 
 pub fn db_path() -> PathBuf {
     if is_portable() {
-        exe_dir().join("data").join("memory.db")
-    } else {
-        home_dir()
-            .join(".local")
-            .join("share")
-            .join("nekoai")
-            .join("memory.db")
+        return exe_dir().join("data").join("memory.db");
     }
+    let base = std::env::var("XDG_DATA_HOME")
+        .map(PathBuf::from)
+        .unwrap_or_else(|_| home_dir().join(".local").join("share"));
+    base.join("nekoai").join("memory.db")
 }
 
 // ─── Config (TOML) ────────────────────────────────────────────────────────────
