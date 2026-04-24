@@ -118,14 +118,189 @@ mod win_impl {
     }
 }
 
-// ─── Public API — falls back to empty stubs on non-Windows ───────────────────
+// ─── Linux implementation ─────────────────────────────────────────────────────
+
+#[cfg(target_os = "linux")]
+mod linux_impl {
+    use super::{Rect, WindowInfo};
+    use std::error::Error;
+
+    // Returns true when an X11 display is reachable.
+    // On a pure Wayland session (no XWayland) DISPLAY is unset.
+    fn has_display() -> bool {
+        std::env::var("DISPLAY").is_ok()
+    }
+
+    // ── Idle time via XScreenSaver extension ──────────────────────────────────
+    //
+    // Works on X11 and on XWayland (the common case on Fedora/GNOME).
+    // Returns 0 on pure Wayland sessions (no X display available).
+
+    pub fn get_idle_millis() -> u64 {
+        if !has_display() {
+            return 0;
+        }
+        idle_millis_x11().unwrap_or(0)
+    }
+
+    fn idle_millis_x11() -> Result<u64, Box<dyn Error>> {
+        use x11rb::connection::Connection as _;
+        use x11rb::protocol::screensaver::ConnectionExt as _;
+        use x11rb::rust_connection::RustConnection;
+
+        let (conn, screen_num) = RustConnection::connect(None)?;
+        let root = conn.setup().roots[screen_num].root;
+        let info = conn.screensaver_query_info(root)?.reply()?;
+        Ok(info.ms_since_user_input as u64)
+    }
+
+    // ── Active window via _NET_ACTIVE_WINDOW (EWMH / X11) ────────────────────
+    //
+    // Works on X11 and XWayland.
+    // Returns None on pure Wayland — the compositor does not expose the focused
+    // window to other clients (security policy; no reliable cross-process API).
+
+    pub fn get_active_window() -> Option<WindowInfo> {
+        if !has_display() {
+            return None;
+        }
+        active_window_x11().unwrap_or(None)
+    }
+
+    fn active_window_x11() -> Result<Option<WindowInfo>, Box<dyn Error>> {
+        use x11rb::connection::Connection as _;
+        use x11rb::protocol::xproto::{AtomEnum, ConnectionExt as _};
+        use x11rb::rust_connection::RustConnection;
+
+        let (conn, screen_num) = RustConnection::connect(None)?;
+        let root = conn.setup().roots[screen_num].root;
+
+        let net_active_window = conn.intern_atom(false, b"_NET_ACTIVE_WINDOW")?.reply()?.atom;
+        let prop = conn
+            .get_property(false, root, net_active_window, AtomEnum::WINDOW, 0, 1)?
+            .reply()?;
+
+        let win_id = match prop.value32().and_then(|mut it| it.next()) {
+            Some(id) if id != 0 => id,
+            _ => return Ok(None),
+        };
+
+        let title = window_title(&conn, win_id).unwrap_or_default();
+        let process_name = window_process_name(&conn, win_id).unwrap_or_default();
+        let rect = window_rect(&conn, win_id)
+            .unwrap_or(Rect { x: 0, y: 0, width: 0, height: 0 });
+
+        Ok(Some(WindowInfo { title, process_name, rect }))
+    }
+
+    // ── All visible windows via _NET_CLIENT_LIST (EWMH / X11) ────────────────
+
+    pub fn get_all_windows() -> Vec<WindowInfo> {
+        if !has_display() {
+            return vec![];
+        }
+        all_windows_x11().unwrap_or_default()
+    }
+
+    fn all_windows_x11() -> Result<Vec<WindowInfo>, Box<dyn Error>> {
+        use x11rb::connection::Connection as _;
+        use x11rb::protocol::xproto::{AtomEnum, ConnectionExt as _};
+        use x11rb::rust_connection::RustConnection;
+
+        let (conn, screen_num) = RustConnection::connect(None)?;
+        let root = conn.setup().roots[screen_num].root;
+
+        let net_client_list = conn.intern_atom(false, b"_NET_CLIENT_LIST")?.reply()?.atom;
+        let prop = conn
+            .get_property(false, root, net_client_list, AtomEnum::WINDOW, 0, 2048)?
+            .reply()?;
+
+        let mut windows = Vec::new();
+        for win_id in prop.value32().into_iter().flatten() {
+            if win_id == 0 {
+                continue;
+            }
+            let title = window_title(&conn, win_id).unwrap_or_default();
+            if title.is_empty() {
+                continue;
+            }
+            let process_name = window_process_name(&conn, win_id).unwrap_or_default();
+            let rect = window_rect(&conn, win_id)
+                .unwrap_or(Rect { x: 0, y: 0, width: 0, height: 0 });
+            windows.push(WindowInfo { title, process_name, rect });
+        }
+        Ok(windows)
+    }
+
+    // ── Helpers ───────────────────────────────────────────────────────────────
+
+    fn window_title(
+        conn: &x11rb::rust_connection::RustConnection,
+        win: u32,
+    ) -> Result<String, Box<dyn Error>> {
+        use x11rb::protocol::xproto::{AtomEnum, ConnectionExt as _};
+
+        let net_wm_name = conn.intern_atom(false, b"_NET_WM_NAME")?.reply()?.atom;
+        let utf8 = conn.intern_atom(false, b"UTF8_STRING")?.reply()?.atom;
+
+        let prop = conn.get_property(false, win, net_wm_name, utf8, 0, 1024)?.reply()?;
+        if !prop.value.is_empty() {
+            return Ok(String::from_utf8_lossy(&prop.value).to_string());
+        }
+        // WM_NAME fallback for windows that don't set _NET_WM_NAME
+        let prop = conn
+            .get_property(false, win, AtomEnum::WM_NAME, AtomEnum::STRING, 0, 1024)?
+            .reply()?;
+        Ok(String::from_utf8_lossy(&prop.value).to_string())
+    }
+
+    fn window_process_name(
+        conn: &x11rb::rust_connection::RustConnection,
+        win: u32,
+    ) -> Result<String, Box<dyn Error>> {
+        use x11rb::protocol::xproto::{AtomEnum, ConnectionExt as _};
+
+        let net_wm_pid = conn.intern_atom(false, b"_NET_WM_PID")?.reply()?.atom;
+        let prop = conn
+            .get_property(false, win, net_wm_pid, AtomEnum::CARDINAL, 0, 1)?
+            .reply()?;
+        let pid = prop.value32().and_then(|mut it| it.next()).unwrap_or(0);
+        if pid == 0 {
+            return Ok(String::new());
+        }
+        Ok(std::fs::read_to_string(format!("/proc/{pid}/comm"))
+            .map(|s| s.trim().to_string())
+            .unwrap_or_default())
+    }
+
+    fn window_rect(
+        conn: &x11rb::rust_connection::RustConnection,
+        win: u32,
+    ) -> Result<Rect, Box<dyn Error>> {
+        use x11rb::protocol::xproto::ConnectionExt as _;
+
+        let g = conn.get_geometry(win)?.reply()?;
+        Ok(Rect {
+            x: g.x as i32,
+            y: g.y as i32,
+            width: g.width as i32,
+            height: g.height as i32,
+        })
+    }
+}
+
+// ─── Public API ───────────────────────────────────────────────────────────────
 
 pub fn get_active_window() -> Option<WindowInfo> {
     #[cfg(target_os = "windows")]
     {
         win_impl::get_active_window()
     }
-    #[cfg(not(target_os = "windows"))]
+    #[cfg(target_os = "linux")]
+    {
+        linux_impl::get_active_window()
+    }
+    #[cfg(not(any(target_os = "windows", target_os = "linux")))]
     {
         None
     }
@@ -136,7 +311,11 @@ pub fn get_all_windows() -> Vec<WindowInfo> {
     {
         win_impl::get_all_windows()
     }
-    #[cfg(not(target_os = "windows"))]
+    #[cfg(target_os = "linux")]
+    {
+        linux_impl::get_all_windows()
+    }
+    #[cfg(not(any(target_os = "windows", target_os = "linux")))]
     {
         vec![]
     }
@@ -147,7 +326,11 @@ pub fn get_idle_millis() -> u64 {
     {
         win_impl::get_idle_millis()
     }
-    #[cfg(not(target_os = "windows"))]
+    #[cfg(target_os = "linux")]
+    {
+        linux_impl::get_idle_millis()
+    }
+    #[cfg(not(any(target_os = "windows", target_os = "linux")))]
     {
         0
     }

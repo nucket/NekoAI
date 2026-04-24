@@ -80,13 +80,14 @@ The pet wanders freely across your desktop, reacts to cursor movement and window
 - [x] Dynamic CSS sizing via inline styles (no hardcoded pixel values in stylesheets)
 - [x] Adaptable storage paths — portable mode writes all data to `./data/` beside the exe
 - [x] Windows portable build script (`scripts/build-portable-windows.ps1`)
+- [x] Linux desktop monitor — idle time via XScreenSaver, active window via EWMH/X11 (`x11rb`)
+- [x] Linux install documentation (`docs/install-linux.md`)
 
 ### In Progress
 
 - [ ] Tauri asset protocol fix for sprite loading in production builds
 - [ ] Community pet gallery in-app
 - [ ] Proactive nudges (idle time detection, app-based reactions)
-- [ ] Fedora Linux support (desktop_monitor Linux impl, AppImage/RPM bundles)
 
 ### Planned
 
@@ -166,7 +167,8 @@ nekoai/
 ├── docs/                    # Architecture, install guides, pet format spec
 │   ├── architecture.md
 │   ├── creating-a-pet.md
-│   └── install-windows.md
+│   ├── install-windows.md
+│   └── install-linux.md
 ├── .github/                 # CI/CD workflows, issue templates
 ├── README.md
 ├── CONTRIBUTING.md

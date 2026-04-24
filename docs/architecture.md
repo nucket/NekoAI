@@ -34,7 +34,7 @@ NekoAI is a **Tauri v2** application: a Rust backend exposes native OS APIs via 
 │                                                         │
 │  lib.rs              — commands, tray, window setup     │
 │  storage.rs          — SQLite (conversations, facts)    │
-│  desktop_monitor.rs  — Win32 APIs (window, idle time)   │
+│  desktop_monitor.rs  — OS APIs (window, idle time)      │
 └─────────────────────────────────────────────────────────┘
 ```
 
@@ -133,6 +133,17 @@ In **portable mode** (a `portable` marker file sits next to the executable), bot
 redirected to a `data/` folder beside the exe — safe to run from a USB drive with no writes
 to the home directory. `storage::is_portable()` controls the switch; autostart is disabled
 when portable mode is active.
+
+### Platform support in `desktop_monitor.rs`
+
+| Feature             | Windows                     | Linux (X11 / XWayland)              | Pure Wayland   |
+| ------------------- | --------------------------- | ----------------------------------- | -------------- |
+| `get_idle_millis`   | Win32 `GetLastInputInfo`    | XScreenSaver extension (`x11rb`)    | Returns `0`    |
+| `get_active_window` | Win32 `GetForegroundWindow` | EWMH `_NET_ACTIVE_WINDOW` (`x11rb`) | Returns `None` |
+| `get_all_windows`   | Win32 `EnumWindows`         | EWMH `_NET_CLIENT_LIST` (`x11rb`)   | Returns `[]`   |
+
+Pure Wayland sessions (XWayland disabled) gracefully degrade: the mood engine runs on
+time-of-day only, and desktop context is empty. All other features are unaffected.
 
 ```sql
 CREATE TABLE conversations (
