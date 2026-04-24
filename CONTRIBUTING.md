@@ -66,8 +66,10 @@ npm run tauri dev
 ```bash
 npm run tauri dev          # Dev server with hot reload
 npm run tauri build        # Production installer
-npm run lint               # ESLint
-npm run typecheck          # TypeScript check
+npm run lint               # ESLint (zero warnings allowed)
+npm run typecheck          # TypeScript type check (tsc --noEmit)
+npm run format             # Prettier write
+npm run format:check       # Prettier check
 npm run sprites:convert    # Convert .ico sprites to .png
 cargo clippy               # Lint Rust code (from src-tauri/)
 ```

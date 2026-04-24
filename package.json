@@ -10,6 +10,7 @@
     "tauri": "tauri",
     "sprites:convert": "python scripts/convert-sprites.py pets/classic-neko/sprites/ico pets/classic-neko/sprites",
     "lint": "eslint . --max-warnings 0",
+    "typecheck": "tsc --noEmit",
     "format:check": "prettier --check .",
     "format": "prettier --write .",
     "prepare": "husky"

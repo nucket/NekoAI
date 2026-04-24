@@ -20,8 +20,9 @@ NekoAI is a **Tauri v2** application: a Rust backend exposes native OS APIs via 
 │  │usePetMove- │  │ AI providers  │                     │
 │  │ment + Mood │  │ (Anthropic /  │                     │
 │  │ Engine     │  │  OpenAI /     │                     │
+│  │            │  │  Gemini /     │                     │
 │  │            │  │  Ollama)      │                     │
-│  └──────┬─────┘  └───────┬───────┘                     │
+│  └──────┬─────┘  └───────┘       │                     │
 │         │                │                              │
 │  ┌──────▼────────────────▼──────────────────────────┐  │
 │  │                Tauri IPC (invoke)                 │  │
@@ -51,7 +52,7 @@ The final animation shown is computed as:
 displayed = moodOverride ?? movementAnimation
 ```
 
-- `movementAnimation` — from `usePetMovement` (idle / walk_* / near_cursor / sleep)
+- `movementAnimation` — from `usePetMovement` (idle / walk\_\* / near_cursor / sleep)
 - `moodOverride` — from `useMoodEngine` (yawn when OS idle 3–5 min)
 
 ### Movement
@@ -62,10 +63,10 @@ displayed = moodOverride ?? movementAnimation
 
 `useMoodEngine` runs every 60 seconds. It computes three values (0–100):
 
-| Value | Signal |
-|---|---|
-| `energy` | Sinusoidal day curve + OS idle penalty |
-| `happiness` | Higher during waking hours (7am–10pm) |
+| Value       | Signal                                    |
+| ----------- | ----------------------------------------- |
+| `energy`    | Sinusoidal day curve + OS idle penalty    |
+| `happiness` | Higher during waking hours (7am–10pm)     |
 | `curiosity` | App category (coding → high, other → low) |
 
 These are stored in the Zustand store and included in every AI system prompt.
@@ -78,13 +79,14 @@ On each user message:
 2. Load last 20 messages from SQLite (conversation history)
 3. Load all user facts from SQLite
 4. Build system prompt: `pet personality + facts + mood description`
-5. Call AI provider (Anthropic / OpenAI / Ollama)
+5. Call AI provider (Anthropic / OpenAI / Gemini / Ollama)
 6. Save assistant reply to SQLite
 7. Extract new facts from the exchange (async, fire-and-forget)
 
 ### Fact extraction
 
 `src/ai/memory.ts` runs regex patterns over each user message + assistant reply looking for:
+
 - Name (`my name is X`, `me llamo X`)
 - Project (`working on X`, `building X`)
 - Language (`I use X`, `I code in X`)
@@ -97,22 +99,26 @@ Extracted facts are upserted into the `user_facts` SQLite table.
 
 ### Commands exposed to frontend
 
-| Command | Description |
-|---|---|
-| `get_cursor_pos` | Physical cursor position (for movement loop) |
-| `move_window` | Move the transparent window to a new position |
-| `set_always_on_top` | Toggle always-on-top |
-| `set_ignore_cursor_events` | Pass-through click events |
-| `get_config` / `save_config` | Read/write `~/.config/nekoai/config.toml` |
-| `get_recent_messages` | Last N messages from SQLite |
-| `save_message` | Append a message to SQLite |
-| `get_user_fact` / `set_user_fact` | Key-value facts storage |
-| `get_all_user_facts` | All facts as a JSON object |
-| `get_active_window` | Foreground window title + process name |
-| `get_all_windows` | All visible windows |
-| `get_idle_millis` | OS-wide idle time in milliseconds |
-| `enable_autostart` / `disable_autostart` | Launch-at-login |
-| `quit_app` | Exit the process |
+| Command                                  | Description                                                         |
+| ---------------------------------------- | ------------------------------------------------------------------- |
+| `get_cursor_pos`                         | Physical cursor position (for movement loop)                        |
+| `resize_window`                          | Resize the transparent window (bypasses `WS_THICKFRAME` on Windows) |
+| `resize_panel_window`                    | Resize the secondary panel window (context menu / settings)         |
+| `close_panel_window`                     | Close the panel window                                              |
+| `panel_action`                           | Route a panel action (settings, select-pet, pet-mode, pet-size)     |
+| `set_always_on_top`                      | Toggle always-on-top                                                |
+| `set_ignore_cursor_events`               | Pass-through click events                                           |
+| `get_config` / `save_config`             | Read/write config (SQLite)                                          |
+| `get_recent_messages`                    | Last N messages from SQLite                                         |
+| `save_message`                           | Append a message to SQLite                                          |
+| `get_user_fact` / `set_user_fact`        | Key-value facts storage                                             |
+| `get_all_user_facts`                     | All facts as a JSON object                                          |
+| `get_active_window`                      | Foreground window title + process name                              |
+| `get_all_windows`                        | All visible windows                                                 |
+| `get_idle_millis`                        | OS-wide idle time in milliseconds                                   |
+| `open_url`                               | Open a URL or mailto link via the system browser                    |
+| `enable_autostart` / `disable_autostart` | Launch-at-login                                                     |
+| `quit_app`                               | Exit the process                                                    |
 
 ### Storage
 
