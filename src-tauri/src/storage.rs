@@ -44,19 +44,41 @@ fn home_dir() -> PathBuf {
         .unwrap_or_else(|_| PathBuf::from("."))
 }
 
+/// Returns true when a `portable` marker file sits next to the executable.
+/// In portable mode all data is written to a `data/` folder beside the exe
+/// instead of the user's home directory — safe to run from a USB drive.
+pub fn is_portable() -> bool {
+    std::env::current_exe()
+        .ok()
+        .and_then(|p| p.parent().map(|d| d.join("portable").exists()))
+        .unwrap_or(false)
+}
+
+fn exe_dir() -> PathBuf {
+    std::env::current_exe()
+        .ok()
+        .and_then(|p| p.parent().map(|d| d.to_path_buf()))
+        .unwrap_or_else(|| PathBuf::from("."))
+}
+
 pub fn config_path() -> PathBuf {
-    home_dir()
-        .join(".config")
-        .join("nekoai")
-        .join("config.toml")
+    if is_portable() {
+        exe_dir().join("data").join("config.toml")
+    } else {
+        home_dir().join(".config").join("nekoai").join("config.toml")
+    }
 }
 
 pub fn db_path() -> PathBuf {
-    home_dir()
-        .join(".local")
-        .join("share")
-        .join("nekoai")
-        .join("memory.db")
+    if is_portable() {
+        exe_dir().join("data").join("memory.db")
+    } else {
+        home_dir()
+            .join(".local")
+            .join("share")
+            .join("nekoai")
+            .join("memory.db")
+    }
 }
 
 // ─── Config (TOML) ────────────────────────────────────────────────────────────

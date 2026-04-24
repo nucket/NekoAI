@@ -45,18 +45,18 @@ The pet wanders freely across your desktop, reacts to cursor movement and window
 
 ## Tech Stack
 
-| Layer | Technology |
-|---|---|
-| Desktop framework | Tauri v2 |
-| Backend | Rust 1.75+ |
-| Frontend | React 18 + TypeScript 5 + Vite |
-| Persistence | SQLite via rusqlite |
-| AI (cloud) | Anthropic Claude API, OpenAI API |
-| AI (local) | Ollama |
-| Sprites | PNG (RGBA, 32×32 px native, 1×/2×/3×/4× integer scaling) |
-| Pet format | JSON (pet.json schema) |
-| State management | Zustand |
-| Styling | Inline CSS-in-JS + dynamic inline styles for responsive sizing |
+| Layer             | Technology                                                     |
+| ----------------- | -------------------------------------------------------------- |
+| Desktop framework | Tauri v2                                                       |
+| Backend           | Rust 1.75+                                                     |
+| Frontend          | React 19 + TypeScript 6 + Vite                                 |
+| Persistence       | SQLite via rusqlite                                            |
+| AI (cloud)        | Anthropic Claude API, OpenAI API                               |
+| AI (local)        | Ollama                                                         |
+| Sprites           | PNG (RGBA, 32×32 px native, 1×/2×/3×/4× integer scaling)       |
+| Pet format        | JSON (pet.json schema)                                         |
+| State management  | Zustand                                                        |
+| Styling           | Inline CSS-in-JS + dynamic inline styles for responsive sizing |
 
 ---
 
@@ -78,19 +78,22 @@ The pet wanders freely across your desktop, reacts to cursor movement and window
 - [x] Adjustable pet size with integer-multiple scaling (32, 64, 96, 128 px) for pixel-perfect rendering
 - [x] Rust `resize_window` command to bypass Windows OS-level window resizing restrictions
 - [x] Dynamic CSS sizing via inline styles (no hardcoded pixel values in stylesheets)
+- [x] Adaptable storage paths — portable mode writes all data to `./data/` beside the exe
+- [x] Windows portable build script (`scripts/build-portable-windows.ps1`)
 
 ### In Progress
 
 - [ ] Tauri asset protocol fix for sprite loading in production builds
 - [ ] Community pet gallery in-app
 - [ ] Proactive nudges (idle time detection, app-based reactions)
+- [ ] Fedora Linux support (desktop_monitor Linux impl, AppImage/RPM bundles)
 
 ### Planned
 
-- [ ] Cross-platform testing (macOS, Linux)
+- [ ] macOS testing
+- [ ] GitHub Actions CI/CD with auto-release (Windows installer + portable + Linux AppImage/RPM)
 - [ ] Plugin system for custom behaviors
 - [ ] Voice interaction (TTS/STT)
-- [ ] GitHub Actions CI/CD with auto-release
 - [ ] v0.1.0 public release
 
 ---
@@ -100,6 +103,7 @@ The pet wanders freely across your desktop, reacts to cursor movement and window
 NekoAI uses an open, JSON-based **Pet Definition Format** that allows anyone to create and share pets via pull request.
 
 A pet consists of:
+
 - `pet.json` — metadata, animation definitions, AI personality, and event triggers
 - `sprites/` — PNG files (32×32 RGBA) for each animation frame
 
@@ -116,6 +120,7 @@ Community pets live in `pets-community/` and are listed in the in-app gallery.
 **Challenge:** The app has `resizable: false` in `tauri.conf.json` to create a truly frameless window. However, when Windows creates a non-resizable window, it removes the `WS_THICKFRAME` window style, which JavaScript APIs cannot restore at runtime.
 
 **Solution:** A Rust command-side implementation of `resize_window()` calls `window.set_size()` directly from the backend, completely bypassing the JS API limitation. This allows:
+
 - Speech bubbles to expand/collapse without showing resize handles
 - Settings and context menus to appear/disappear smoothly
 - Dynamic pet size adjustment via UI controls
@@ -127,10 +132,12 @@ Community pets live in `pets-community/` and are listed in the in-app gallery.
 **Challenge:** Arbitrary pet sizes (like 48px = 1.5× of the 32px native sprite) cause uneven pixel mapping, resulting in visible borders and artifacts in pixelated art.
 
 **Solution:** Restrict all pet sizes to integer multiples of 32px:
+
 - S = 32px (1×), M = 64px (2×), L = 96px (3×), XL = 128px (4×)
 - This ensures each sprite pixel maps to an exact integer of screen pixels with no anti-aliasing
 
 **Implementation Details:**
+
 - CSS sizes are **not hardcoded** in `App.css`; instead they're injected as inline styles from `App.tsx` using the `spriteSize` state
 - `PetRenderer.tsx` has `imageRendering: "pixelated"` and `display: block` to prevent baseline gaps and sub-pixel rendering
 - Container styles dynamically update when the user changes size via the context menu
@@ -139,10 +146,11 @@ Community pets live in `pets-community/` and are listed in the in-app gallery.
 
 NekoAI has no backend servers and no telemetry. All data stays on the user's machine:
 
-- API keys: `~/.config/nekoai/config.toml`
-- Conversation history: `~/.local/share/nekoai/memory.db` (SQLite)
+- API keys: `~/.config/nekoai/config.toml` (or `./data/config.toml` in portable mode)
+- Conversation history: `~/.local/share/nekoai/memory.db` (or `./data/memory.db` in portable mode)
 - Pet size preference: persisted in `configStore.ts` via `save_config` command
 - The only outbound network requests are direct calls to the AI provider the user configures
+- In portable mode (a `portable` file beside the exe), all data stays in the same folder as the exe — nothing written to the home directory
 
 ---
 
@@ -154,7 +162,11 @@ nekoai/
 ├── src-tauri/               # Rust backend
 ├── pets/classic-neko/       # Bundled Neko pet (original sprites)
 ├── pets-community/          # Community-contributed pets
-├── scripts/                 # Dev utilities (sprite conversion, etc.)
+├── scripts/                 # Dev utilities (sprite conversion, portable build)
+├── docs/                    # Architecture, install guides, pet format spec
+│   ├── architecture.md
+│   ├── creating-a-pet.md
+│   └── install-windows.md
 ├── .github/                 # CI/CD workflows, issue templates
 ├── README.md
 ├── CONTRIBUTING.md
@@ -183,4 +195,4 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for full setup instructions, sprite guide
 
 ---
 
-*Made with ☕ and deep nostalgia for Windows XP — by Naudy Castellanos*
+_Made with ☕ and deep nostalgia for Windows XP — by Naudy Castellanos_

@@ -122,7 +122,17 @@ Extracted facts are upserted into the `user_facts` SQLite table.
 
 ### Storage
 
-SQLite database at `~/.local/share/nekoai/memory.db` (Windows: `%USERPROFILE%\.local\share\nekoai\memory.db`).
+Default paths (installed mode):
+
+| File            | Path                              |
+| --------------- | --------------------------------- |
+| SQLite database | `~/.local/share/nekoai/memory.db` |
+| Config          | `~/.config/nekoai/config.toml`    |
+
+In **portable mode** (a `portable` marker file sits next to the executable), both files are
+redirected to a `data/` folder beside the exe — safe to run from a USB drive with no writes
+to the home directory. `storage::is_portable()` controls the switch; autostart is disabled
+when portable mode is active.
 
 ```sql
 CREATE TABLE conversations (

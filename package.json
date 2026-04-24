@@ -8,6 +8,7 @@
     "build": "tsc && vite build",
     "preview": "vite preview",
     "tauri": "tauri",
+    "build:portable:win": "pwsh -File scripts/build-portable-windows.ps1",
     "sprites:convert": "python scripts/convert-sprites.py pets/classic-neko/sprites/ico pets/classic-neko/sprites",
     "lint": "eslint . --max-warnings 0",
     "typecheck": "tsc --noEmit",

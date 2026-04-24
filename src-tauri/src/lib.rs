@@ -234,12 +234,18 @@ fn get_idle_millis() -> u64 {
 
 #[tauri::command]
 fn enable_autostart(app: tauri::AppHandle) -> Result<(), String> {
+    if storage::is_portable() {
+        return Err("Autostart is not available in portable mode.".to_string());
+    }
     use tauri_plugin_autostart::ManagerExt;
     app.autolaunch().enable().map_err(|e| e.to_string())
 }
 
 #[tauri::command]
 fn disable_autostart(app: tauri::AppHandle) -> Result<(), String> {
+    if storage::is_portable() {
+        return Err("Autostart is not available in portable mode.".to_string());
+    }
     use tauri_plugin_autostart::ManagerExt;
     app.autolaunch().disable().map_err(|e| e.to_string())
 }

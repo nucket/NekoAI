@@ -38,3 +38,7 @@ Thumbs.db
 *.key.pub
 ~/.tauri/
 .tauri/
+
+# Portable build artifacts
+dist-portable/
+nekoai-*-portable-*.zip
