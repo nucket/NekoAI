@@ -1,22 +1,22 @@
-import { useEffect, useState } from "react";
-import { invoke } from "@tauri-apps/api/core";
-import { getCurrentWindow } from "@tauri-apps/api/window";
-import { useConfigStore } from "./store/configStore";
+import { useEffect, useState } from 'react'
+import { invoke } from '@tauri-apps/api/core'
+import { getCurrentWindow } from '@tauri-apps/api/window'
+import { useConfigStore } from './store/configStore'
 
 // Layout constants — keep in sync with the parent App's expectations
-const MENU_W = 190;
-const MENU_H = 260;
-const ABOUT_H = 300;
+const MENU_W = 190
+const MENU_H = 260
+const ABOUT_H = 300
 
 const PET_SIZES: { label: string; value: number }[] = [
-  { label: "S",  value: 32  },
-  { label: "M",  value: 64  },
-  { label: "L",  value: 96  },
-  { label: "XL", value: 128 },
-];
+  { label: 'S', value: 32 },
+  { label: 'M', value: 64 },
+  { label: 'L', value: 96 },
+  { label: 'XL', value: 128 },
+]
 
 interface Props {
-  route: string;
+  route: string
 }
 
 /**
@@ -26,67 +26,74 @@ interface Props {
  * pet can keep following the cursor while the user is choosing an option.
  */
 export function PanelWindow({ route }: Props) {
-  if (route === "context-menu") return <ContextMenuPanel />;
-  return null;
+  if (route === 'context-menu') return <ContextMenuPanel />
+  return null
 }
 
 // ─── Context menu panel ───────────────────────────────────────────────────────
 
 function ContextMenuPanel() {
-  const { config, loadConfig, isLoaded, setPetMode, setPetSize } = useConfigStore();
-  const [view, setView] = useState<"menu" | "about">("menu");
+  const { config, loadConfig, isLoaded, setPetMode, setPetSize } = useConfigStore()
+  const [view, setView] = useState<'menu' | 'about'>('menu')
 
-  useEffect(() => { if (!isLoaded) loadConfig(); }, [isLoaded, loadConfig]);
+  useEffect(() => {
+    if (!isLoaded) loadConfig()
+  }, [isLoaded, loadConfig])
+
+  const close = () => invoke('close_panel_window').catch(console.error)
+
+  const showMenu = async () => {
+    await invoke('resize_panel_window', { width: MENU_W, height: MENU_H }).catch(console.error)
+    setView('menu')
+  }
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
-      if (e.key === "Escape") {
-        if (view === "about") showMenu();
-        else close();
+      if (e.key === 'Escape') {
+        if (view === 'about') showMenu()
+        else close()
       }
-    };
-    window.addEventListener("keydown", handler);
-    return () => window.removeEventListener("keydown", handler);
-  }, [view]); // eslint-disable-line react-hooks/exhaustive-deps
+    }
+    window.addEventListener('keydown', handler)
+    return () => window.removeEventListener('keydown', handler)
+  }, [view])
 
   useEffect(() => {
-    getCurrentWindow().setFocus().catch(() => {});
-  }, []);
+    getCurrentWindow()
+      .setFocus()
+      .catch(() => {})
+  }, [])
 
-  const close = () => invoke("close_panel_window").catch(console.error);
+  const panelAction = (action: string) => invoke('panel_action', { action }).catch(console.error)
 
-  const panelAction = (action: string) =>
-    invoke("panel_action", { action }).catch(console.error);
-
-  const openSettings  = () => panelAction("settings");
-  const openSelectPet = () => panelAction("select-pet");
-  const quit          = () => invoke("quit_app").catch(console.error);
-  const openUrl       = (url: string) => invoke("open_url", { url }).catch(console.error);
+  const openSettings = () => panelAction('settings')
+  const openSelectPet = () => panelAction('select-pet')
+  const quit = () => invoke('quit_app').catch(console.error)
+  const openUrl = (url: string) => invoke('open_url', { url }).catch(console.error)
 
   const showAbout = async () => {
-    await invoke("resize_panel_window", { width: MENU_W, height: ABOUT_H }).catch(console.error);
-    setView("about");
-  };
+    await invoke('resize_panel_window', { width: MENU_W, height: ABOUT_H }).catch(console.error)
+    setView('about')
+  }
 
-  const showMenu = async () => {
-    await invoke("resize_panel_window", { width: MENU_W, height: MENU_H }).catch(console.error);
-    setView("menu");
-  };
+  const currentSize = config.petSize ?? 32
+  const currentMode = config.petMode ?? 'work'
 
-  const currentSize = config.petSize ?? 32;
-  const currentMode = config.petMode ?? "work";
-
-  if (view === "about") {
+  if (view === 'about') {
     return (
       <div style={{ ...styles.root, height: ABOUT_H }} onClick={close}>
         <div style={styles.menu} onClick={(e) => e.stopPropagation()}>
           <div style={styles.header}>
             <span style={styles.title}>🐱 NekoAI</span>
-            <button style={styles.closeBtn} onClick={close} title="Close">✕</button>
+            <button style={styles.closeBtn} onClick={close} title="Close">
+              ✕
+            </button>
           </div>
           <div style={styles.divider} />
 
-          <button style={styles.backBtn} onClick={showMenu}>← Back</button>
+          <button style={styles.backBtn} onClick={showMenu}>
+            ← Back
+          </button>
 
           <div style={aboutStyles.appBlock}>
             <div style={aboutStyles.appName}>NekoAI</div>
@@ -97,13 +104,16 @@ function ContextMenuPanel() {
 
           <div style={aboutStyles.row}>
             <span style={aboutStyles.label}>Creator</span>
-            <button style={aboutStyles.link} onClick={() => openUrl("https://github.com/nucket")}>
+            <button style={aboutStyles.link} onClick={() => openUrl('https://github.com/nucket')}>
               Naudy Castellanos
             </button>
           </div>
           <div style={aboutStyles.row}>
             <span style={aboutStyles.label}>Contact</span>
-            <button style={aboutStyles.link} onClick={() => openUrl("mailto:nekoai@naudycastellanos.com")}>
+            <button
+              style={aboutStyles.link}
+              onClick={() => openUrl('mailto:nekoai@naudycastellanos.com')}
+            >
               nekoai@naudycastellanos.com
             </button>
           </div>
@@ -112,13 +122,13 @@ function ContextMenuPanel() {
 
           <button
             style={aboutStyles.starBtn}
-            onClick={() => openUrl("https://github.com/nucket/nekoai")}
+            onClick={() => openUrl('https://github.com/nucket/nekoai')}
           >
             ⭐ Star on GitHub
           </button>
         </div>
       </div>
-    );
+    )
   }
 
   return (
@@ -126,12 +136,18 @@ function ContextMenuPanel() {
       <div style={styles.menu} onClick={(e) => e.stopPropagation()}>
         <div style={styles.header}>
           <span style={styles.title}>🐱 NekoAI</span>
-          <button style={styles.closeBtn} onClick={close} title="Close">✕</button>
+          <button style={styles.closeBtn} onClick={close} title="Close">
+            ✕
+          </button>
         </div>
         <div style={styles.divider} />
 
-        <button style={styles.item} onClick={openSettings}>⚙ Settings</button>
-        <button style={styles.item} onClick={openSelectPet}>🐾 Select Pet</button>
+        <button style={styles.item} onClick={openSettings}>
+          ⚙ Settings
+        </button>
+        <button style={styles.item} onClick={openSelectPet}>
+          🐾 Select Pet
+        </button>
 
         <div style={styles.divider} />
 
@@ -139,15 +155,21 @@ function ContextMenuPanel() {
           <span style={styles.modeLabel}>Mode</span>
           <div style={styles.modeBtns}>
             <button
-              style={{ ...styles.modeBtn, ...(currentMode === "work" ? styles.modeBtnActive : {}) }}
-              onClick={() => { setPetMode("work"); panelAction("pet-mode:work"); }}
+              style={{ ...styles.modeBtn, ...(currentMode === 'work' ? styles.modeBtnActive : {}) }}
+              onClick={() => {
+                setPetMode('work')
+                panelAction('pet-mode:work')
+              }}
               title="Follow mouse cursor"
             >
               💼 Work
             </button>
             <button
-              style={{ ...styles.modeBtn, ...(currentMode === "play" ? styles.modeBtnActive : {}) }}
-              onClick={() => { setPetMode("play"); panelAction("pet-mode:play"); }}
+              style={{ ...styles.modeBtn, ...(currentMode === 'play' ? styles.modeBtnActive : {}) }}
+              onClick={() => {
+                setPetMode('play')
+                panelAction('pet-mode:play')
+              }}
               title="Wander freely"
             >
               🎮 Play
@@ -167,7 +189,10 @@ function ContextMenuPanel() {
                   ...styles.sizeBtn,
                   ...(currentSize === value ? styles.sizeBtnActive : {}),
                 }}
-                onClick={() => { setPetSize(value); panelAction(`pet-size:${value}`); }}
+                onClick={() => {
+                  setPetSize(value)
+                  panelAction(`pet-size:${value}`)
+                }}
                 title={`${value}px`}
               >
                 {label}
@@ -178,131 +203,199 @@ function ContextMenuPanel() {
 
         <div style={styles.divider} />
 
-        <button style={styles.item} onClick={showAbout}>ℹ About NekoAI</button>
+        <button style={styles.item} onClick={showAbout}>
+          ℹ About NekoAI
+        </button>
 
         <div style={styles.divider} />
 
-        <button style={styles.quitItem} onClick={quit}>✕ Quit NekoAI</button>
+        <button style={styles.quitItem} onClick={quit}>
+          ✕ Quit NekoAI
+        </button>
       </div>
     </div>
-  );
+  )
 }
-
 
 const styles: Record<string, React.CSSProperties> = {
   root: {
-    position:       "fixed",
-    inset:          0,
-    width:          MENU_W,
-    height:         MENU_H,
-    display:        "flex",
-    alignItems:     "flex-start",
-    justifyContent: "center",
-    paddingTop:     6,
-    boxSizing:      "border-box",
+    position: 'fixed',
+    inset: 0,
+    width: MENU_W,
+    height: MENU_H,
+    display: 'flex',
+    alignItems: 'flex-start',
+    justifyContent: 'center',
+    paddingTop: 6,
+    boxSizing: 'border-box',
     // Prevent Windows transparent-window click-through on alpha=0 areas
-    background:     "rgba(0,0,0,0.01)",
+    background: 'rgba(0,0,0,0.01)',
   },
   menu: {
-    background:  "rgba(20, 20, 30, 0.97)",
-    border:      "1px solid #3a3a5c",
+    background: 'rgba(20, 20, 30, 0.97)',
+    border: '1px solid #3a3a5c',
     borderRadius: 10,
-    width:       MENU_W - 8,
-    color:       "#e0e0e0",
-    fontFamily:  "system-ui, sans-serif",
-    fontSize:    13,
-    boxShadow:   "0 4px 24px rgba(0,0,0,0.7)",
-    overflow:    "hidden",
+    width: MENU_W - 8,
+    color: '#e0e0e0',
+    fontFamily: 'system-ui, sans-serif',
+    fontSize: 13,
+    boxShadow: '0 4px 24px rgba(0,0,0,0.7)',
+    overflow: 'hidden',
   },
   header: {
-    display:        "flex",
-    justifyContent: "space-between",
-    alignItems:     "center",
-    padding:        "8px 10px 6px",
-    background:     "rgba(255,255,255,0.04)",
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: '8px 10px 6px',
+    background: 'rgba(255,255,255,0.04)',
   },
-  title: { fontWeight: 700, fontSize: 13, color: "#fff" },
+  title: { fontWeight: 700, fontSize: 13, color: '#fff' },
   closeBtn: {
-    background: "rgba(0,0,0,0.01)", border: "none", color: "#666",
-    cursor: "pointer", fontSize: 14, lineHeight: 1, padding: "0 2px",
+    background: 'rgba(0,0,0,0.01)',
+    border: 'none',
+    color: '#666',
+    cursor: 'pointer',
+    fontSize: 14,
+    lineHeight: 1,
+    padding: '0 2px',
   },
-  divider: { borderTop: "1px solid #2a2a3c", margin: "2px 0" },
+  divider: { borderTop: '1px solid #2a2a3c', margin: '2px 0' },
   item: {
-    display: "block", width: "100%", background: "rgba(0,0,0,0.01)", border: "none",
-    color: "#e0e0e0", textAlign: "left", padding: "8px 12px",
-    fontSize: 13, cursor: "pointer",
+    display: 'block',
+    width: '100%',
+    background: 'rgba(0,0,0,0.01)',
+    border: 'none',
+    color: '#e0e0e0',
+    textAlign: 'left',
+    padding: '8px 12px',
+    fontSize: 13,
+    cursor: 'pointer',
   },
   sizeRow: {
-    display: "flex", alignItems: "center", justifyContent: "space-between",
-    padding: "7px 12px",
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: '7px 12px',
   },
   sizeLabel: {
-    fontSize: 11, color: "#777",
-    textTransform: "uppercase" as const, letterSpacing: "0.05em",
+    fontSize: 11,
+    color: '#777',
+    textTransform: 'uppercase' as const,
+    letterSpacing: '0.05em',
   },
-  sizeBtns: { display: "flex", gap: 4 },
+  sizeBtns: { display: 'flex', gap: 4 },
   sizeBtn: {
-    background: "#1a1a2e", border: "1px solid #3a3a5c", borderRadius: 5,
-    color: "#999", cursor: "pointer", fontSize: 11, fontWeight: 600,
-    padding: "3px 7px", minWidth: 28,
+    background: '#1a1a2e',
+    border: '1px solid #3a3a5c',
+    borderRadius: 5,
+    color: '#999',
+    cursor: 'pointer',
+    fontSize: 11,
+    fontWeight: 600,
+    padding: '3px 7px',
+    minWidth: 28,
   },
-  sizeBtnActive: { background: "#3a3a6c", borderColor: "#7878cc", color: "#cceeff" },
+  sizeBtnActive: { background: '#3a3a6c', borderColor: '#7878cc', color: '#cceeff' },
   modeRow: {
-    display: "flex", alignItems: "center", justifyContent: "space-between",
-    padding: "7px 12px",
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: '7px 12px',
   },
   modeLabel: {
-    fontSize: 11, color: "#777",
-    textTransform: "uppercase" as const, letterSpacing: "0.05em",
+    fontSize: 11,
+    color: '#777',
+    textTransform: 'uppercase' as const,
+    letterSpacing: '0.05em',
   },
-  modeBtns: { display: "flex", gap: 4 },
+  modeBtns: { display: 'flex', gap: 4 },
   modeBtn: {
-    background: "#1a1a2e", border: "1px solid #3a3a5c", borderRadius: 5,
-    color: "#999", cursor: "pointer", fontSize: 11, fontWeight: 600,
-    padding: "3px 8px",
+    background: '#1a1a2e',
+    border: '1px solid #3a3a5c',
+    borderRadius: 5,
+    color: '#999',
+    cursor: 'pointer',
+    fontSize: 11,
+    fontWeight: 600,
+    padding: '3px 8px',
   },
-  modeBtnActive: { background: "#3a3a6c", borderColor: "#7878cc", color: "#cceeff" },
+  modeBtnActive: { background: '#3a3a6c', borderColor: '#7878cc', color: '#cceeff' },
   quitItem: {
-    display: "block", width: "100%", background: "rgba(0,0,0,0.01)", border: "none",
-    color: "#e05555", textAlign: "left", padding: "8px 12px",
-    fontSize: 13, cursor: "pointer",
+    display: 'block',
+    width: '100%',
+    background: 'rgba(0,0,0,0.01)',
+    border: 'none',
+    color: '#e05555',
+    textAlign: 'left',
+    padding: '8px 12px',
+    fontSize: 13,
+    cursor: 'pointer',
   },
   backBtn: {
-    display: "block", width: "100%", background: "rgba(0,0,0,0.01)", border: "none",
-    color: "#8888cc", textAlign: "left", padding: "6px 12px",
-    fontSize: 12, cursor: "pointer",
+    display: 'block',
+    width: '100%',
+    background: 'rgba(0,0,0,0.01)',
+    border: 'none',
+    color: '#8888cc',
+    textAlign: 'left',
+    padding: '6px 12px',
+    fontSize: 12,
+    cursor: 'pointer',
   },
-};
+}
 
 const aboutStyles: Record<string, React.CSSProperties> = {
   appBlock: {
-    padding: "10px 12px 8px",
-    textAlign: "center",
+    padding: '10px 12px 8px',
+    textAlign: 'center',
   },
   appName: {
-    fontSize: 15, fontWeight: 700, color: "#fff", marginBottom: 2,
+    fontSize: 15,
+    fontWeight: 700,
+    color: '#fff',
+    marginBottom: 2,
   },
   appDesc: {
-    fontSize: 11, color: "#777",
+    fontSize: 11,
+    color: '#777',
   },
   row: {
-    display: "flex", alignItems: "center", justifyContent: "space-between",
-    padding: "6px 12px",
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: '6px 12px',
   },
   label: {
-    fontSize: 11, color: "#666",
-    textTransform: "uppercase" as const, letterSpacing: "0.05em", flexShrink: 0,
+    fontSize: 11,
+    color: '#666',
+    textTransform: 'uppercase' as const,
+    letterSpacing: '0.05em',
+    flexShrink: 0,
   },
   link: {
-    background: "none", border: "none", color: "#8888ee",
-    cursor: "pointer", fontSize: 11, textDecoration: "underline",
-    padding: 0, textAlign: "right" as const, maxWidth: 120,
-    wordBreak: "break-all" as const,
+    background: 'none',
+    border: 'none',
+    color: '#8888ee',
+    cursor: 'pointer',
+    fontSize: 11,
+    textDecoration: 'underline',
+    padding: 0,
+    textAlign: 'right' as const,
+    maxWidth: 120,
+    wordBreak: 'break-all' as const,
   },
   starBtn: {
-    display: "block", width: "calc(100% - 24px)", margin: "8px 12px",
-    background: "#2a2a4c", border: "1px solid #5555aa",
-    borderRadius: 6, color: "#ccccff", cursor: "pointer",
-    fontSize: 12, fontWeight: 600, padding: "7px 0", textAlign: "center" as const,
+    display: 'block',
+    width: 'calc(100% - 24px)',
+    margin: '8px 12px',
+    background: '#2a2a4c',
+    border: '1px solid #5555aa',
+    borderRadius: 6,
+    color: '#ccccff',
+    cursor: 'pointer',
+    fontSize: 12,
+    fontWeight: 600,
+    padding: '7px 0',
+    textAlign: 'center' as const,
   },
-};
+}
