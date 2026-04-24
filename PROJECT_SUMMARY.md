@@ -89,13 +89,14 @@ The pet wanders freely across your desktop, reacts to cursor movement and window
 - [ ] Community pet gallery in-app
 - [ ] Proactive nudges (idle time detection, app-based reactions)
 
+- [x] GitHub Actions CI/CD with auto-release (Windows installer + portable + Linux AppImage/RPM/DEB)
+
 ### Planned
 
+- [ ] v0.1.0 public release
 - [ ] macOS testing
-- [ ] GitHub Actions CI/CD with auto-release (Windows installer + portable + Linux AppImage/RPM)
 - [ ] Plugin system for custom behaviors
 - [ ] Voice interaction (TTS/STT)
-- [ ] v0.1.0 public release
 
 ---
 
