@@ -27,7 +27,7 @@ jobs:
             rust-targets: 'x86_64-apple-darwin'
 
           - platform: ubuntu-22.04
-            args: ''
+            args: '--bundles appimage,deb,rpm'
             rust-targets: ''
 
     runs-on: ${{ matrix.platform }}
@@ -55,9 +55,10 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y \
             libwebkit2gtk-4.1-dev \
-            libappindicator3-dev \
+            libayatana-appindicator3-dev \
             librsvg2-dev \
-            patchelf
+            patchelf \
+            rpm
 
       - run: npm ci
 
@@ -73,3 +74,28 @@ jobs:
           prerelease: false
           generateReleaseNotes: true
           args: ${{ matrix.args }}
+
+      # Package the portable ZIP after the installer is already built.
+      # Reuses the binary produced by tauri-action — no second build needed.
+      - name: Package portable ZIP
+        if: matrix.platform == 'windows-latest'
+        shell: pwsh
+        run: |
+          $pkg     = Get-Content package.json -Raw | ConvertFrom-Json
+          $version = $pkg.version
+          $zipName = "nekoai-v$version-portable-windows-x64.zip"
+
+          New-Item -ItemType Directory dist-portable | Out-Null
+          Copy-Item "src-tauri/target/release/nekoai.exe" "dist-portable/nekoai.exe"
+          New-Item -ItemType File "dist-portable/portable" | Out-Null
+          Compress-Archive -Path "dist-portable/*" -DestinationPath $zipName -Force
+          Remove-Item dist-portable -Recurse -Force
+
+          "PORTABLE_ZIP=$zipName" | Out-File -FilePath $env:GITHUB_ENV -Append
+
+      - name: Upload portable ZIP to release
+        if: matrix.platform == 'windows-latest'
+        shell: bash
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh release upload "${{ github.ref_name }}" "${{ env.PORTABLE_ZIP }}"
