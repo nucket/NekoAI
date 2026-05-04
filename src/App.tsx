@@ -124,7 +124,9 @@ export default function App() {
           const x = parseInt(xStr, 10)
           const y = parseInt(yStr, 10)
           if (!isNaN(x) && !isNaN(y)) {
-            overridePosition(x, y - spriteSize * (window.devicePixelRatio || 1))
+            const scale = window.devicePixelRatio || 1
+            // Position pet to the left of the house with a 4-px physical gap
+            overridePosition(x - spriteSize * scale - Math.round(4 * scale), y)
           }
         }
       }),

@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback } from 'react'
 import { invoke } from '@tauri-apps/api/core'
-import { getCurrentWindow, currentMonitor } from '@tauri-apps/api/window'
+import { getCurrentWindow, primaryMonitor } from '@tauri-apps/api/window'
 import { PhysicalPosition } from '@tauri-apps/api/dpi'
 import { listen } from '@tauri-apps/api/event'
 import { useConfigStore } from './store/configStore'
@@ -40,20 +40,22 @@ export function HouseWindow() {
   useEffect(() => {
     async function positionHouse() {
       try {
-        const monitor = await currentMonitor()
+        // primaryMonitor() always returns data — currentMonitor() returns null
+        // for hidden windows that haven't been placed on a monitor yet.
+        const monitor = await primaryMonitor()
         const scale = monitor?.scaleFactor ?? window.devicePixelRatio ?? 1
         const monX = monitor?.position.x ?? 0
         const monY = monitor?.position.y ?? 0
+        const monW = monitor?.size.width ?? window.screen.width * scale
+        const monH = monitor?.size.height ?? window.screen.height * scale
 
-        // Use screen.availWidth/Height (logical, taskbar-aware) × scale for physical
-        // coords so the house appears above the taskbar, not behind it.
-        const availW = window.screen.availWidth * scale
-        const availH = window.screen.availHeight * scale
+        // Exact taskbar height: total screen height minus available height (CSS px → physical).
+        const taskbarH = (window.screen.height - window.screen.availHeight) * scale
         const margin = 8 * scale
 
         const win = getCurrentWindow()
-        const x = monX + availW - HOUSE_SIZE * scale - margin
-        const y = monY + availH - HOUSE_SIZE * scale - margin
+        const x = monX + monW - HOUSE_SIZE * scale - margin
+        const y = monY + monH - taskbarH - HOUSE_SIZE * scale - margin
 
         await win.setPosition(new PhysicalPosition(Math.round(x), Math.round(y)))
         await win.show()

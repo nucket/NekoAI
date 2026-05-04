@@ -293,6 +293,19 @@ pub fn run() {
             let window = app.get_webview_window("main").unwrap();
             window.set_always_on_top(true).ok();
 
+            // Position near house before making visible to avoid flash at (100, 100).
+            // pet(32) + gap(4) + house(64) + margin(8) = 108 logical px from right
+            // taskbar(48) + house(64) + margin(8) = 120 logical px from bottom
+            if let Ok(Some(monitor)) = window.primary_monitor() {
+                let scale = monitor.scale_factor();
+                let mw = monitor.size().width as f64;
+                let mh = monitor.size().height as f64;
+                let x = (mw - 108.0 * scale) as i32;
+                let y = (mh - 120.0 * scale) as i32;
+                window.set_position(tauri::PhysicalPosition::new(x, y)).ok();
+            }
+            window.show().ok();
+
             // ── Background notification monitor ────────────────────────────
             // Detects when a non-NekoAI window gains focus while the user is
             // idle (no mouse/keyboard input), which strongly indicates a system
