@@ -1,17 +1,18 @@
 export interface AIProvider {
-  sendMessage(messages: Message[], systemPrompt: string): Promise<string>;
+  sendMessage(messages: Message[], systemPrompt: string): Promise<string>
 }
 
 export type AIConfig = {
-  provider: 'anthropic' | 'openai' | 'ollama' | 'gemini';
-  apiKey?: string;
-  model: string;
-  baseUrl?: string;
-  petSize?: number;
-  petMode?: 'work' | 'play';
-};
+  provider: 'anthropic' | 'openai' | 'ollama' | 'gemini'
+  apiKey?: string
+  model: string
+  baseUrl?: string
+  petSize?: number
+  petMode?: 'work' | 'play'
+  activePetId?: string
+}
 
 export type Message = {
-  role: 'user' | 'assistant';
-  content: string;
-};
+  role: 'user' | 'assistant'
+  content: string
+}

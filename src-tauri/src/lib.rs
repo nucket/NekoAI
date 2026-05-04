@@ -180,8 +180,11 @@ fn get_config() -> AIConfig {
 }
 
 #[tauri::command]
-fn save_config(config: AIConfig) -> Result<(), String> {
-    storage::write_config(&config)
+fn save_config(app: tauri::AppHandle, config: AIConfig) -> Result<(), String> {
+    storage::write_config(&config)?;
+    // Notify all windows (HouseWindow, panel) that the config changed
+    app.emit("config-updated", ()).ok();
+    Ok(())
 }
 
 // ─── Conversation commands ────────────────────────────────────────────────────
@@ -290,13 +293,50 @@ pub fn run() {
             let window = app.get_webview_window("main").unwrap();
             window.set_always_on_top(true).ok();
 
+            // ── Background notification monitor ────────────────────────────
+            // Detects when a non-NekoAI window gains focus while the user is
+            // idle (no mouse/keyboard input), which strongly indicates a system
+            // notification took focus. Emits "neko-notification" to all windows.
+            {
+                let app_handle = app.handle().clone();
+                std::thread::spawn(move || {
+                    let mut prev_title = String::new();
+                    loop {
+                        std::thread::sleep(std::time::Duration::from_millis(500));
+
+                        // Only act when the user hasn't touched input for >1s
+                        let idle_ms = desktop_monitor::get_idle_millis();
+                        if idle_ms < 1000 {
+                            prev_title.clear();
+                            continue;
+                        }
+
+                        if let Some(win) = desktop_monitor::get_active_window() {
+                            let proc = win.process_name.to_lowercase();
+                            // Skip our own windows
+                            if proc.contains("nekoai") || proc.is_empty() {
+                                continue;
+                            }
+                            if !win.title.is_empty() && win.title != prev_title {
+                                prev_title = win.title.clone();
+                                app_handle.emit("neko-notification", &win).ok();
+                            }
+                        }
+                    }
+                });
+            }
+
             // ── Tray menu ──────────────────────────────────────────────────
             let show_hide   = MenuItem::with_id(app, "show_hide",   "Show/Hide NekoAI",     true, None::<&str>)?;
             let settings    = MenuItem::with_id(app, "settings",    "Settings",              true, None::<&str>)?;
-            let pet_classic = MenuItem::with_id(app, "pet_classic", "Classic Neko",          true, None::<&str>)?;
-            let pet_ghost   = MenuItem::with_id(app, "pet_ghost",   "Ghost",                 true, None::<&str>)?;
-            let pet_shiba   = MenuItem::with_id(app, "pet_shiba",   "Shiba",                 true, None::<&str>)?;
-            let select_pet  = Submenu::with_items(app, "Select Pet", true, &[&pet_classic, &pet_ghost, &pet_shiba])?;
+            let pet_classic  = MenuItem::with_id(app, "pet_classic",  "Classic Neko",  true, None::<&str>)?;
+            let pet_ghost    = MenuItem::with_id(app, "pet_ghost",    "Ghost",         true, None::<&str>)?;
+            let pet_dragon   = MenuItem::with_id(app, "pet_dragon",   "Ember (Dragon)", true, None::<&str>)?;
+            let pet_penguin  = MenuItem::with_id(app, "pet_penguin",  "Pingu (Penguin)", true, None::<&str>)?;
+            let pet_shiba    = MenuItem::with_id(app, "pet_shiba",    "Shiba",         true, None::<&str>)?;
+            let select_pet   = Submenu::with_items(app, "Select Pet", true, &[
+                &pet_classic, &pet_ghost, &pet_dragon, &pet_penguin, &pet_shiba,
+            ])?;
             let sep         = PredefinedMenuItem::separator(app)?;
             let about       = MenuItem::with_id(app, "about",       "About NekoAI v0.2.0",  true, None::<&str>)?;
             let quit        = MenuItem::with_id(app, "quit",        "Quit",                  true, None::<&str>)?;
@@ -341,6 +381,14 @@ pub fn run() {
                     "pet_ghost" => {
                         show_window(app);
                         app.emit("tray-select-pet", "ghost-pixel").ok();
+                    }
+                    "pet_dragon" => {
+                        show_window(app);
+                        app.emit("tray-select-pet", "dragon-pixel").ok();
+                    }
+                    "pet_penguin" => {
+                        show_window(app);
+                        app.emit("tray-select-pet", "penguin-pixel").ok();
                     }
                     "pet_shiba" => {
                         show_window(app);

@@ -1,60 +1,60 @@
 {
   "name": "Ghost",
   "version": "1.0.0",
-  "author": "NekoAI Community",
-  "description": "A friendly pixel ghost who drifts around your desktop with a gentle glow.",
-  "personality": "Ghost is ethereal, kind, and slightly mysterious. Speaks softly and always means well.",
-  "system_prompt": "You are Ghost, a friendly pixel ghost living on the user's desktop. You drift around their screen with a quiet glow. You are gentle, kind, and occasionally mysterious. Give short helpful answers (1-2 sentences). Occasionally use ethereal phrases like '*floats thoughtfully*' or end a sentence with '~'. Never use markdown.",
+  "author": "you",
+  "description": "Ethereal & gentle",
+  "personality": "Generated via NekoForge — fill in your own personality string before shipping.",
+  "system_prompt": "You are Ghost, an AI desktop pet living on the user's screen. You are short-spoken, warm, occasionally curious. Use 1-2 sentences max unless asked. Never use markdown.",
   "spritesDir": "sprites",
   "animations": {
     "idle": {
-      "files": ["idle1.png", "idle2.png"],
-      "fps": 2,
+      "files": ["idle1.png", "idle2.png", "idle3.png", "idle4.png"],
+      "fps": 3,
       "loop": true
     },
     "walk_right": {
-      "files": ["right1.png", "right2.png"],
+      "files": ["walk_right1.png", "walk_right2.png", "walk_right3.png", "walk_right4.png"],
       "fps": 8,
       "loop": true
     },
     "walk_left": {
-      "files": ["left1.png", "left2.png"],
+      "files": ["walk_left1.png", "walk_left2.png", "walk_left3.png", "walk_left4.png"],
       "fps": 8,
       "loop": true
     },
     "walk_up": {
-      "files": ["up1.png", "up2.png"],
+      "files": ["walk_up1.png", "walk_up2.png"],
       "fps": 8,
       "loop": true
     },
     "walk_down": {
-      "files": ["down1.png", "down2.png"],
+      "files": ["walk_down1.png", "walk_down2.png"],
       "fps": 8,
       "loop": true
     },
     "walk_up_right": {
-      "files": ["upright1.png", "upright2.png"],
+      "files": ["walk_up_right1.png", "walk_up_right2.png"],
       "fps": 8,
       "loop": true
     },
     "walk_up_left": {
-      "files": ["upleft1.png", "upleft2.png"],
+      "files": ["walk_up_left1.png", "walk_up_left2.png"],
       "fps": 8,
       "loop": true
     },
     "walk_down_right": {
-      "files": ["downright1.png", "downright2.png"],
+      "files": ["walk_down_right1.png", "walk_down_right2.png"],
       "fps": 8,
       "loop": true
     },
     "walk_down_left": {
-      "files": ["downleft1.png", "downleft2.png"],
+      "files": ["walk_down_left1.png", "walk_down_left2.png"],
       "fps": 8,
       "loop": true
     },
-    "happy": {
-      "files": ["happy1.png", "happy2.png", "happy3.png"],
-      "fps": 6,
+    "alert": {
+      "files": ["alert1.png", "alert2.png"],
+      "fps": 4,
       "loop": false
     },
     "sleep": {
@@ -67,15 +67,40 @@
       "fps": 3,
       "loop": false
     },
+    "falling_asleep": {
+      "files": ["falling_asleep1.png", "falling_asleep2.png", "falling_asleep3.png"],
+      "fps": 3,
+      "loop": false
+    },
     "awaken": {
-      "files": ["awake.png"],
+      "files": ["awaken1.png", "awaken2.png", "awaken3.png"],
       "fps": 6,
       "loop": false
     },
-    "falling_asleep": {
-      "files": ["fall1.png", "fall2.png", "fall3.png"],
-      "fps": 4,
+    "happy": {
+      "files": ["happy1.png", "happy2.png", "happy3.png"],
+      "fps": 6,
       "loop": false
+    },
+    "playing": {
+      "files": ["playing1.png", "playing2.png"],
+      "fps": 6,
+      "loop": true
+    },
+    "hunting": {
+      "files": ["hunting1.png", "hunting2.png"],
+      "fps": 5,
+      "loop": true
+    },
+    "bored": {
+      "files": ["bored1.png", "bored2.png"],
+      "fps": 2,
+      "loop": true
+    },
+    "studying": {
+      "files": ["studying1.png", "studying2.png"],
+      "fps": 3,
+      "loop": true
     }
   },
   "triggers": {

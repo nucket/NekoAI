@@ -9,6 +9,63 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [0.2.0] — Unreleased
 
+### Added — House Window
+
+- `src/HouseWindow.tsx`: new 64×64 transparent Tauri window that renders the active pet's `house.png` (CSS fallback for pets without one)
+  - Positions itself at the bottom-right corner of the primary monitor on startup
+  - Clicking it invokes `panel_action` with `house_pos:x,y`, which triggers `overridePosition` in the main window and sends the pet home
+  - Listens for `config-updated` to refresh when the user switches pets
+- `src-tauri/tauri.conf.json`: registered `house` window (`visible: false`, transparent, no decorations, `alwaysOnTop: false`)
+- `src/main.tsx`: added `route === 'house'` branch so the house window renders `<HouseWindow />` instead of `<App />`
+- `pets/ghost-pixel/house.png` + `house.svg`: house images for the Ghost pet
+
+### Added — Notification monitor
+
+- `src-tauri/src/lib.rs`: background thread polls every 500 ms for foreground window changes while OS idle > 1 s
+  - Skips NekoAI's own windows; emits `neko-notification` (with `WindowInfo`) to all windows when a new non-NekoAI window gains focus
+- `src/App.tsx`: listens for `neko-notification` — computes a physical target position near the notifying window (above the taskbar), calls `overridePosition`, sets `notificationAlert` for 5 s
+  - `PetRenderer` plays `alert` animation during the alert phase (falls back to `idle` if pet has no `alert`)
+
+### Added — New bundled pets
+
+- `pets/dragon-pixel/`: Ember — fire dragon with snarky personality, full 20-animation sprite set + `house.png`
+- `pets/penguin-pixel/`: Pingu — cheerful penguin, full 20-animation sprite set + `house.png`
+- `pets/manifest.json`: added `dragon-pixel` (Ember) and `penguin-pixel` (Pingu) entries
+- `src-tauri/src/lib.rs`: added tray entries "Ember (Dragon)" and "Pingu (Penguin)" to Select Pet submenu; version label updated to v0.2.0
+
+### Added / Changed — Ghost pet refresh
+
+- `pets/ghost-pixel/sprites/`: all sprites renamed to new convention (`walk_right1.png`, not `right1.png`) and extended to 4 frames per direction; 6 new animations added: `playing`, `hunting`, `bored`, `studying`, `alert`, plus expanded `awaken` and `falling_asleep`
+- `pets/ghost-pixel/pet.json`: updated all animation file lists to match new naming; added new animation entries
+
+### Added — `bored` animation
+
+- `src/hooks/usePetMovement.ts`: after 1 min of cursor idle (both work and play modes), transitions animation to `bored` if the pet defines it, otherwise stays `idle`. Reverts to `idle` as soon as the cursor moves within the near zone.
+
+### Added — Animation fallback chain
+
+- `src/hooks/usePetMovement.ts`: `getWalkAnimation` now receives `availableAnimations` from the hook options and falls back gracefully (diagonal → axis → generic `walk`) if the ideal direction is missing. Allows pets with partial sprite sets (e.g. no diagonals) to animate correctly.
+- `src/App.tsx`: passes `availableAnimations` (derived from `petDef.animations`) to `usePetMovement`
+
+### Added — `activePetId` persistence
+
+- `src-tauri/src/storage.rs`: `AIConfig` now includes `active_pet_id: Option<String>` (default `"classic-neko"`)
+- `src/ai/types.ts`: added `activePetId?: string` to `AIConfig`
+- `src/store/configStore.ts`: added `setActivePetId` action; default config includes `activePetId: 'classic-neko'`
+- `src/App.tsx`: `activePetId` is now read from `config.activePetId` (persisted) instead of local component state
+
+### Added — `overridePosition` API
+
+- `src/hooks/usePetMovement.ts`: exposed `overridePosition(x, y)` callback that teleports the pet to given physical screen coordinates, bypassing the normal state machine. Used by both the notification handler and the house button.
+
+### Changed — `save_config` emits event
+
+- `src-tauri/src/lib.rs`: `save_config` command now accepts `AppHandle` and emits `config-updated` to all windows so the House Window can refresh its pet id without polling.
+
+### Changed — Yawn timing
+
+- `src/hooks/useMoodEngine.ts`: reduced yawn idle window from 3–5 min to 1–2 min, aligning with the new `bored` phase at 1 min.
+
 ### Changed — Dependency upgrades (April 2026)
 
 Major version bumps across the frontend toolchain. No user-visible behavior changes.

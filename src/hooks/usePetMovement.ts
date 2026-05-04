@@ -14,11 +14,13 @@ export interface UsePetMovementOptions {
   windowSize?: number
   enabled?: boolean
   mode?: 'work' | 'play'
+  availableAnimations?: string[]
 }
 
 export interface UsePetMovementResult {
   petState: PetState
   currentAnimation: string
+  overridePosition: (x: number, y: number) => void
 }
 
 // ─── Internal constants ───────────────────────────────────────────────────────
@@ -26,6 +28,7 @@ export interface UsePetMovementResult {
 const CURSOR_POLL_MS = 50
 const CURSOR_MOVE_PX = 4
 const NEAR_LEAVE_FACTOR = 1.5
+const BORED_MS = 60_000 // 1 min idle → bored animation
 
 const STATE_ANIM: Record<PetState, string> = {
   IDLE: 'idle',
@@ -49,16 +52,43 @@ function distance(a: Vec2, b: Vec2) {
 
 // ─── 8-direction walk animation selector ─────────────────────────────────────
 
-function getWalkAnimation(dx: number, dy: number): string {
+function getWalkAnimation(dx: number, dy: number, availableAnims: string[]): string {
   const angle = Math.atan2(dy, dx) * (180 / Math.PI)
-  if (angle > -22.5 && angle <= 22.5) return 'walk_right'
-  if (angle > 22.5 && angle <= 67.5) return 'walk_down_right'
-  if (angle > 67.5 && angle <= 112.5) return 'walk_down'
-  if (angle > 112.5 && angle <= 157.5) return 'walk_down_left'
-  if (angle > 157.5 || angle <= -157.5) return 'walk_left'
-  if (angle > -157.5 && angle <= -112.5) return 'walk_up_left'
-  if (angle > -112.5 && angle <= -67.5) return 'walk_up'
-  return 'walk_up_right'
+  let idealAnim: string
+  let fallbackAnim1 = 'walk_right'
+  let fallbackAnim2 = 'walk_right'
+
+  if (angle > -22.5 && angle <= 22.5) {
+    idealAnim = 'walk_right'
+  } else if (angle > 22.5 && angle <= 67.5) {
+    idealAnim = 'walk_down_right'
+    fallbackAnim1 = 'walk_right'
+    fallbackAnim2 = 'walk_down'
+  } else if (angle > 67.5 && angle <= 112.5) {
+    idealAnim = 'walk_down'
+  } else if (angle > 112.5 && angle <= 157.5) {
+    idealAnim = 'walk_down_left'
+    fallbackAnim1 = 'walk_left'
+    fallbackAnim2 = 'walk_down'
+  } else if (angle > 157.5 || angle <= -157.5) {
+    idealAnim = 'walk_left'
+  } else if (angle > -157.5 && angle <= -112.5) {
+    idealAnim = 'walk_up_left'
+    fallbackAnim1 = 'walk_left'
+    fallbackAnim2 = 'walk_up'
+  } else if (angle > -112.5 && angle <= -67.5) {
+    idealAnim = 'walk_up'
+  } else {
+    idealAnim = 'walk_up_right'
+    fallbackAnim1 = 'walk_right'
+    fallbackAnim2 = 'walk_up'
+  }
+
+  if (availableAnims.includes(idealAnim)) return idealAnim
+  if (availableAnims.includes(fallbackAnim1)) return fallbackAnim1
+  if (availableAnims.includes(fallbackAnim2)) return fallbackAnim2
+  if (availableAnims.includes('walk')) return 'walk'
+  return idealAnim
 }
 
 // ─── Hook ─────────────────────────────────────────────────────────────────────
@@ -66,10 +96,11 @@ function getWalkAnimation(dx: number, dy: number): string {
 export function usePetMovement({
   speed = 3,
   nearThreshold = 50,
-  sleepTimeout = 5 * 60 * 1000,
+  sleepTimeout = 3 * 60 * 1000,
   windowSize = 128,
   enabled = true,
   mode = 'work',
+  availableAnimations = [],
 }: UsePetMovementOptions = {}): UsePetMovementResult {
   const [petState, setPetState] = useState<PetState>('IDLE')
   const [currentAnimation, setCurrentAnimation] = useState('idle')
@@ -84,6 +115,12 @@ export function usePetMovement({
   const rafIdRef = useRef(0)
   const pollTimerRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
+  // Keep a ref to availableAnimations so RAF/callbacks always see fresh list
+  const availableAnimsRef = useRef(availableAnimations)
+  useEffect(() => {
+    availableAnimsRef.current = availableAnimations
+  }, [availableAnimations])
+
   // Play-mode wander state
   const wanderTargetRef = useRef<Vec2 | null>(null)
   const wanderWaitUntil = useRef(0)
@@ -91,17 +128,15 @@ export function usePetMovement({
   const halfSize = windowSize / 2
 
   // ── Transition helper ──────────────────────────────────────────────────────
-  // Now receives dx/dy instead of dirRight to support 8 directions
   const transition = useCallback((next: PetState, dx: number, dy: number) => {
     const prev = stateRef.current
-
-    const nextAnim = next === 'WALKING' ? getWalkAnimation(dx, dy) : STATE_ANIM[next]
+    const nextAnim =
+      next === 'WALKING' ? getWalkAnimation(dx, dy, availableAnimsRef.current) : STATE_ANIM[next]
 
     if (prev !== next) {
       stateRef.current = next
       setPetState(next)
     }
-
     if (animRef.current !== nextAnim) {
       animRef.current = nextAnim
       setCurrentAnimation(nextAnim)
@@ -110,14 +145,22 @@ export function usePetMovement({
 
   // Direction-only update while already WALKING
   const setWalkDir = useCallback((dx: number, dy: number) => {
-    const anim = getWalkAnimation(dx, dy)
+    const anim = getWalkAnimation(dx, dy, availableAnimsRef.current)
     if (animRef.current !== anim) {
       animRef.current = anim
       setCurrentAnimation(anim)
     }
   }, [])
 
-  // ── Sync window position from OS (once on enable, then on visibility change) ──
+  // ── Animation helper for idle-phase overrides (bored) ─────────────────────
+  const setIdleAnim = useCallback((anim: string) => {
+    if (animRef.current !== anim) {
+      animRef.current = anim
+      setCurrentAnimation(anim)
+    }
+  }, [])
+
+  // ── Sync window position from OS ───────────────────────────────────────────
   useEffect(() => {
     if (!enabled) return
     getCurrentWindow()
@@ -128,7 +171,7 @@ export function usePetMovement({
       .catch(() => {})
   }, [enabled])
 
-  // ── Re-sync on window show (prevents stale position after hide/show) ────────
+  // ── Re-sync on window show ─────────────────────────────────────────────────
   useEffect(() => {
     if (!enabled) return
     const win = getCurrentWindow()
@@ -140,7 +183,6 @@ export function usePetMovement({
             winPosRef.current = { x: p.x, y: p.y }
           })
           .catch(() => {})
-        // Reset idle clock so pet doesn't immediately sleep on show
         lastCursorMoveRef.current = Date.now()
       }
     }
@@ -182,8 +224,6 @@ export function usePetMovement({
 
     const loop = () => {
       rafIdRef.current = requestAnimationFrame(loop)
-      // Skip movement updates while window is hidden (WebView2 throttles rAF
-      // when hidden, so winPosRef drifts; we resume only when fully visible)
       if (document.hidden) return
 
       const cursor = cursorRef.current
@@ -193,19 +233,15 @@ export function usePetMovement({
 
       const centre: Vec2 = { x: winPos.x + halfSize, y: winPos.y + halfSize }
       const dist = distance(cursor, centre)
-
-      // Displacement vector from pet centre to cursor (used for 8-dir selection)
       const dx = cursor.x - centre.x
       const dy = cursor.y - centre.y
-
       const idleMs = now - lastCursorMoveRef.current
 
-      // ── State machine ────────────────────────────────────────────────────
+      // ── State machine ──────────────────────────────────────────────────────
 
       if (mode === 'play') {
-        // ── Play Mode: pet wanders to random screen positions autonomously ──
+        // ── Play Mode ─────────────────────────────────────────────────────────
 
-        // If cursor gets very close, react briefly
         if (dist <= nearThreshold && state !== 'NEAR_CURSOR' && state !== 'SLEEPING') {
           transition('NEAR_CURSOR', dx, dy)
           wanderWaitUntil.current = now + 1500
@@ -213,8 +249,6 @@ export function usePetMovement({
 
         switch (state) {
           case 'SLEEPING':
-            // In play mode sleep is never entered via idleMs;
-            // wake up if the cursor moves (user comes back)
             if (idleMs < sleepTimeout) {
               transition('IDLE', 0, 1)
               lastCursorMoveRef.current = now
@@ -222,15 +256,21 @@ export function usePetMovement({
             break
 
           case 'NEAR_CURSOR':
-            // Brief reaction to cursor proximity, then resume wandering
             if (dist > nearThreshold * NEAR_LEAVE_FACTOR && now >= wanderWaitUntil.current) {
               transition('IDLE', 0, 1)
             }
             break
 
           case 'IDLE': {
+            // Bored animation while resting between wander targets
+            if (idleMs >= BORED_MS) {
+              const boredAnim = availableAnimsRef.current.includes('bored') ? 'bored' : 'idle'
+              setIdleAnim(boredAnim)
+            } else if (animRef.current === 'bored') {
+              setIdleAnim('idle')
+            }
+
             if (now >= wanderWaitUntil.current) {
-              // Pick a new random screen target (physical coords)
               const scale = window.devicePixelRatio || 1
               const screenW = window.screen.availWidth * scale
               const screenH = window.screen.availHeight * scale
@@ -256,11 +296,9 @@ export function usePetMovement({
             const wtDist = distance(wt, centre)
 
             if (wtDist <= nearThreshold) {
-              // Reached target — rest for 2–5 s then pick next
               wanderTargetRef.current = null
               wanderWaitUntil.current = now + 2000 + Math.random() * 3000
               transition('IDLE', 0, 1)
-              // Pet moved, reset idle clock so it never sleeps mid-play
               lastCursorMoveRef.current = now
               break
             }
@@ -281,7 +319,7 @@ export function usePetMovement({
           }
         }
       } else {
-        // ── Work Mode: pet follows cursor (original behaviour) ──────────────
+        // ── Work Mode: pet follows cursor ─────────────────────────────────────
 
         switch (state) {
           case 'SLEEPING':
@@ -304,6 +342,13 @@ export function usePetMovement({
               transition('SLEEPING', dx, dy)
             } else if (dist > nearThreshold) {
               transition('WALKING', dx, dy)
+            } else if (idleMs >= BORED_MS) {
+              // 1 min cursor idle → bored animation (still IDLE state)
+              const boredAnim = availableAnimsRef.current.includes('bored') ? 'bored' : 'idle'
+              setIdleAnim(boredAnim)
+            } else if (animRef.current === 'bored') {
+              // Cursor moved within near zone: revert from bored to idle
+              setIdleAnim('idle')
             }
             break
 
@@ -343,7 +388,16 @@ export function usePetMovement({
     mode,
     transition,
     setWalkDir,
+    setIdleAnim,
   ])
 
-  return { petState, currentAnimation }
+  // ─── External override ─────────────────────────────────────────────────────
+  const overridePosition = useCallback((x: number, y: number) => {
+    winPosRef.current = { x, y }
+    getCurrentWindow()
+      .setPosition(new PhysicalPosition(x, y))
+      .catch(() => {})
+  }, [])
+
+  return { petState, currentAnimation, overridePosition }
 }

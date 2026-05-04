@@ -83,18 +83,23 @@ The pet wanders freely across your desktop, reacts to cursor movement and window
 - [x] Linux desktop monitor — idle time via XScreenSaver, active window via EWMH/X11 (`x11rb`)
 - [x] Linux install documentation (`docs/install-linux.md`)
 
-### In Progress
-
-- [ ] Tauri asset protocol fix for sprite loading in production builds
-- [ ] Community pet gallery in-app
-- [ ] Proactive nudges (idle time detection, app-based reactions)
-
 - [x] GitHub Actions CI/CD with auto-release (Windows installer + portable + Linux AppImage/RPM/DEB)
+- [x] House Window — always-visible pet house widget; click to send pet home
+- [x] Notification monitor — pet reacts when a system notification steals focus (idle-aware background thread)
+- [x] Two new bundled pets: Ember (dragon-pixel) and Pingu (penguin-pixel) with full sprite sets
+- [x] Ghost pet sprites refreshed — new naming convention, 20 animations, `house.png`
+- [x] `bored` animation support — triggers after 1 min of cursor idle
+- [x] Animation fallback chain — pets with partial sprite sets animate without errors
+- [x] `activePetId` persisted across restarts via config store + SQLite
+- [x] Google Gemini AI provider
+- [x] Persistent user memory (name, project, language extracted from conversations)
+- [x] Dynamic mood engine (energy / happiness / curiosity based on time-of-day and idle time)
 
 ### Planned
 
-- [ ] v0.1.0 public release
+- [ ] v0.2.0 public release
 - [ ] macOS testing
+- [ ] Community pet gallery in-app browser
 - [ ] Plugin system for custom behaviors
 - [ ] Voice interaction (TTS/STT)
 
