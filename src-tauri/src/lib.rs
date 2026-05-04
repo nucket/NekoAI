@@ -101,7 +101,7 @@ async fn open_panel_window(
             .map_err(|e| e.to_string())?;
         // Navigate in case the requested route changed
         let url = format!("index.html#{}", route);
-        win.eval(&format!("window.location.hash = '{}'", route))
+        win.eval(format!("window.location.hash = '{}'", route))
             .ok();
         let _ = url;
         win.show().map_err(|e| e.to_string())?;
@@ -153,8 +153,8 @@ async fn resize_panel_window(
 
 #[tauri::command]
 async fn open_url(app: tauri::AppHandle, url: String) -> Result<(), String> {
-    use tauri_plugin_shell::ShellExt;
-    app.shell().open(&url, None).map_err(|e| e.to_string())?;
+    use tauri_plugin_opener::OpenerExt;
+    app.opener().open_url(url, None::<&str>).map_err(|e| e.to_string())?;
     Ok(())
 }
 
@@ -180,8 +180,11 @@ fn get_config() -> AIConfig {
 }
 
 #[tauri::command]
-fn save_config(config: AIConfig) -> Result<(), String> {
-    storage::write_config(&config)
+fn save_config(app: tauri::AppHandle, config: AIConfig) -> Result<(), String> {
+    storage::write_config(&config)?;
+    // Notify all windows (HouseWindow, panel) that the config changed
+    app.emit("config-updated", ()).ok();
+    Ok(())
 }
 
 // ─── Conversation commands ────────────────────────────────────────────────────
@@ -276,6 +279,7 @@ pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_fs::init())
         .plugin(tauri_plugin_shell::init())
+        .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_autostart::init(
             tauri_plugin_autostart::MacosLauncher::LaunchAgent,
             None,
@@ -290,13 +294,63 @@ pub fn run() {
             let window = app.get_webview_window("main").unwrap();
             window.set_always_on_top(true).ok();
 
+            // Position near house before making visible to avoid flash at (100, 100).
+            // pet(32) + gap(4) + house(64) + margin(8) = 108 logical px from right
+            // taskbar(48) + house(64) + margin(8) = 120 logical px from bottom
+            if let Ok(Some(monitor)) = window.primary_monitor() {
+                let scale = monitor.scale_factor();
+                let mw = monitor.size().width as f64;
+                let mh = monitor.size().height as f64;
+                let x = (mw - 108.0 * scale) as i32;
+                let y = (mh - 120.0 * scale) as i32;
+                window.set_position(tauri::PhysicalPosition::new(x, y)).ok();
+            }
+            window.show().ok();
+
+            // ── Background notification monitor ────────────────────────────
+            // Detects when a non-NekoAI window gains focus while the user is
+            // idle (no mouse/keyboard input), which strongly indicates a system
+            // notification took focus. Emits "neko-notification" to all windows.
+            {
+                let app_handle = app.handle().clone();
+                std::thread::spawn(move || {
+                    let mut prev_title = String::new();
+                    loop {
+                        std::thread::sleep(std::time::Duration::from_millis(500));
+
+                        // Only act when the user hasn't touched input for >1s
+                        let idle_ms = desktop_monitor::get_idle_millis();
+                        if idle_ms < 1000 {
+                            prev_title.clear();
+                            continue;
+                        }
+
+                        if let Some(win) = desktop_monitor::get_active_window() {
+                            let proc = win.process_name.to_lowercase();
+                            // Skip our own windows
+                            if proc.contains("nekoai") || proc.is_empty() {
+                                continue;
+                            }
+                            if !win.title.is_empty() && win.title != prev_title {
+                                prev_title = win.title.clone();
+                                app_handle.emit("neko-notification", &win).ok();
+                            }
+                        }
+                    }
+                });
+            }
+
             // ── Tray menu ──────────────────────────────────────────────────
             let show_hide   = MenuItem::with_id(app, "show_hide",   "Show/Hide NekoAI",     true, None::<&str>)?;
             let settings    = MenuItem::with_id(app, "settings",    "Settings",              true, None::<&str>)?;
-            let pet_classic = MenuItem::with_id(app, "pet_classic", "Classic Neko",          true, None::<&str>)?;
-            let pet_ghost   = MenuItem::with_id(app, "pet_ghost",   "Ghost",                 true, None::<&str>)?;
-            let pet_shiba   = MenuItem::with_id(app, "pet_shiba",   "Shiba",                 true, None::<&str>)?;
-            let select_pet  = Submenu::with_items(app, "Select Pet", true, &[&pet_classic, &pet_ghost, &pet_shiba])?;
+            let pet_classic  = MenuItem::with_id(app, "pet_classic",  "Classic Neko",  true, None::<&str>)?;
+            let pet_ghost    = MenuItem::with_id(app, "pet_ghost",    "Ghost",         true, None::<&str>)?;
+            let pet_dragon   = MenuItem::with_id(app, "pet_dragon",   "Ember (Dragon)", true, None::<&str>)?;
+            let pet_penguin  = MenuItem::with_id(app, "pet_penguin",  "Pingu (Penguin)", true, None::<&str>)?;
+            let pet_shiba    = MenuItem::with_id(app, "pet_shiba",    "Shiba",         true, None::<&str>)?;
+            let select_pet   = Submenu::with_items(app, "Select Pet", true, &[
+                &pet_classic, &pet_ghost, &pet_dragon, &pet_penguin, &pet_shiba,
+            ])?;
             let sep         = PredefinedMenuItem::separator(app)?;
             let about       = MenuItem::with_id(app, "about",       "About NekoAI v0.2.0",  true, None::<&str>)?;
             let quit        = MenuItem::with_id(app, "quit",        "Quit",                  true, None::<&str>)?;
@@ -341,6 +395,14 @@ pub fn run() {
                     "pet_ghost" => {
                         show_window(app);
                         app.emit("tray-select-pet", "ghost-pixel").ok();
+                    }
+                    "pet_dragon" => {
+                        show_window(app);
+                        app.emit("tray-select-pet", "dragon-pixel").ok();
+                    }
+                    "pet_penguin" => {
+                        show_window(app);
+                        app.emit("tray-select-pet", "penguin-pixel").ok();
                     }
                     "pet_shiba" => {
                         show_window(app);

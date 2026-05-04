@@ -11,7 +11,7 @@
 /* ─── Expanded: 300×300 when the speech bubble is open ──────────────────────── */
 
 .app-container--open {
-  width:  300px;
+  width: 300px;
   height: 300px;
 }
 
@@ -19,7 +19,7 @@
 
 /* Size is injected as inline style from App.tsx to match the current petSize */
 .sprite-container {
-  display:  flex;
+  display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;

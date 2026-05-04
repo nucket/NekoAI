@@ -24,10 +24,25 @@
         "alwaysOnTop": true,
         "skipTaskbar": true,
         "shadow": false,
-        "visible": true,
+        "visible": false,
         "center": false,
         "x": 100,
         "y": 100
+      },
+      {
+        "label": "house",
+        "title": "Neko House",
+        "width": 64,
+        "height": 64,
+        "resizable": false,
+        "fullscreen": false,
+        "decorations": false,
+        "transparent": true,
+        "alwaysOnTop": true,
+        "skipTaskbar": true,
+        "shadow": false,
+        "visible": false,
+        "url": "index.html#house"
       }
     ],
     "security": {

@@ -1,12 +1,12 @@
-import { CSSProperties } from "react";
+import { CSSProperties } from 'react'
 
 interface PetSpriteProps {
-  spriteSheet: string;
-  frameWidth: number;
-  frameHeight: number;
-  frameIndex: number;
-  scale?: number;
-  style?: CSSProperties;
+  spriteSheet: string
+  frameWidth: number
+  frameHeight: number
+  frameIndex: number
+  scale?: number
+  style?: CSSProperties
 }
 
 export function PetSprite({
@@ -17,7 +17,7 @@ export function PetSprite({
   scale = 2,
   style,
 }: PetSpriteProps) {
-  const offsetX = -(frameIndex * frameWidth);
+  const offsetX = -(frameIndex * frameWidth)
 
   return (
     <div
@@ -27,10 +27,10 @@ export function PetSprite({
         backgroundImage: `url(${spriteSheet})`,
         backgroundPosition: `${offsetX * scale}px 0`,
         backgroundSize: `auto ${frameHeight * scale}px`,
-        backgroundRepeat: "no-repeat",
-        imageRendering: "pixelated",
+        backgroundRepeat: 'no-repeat',
+        imageRendering: 'pixelated',
         ...style,
       }}
     />
-  );
+  )
 }

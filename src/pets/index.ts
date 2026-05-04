@@ -10,15 +10,15 @@ export type {
   TriggerEvent,
   TriggerMap,
   PetMood,
-} from "../types/pet";
+} from '../types/pet'
 
-export { PetRenderer } from "./PetRenderer";
-export type { PetRendererProps } from "./PetRenderer";
+export { PetRenderer } from './PetRenderer'
+export type { PetRendererProps } from './PetRenderer'
 
-export { loadPetFromPath, validatePetDefinition, PetValidationError } from "./loader";
+export { loadPetFromPath, validatePetDefinition, PetValidationError } from './loader'
 
 export {
   generatePlaceholderSpritesheet,
   PLACEHOLDER_ANIMATIONS,
   ANIMATION_CYCLE,
-} from "./placeholderSprite";
+} from './placeholderSprite'
