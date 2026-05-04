@@ -42,3 +42,6 @@ Thumbs.db
 # Portable build artifacts
 dist-portable/
 nekoai-*-portable-*.zip
+
+# NekoForge pet generator (dev tool, not for distribution)
+assets/nekoforge*.html

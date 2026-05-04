@@ -42,15 +42,18 @@ export function HouseWindow() {
       try {
         const monitor = await currentMonitor()
         const scale = monitor?.scaleFactor ?? window.devicePixelRatio ?? 1
-        const monW = monitor?.size.width ?? window.screen.availWidth * scale
-        const monH = monitor?.size.height ?? window.screen.availHeight * scale
         const monX = monitor?.position.x ?? 0
         const monY = monitor?.position.y ?? 0
 
+        // Use screen.availWidth/Height (logical, taskbar-aware) × scale for physical
+        // coords so the house appears above the taskbar, not behind it.
+        const availW = window.screen.availWidth * scale
+        const availH = window.screen.availHeight * scale
+        const margin = 8 * scale
+
         const win = getCurrentWindow()
-        const margin = 20 * scale
-        const x = monX + monW - HOUSE_SIZE * scale - margin
-        const y = monY + monH - HOUSE_SIZE * scale - margin
+        const x = monX + availW - HOUSE_SIZE * scale - margin
+        const y = monY + availH - HOUSE_SIZE * scale - margin
 
         await win.setPosition(new PhysicalPosition(Math.round(x), Math.round(y)))
         await win.show()
