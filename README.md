@@ -51,7 +51,8 @@ Neko:   *walks over, pops a bubble*
 | 🧠 Persistent memory — remembers your name, projects, preferences              | ✅         |
 | 🔌 Multi-provider AI (Claude, OpenAI, Gemini, Ollama local)                    | ✅         |
 | 😴 Dynamic mood — energy changes with time of day & idle time                  | ✅         |
-| 🎭 Multiple pets — Classic Neko, Ghost, Shiba (more via community)             | ✅         |
+| 🎭 Multiple pets — Classic Neko, Ghost, Ember, Pingu, Shiba                    | ✅         |
+| 🏠 Pet house — spawn point at bottom-right corner, click to bring pet home     | ✅         |
 | 🔔 Proactive nudges ("coding 90 min — take a break!")                          | ✅         |
 | 🖥️ System tray — hide/show, switch pets, settings                              | ✅         |
 | 📏 Adjustable pet size (S/M/L/XL) with pixel-perfect scaling                   | ✅         |
@@ -195,11 +196,13 @@ Mood affects:
 
 ## 🎭 Available Pets
 
-| Pet             | ID             | Personality                                     |
-| --------------- | -------------- | ----------------------------------------------- |
-| 🐱 Classic Neko | `classic-neko` | Playful, curious, gives warm short answers      |
-| 👻 Ghost        | `ghost-pixel`  | Ethereal, gentle, slightly mysterious           |
-| 🐕 Shiba        | `shiba-pixel`  | Loyal, energetic, enthusiastic about everything |
+| Pet             | ID              | Personality                                              |
+| --------------- | --------------- | -------------------------------------------------------- |
+| 🐱 Classic Neko | `classic-neko`  | Playful, curious, gives warm short answers               |
+| 👻 Ghost        | `ghost-pixel`   | Ethereal, kind, slightly mysterious — drifts with a glow |
+| 🐉 Ember        | `dragon-pixel`  | Sarcastic fire dragon — impatient but secretly helpful   |
+| 🐧 Pingu        | `penguin-pixel` | Cheerful and clumsy, bounces back from every stumble     |
+| 🐕 Shiba        | `shiba-pixel`   | Loyal, energetic, enthusiastic about everything          |
 
 Switch pets via right-click → Settings, or from the system tray menu.
 
@@ -212,12 +215,18 @@ Want to create your own? See [Creating a Pet](docs/creating-a-pet.md).
 ```
 NekoAI/
 ├── src-tauri/                   # Rust backend (Tauri v2)
+│   ├── capabilities/
+│   │   └── default.json         # Window permissions (main, panel, house)
 │   └── src/
 │       ├── lib.rs               # App setup, tray, Tauri commands, resize_window
 │       ├── desktop_monitor.rs   # Win32 APIs — active window, idle time
 │       └── storage.rs           # SQLite: conversation history, user facts, config
 │
 ├── src/                         # TypeScript / React frontend
+│   ├── App.tsx                  # Main pet window — movement, events, AI, rendering
+│   ├── HouseWindow.tsx          # Pet house widget (separate Tauri window "house")
+│   ├── PanelWindow.tsx          # Context menu / settings panel (window "panel")
+│   ├── main.tsx                 # Entry point — routes to App / HouseWindow / PanelWindow
 │   ├── ai/
 │   │   ├── index.ts             # Provider factory, system prompt builder
 │   │   ├── memory.ts            # Fact extraction & persistence (SQLite IPC)
@@ -229,14 +238,10 @@ NekoAI/
 │   │   ├── ContextMenu.tsx      # Right-click context menu (settings, pet, size)
 │   │   └── PetSelector.tsx      # Pet picker with dynamic window resizing
 │   ├── hooks/
-│   │   ├── usePetMovement.ts    # 8-direction cursor tracking & rAF loop
+│   │   ├── usePetMovement.ts    # 8-direction movement, bored idle, overridePosition
 │   │   ├── useMoodEngine.ts     # Energy/happiness/curiosity + animation overrides
 │   │   ├── useDesktopContext.ts # Active window detection & app categorization
 │   │   └── usePetAnimation.ts   # Sprite frame ticker
-│   ├── pets/
-│   │   ├── PetRenderer.tsx      # Renders frame-by-frame sprite animations
-│   │   ├── PetBrain.ts          # Behavioral state machine (coding alert, sleep)
-│   │   └── loader.ts            # pet.json validation & loading
 │   └── store/
 │       ├── index.ts             # Zustand store (mood, active pet, animation)
 │       └── configStore.ts       # AI config & pet size persisted via Tauri commands
@@ -244,8 +249,10 @@ NekoAI/
 └── pets/                        # Pet definitions (bundled with app)
     ├── manifest.json            # Registry of all available pets
     ├── classic-neko/            # 🐱 pet.json + sprites/
-    ├── ghost-pixel/             # 👻 pet.json + sprites/ (add sprite PNGs)
-    └── shiba-pixel/             # 🐕 pet.json + sprites/ (add sprite PNGs)
+    ├── ghost-pixel/             # 👻 pet.json + sprites/
+    ├── dragon-pixel/            # 🐉 pet.json + sprites/ (Ember)
+    ├── penguin-pixel/           # 🐧 pet.json + sprites/ (Pingu)
+    └── shiba-pixel/             # 🐕 pet.json + sprites/
 ```
 
 ### Window Resizing on Windows
@@ -289,8 +296,8 @@ Read [CONTRIBUTING.md](CONTRIBUTING.md) before submitting.
 | Version     | Focus                                                                                                                                                               |
 | ----------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **v0.1** ✅ | Core: transparent window, Neko sprite, cursor tracking, AI chat                                                                                                     |
-| **v0.2** ✅ | Persistent memory, dynamic mood engine, multiple pets                                                                                                               |
-| **v0.3** 🚧 | Accessories/skins system, sound effects, sprite scale slider                                                                                                        |
+| **v0.2** 🚧 | Persistent memory, dynamic mood engine, pet house window, new pets (Ghost, Ember, Pingu), 8-direction movement                                                      |
+| **v0.3** 🔜 | Accessories/skins system, sound effects, sprite scale slider                                                                                                        |
 | **v0.4** 🔜 | Community pet gallery in-app, mini-games                                                                                                                            |
 | **v0.5** 🔜 | **NekoCapture** — native screenshots with metadata footer (username, timestamp, app name, comments), customizable borders & shadows, clipboard/file export, hotkeys |
 | **v0.6** 🔜 | **NekoAnnotate** — full-screen drawing overlay (pen, shapes, arrows, text, highlighter) with undo/redo, inspired by ZoomIt Draw; annotate before saving screenshots |

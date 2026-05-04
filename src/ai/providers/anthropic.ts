@@ -1,12 +1,12 @@
-import type { AIProvider, Message } from '../types';
+import type { AIProvider, Message } from '../types'
 
 export class AnthropicProvider implements AIProvider {
-  private apiKey: string;
-  private model: string;
+  private apiKey: string
+  private model: string
 
   constructor(apiKey: string, model = 'claude-haiku-4-5-20251001') {
-    this.apiKey = apiKey;
-    this.model = model;
+    this.apiKey = apiKey
+    this.model = model
   }
 
   async sendMessage(messages: Message[], systemPrompt: string): Promise<string> {
@@ -23,13 +23,13 @@ export class AnthropicProvider implements AIProvider {
         system: systemPrompt,
         messages,
       }),
-    });
+    })
 
     if (!response.ok) {
-      throw new Error(`Anthropic API error: ${response.status} ${response.statusText}`);
+      throw new Error(`Anthropic API error: ${response.status} ${response.statusText}`)
     }
 
-    const data = await response.json();
-    return data.content[0].text as string;
+    const data = await response.json()
+    return data.content[0].text as string
   }
 }

@@ -2,8 +2,8 @@
 
 ## Supported Versions
 
-| Version | Supported |
-|---|---|
+| Version       | Supported             |
+| ------------- | --------------------- |
 | 0.x (current) | ✅ Active development |
 
 ## Privacy & Data Handling
@@ -24,6 +24,7 @@ If you discover a security vulnerability in NekoAI, **please do not open a publi
 Instead, report it privately by emailing or opening a [GitHub Security Advisory](https://github.com/nucket/nekoai/security/advisories/new).
 
 Please include:
+
 - A description of the vulnerability
 - Steps to reproduce
 - Potential impact

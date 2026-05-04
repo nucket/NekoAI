@@ -1,12 +1,12 @@
-import type { AIProvider, Message } from '../types';
+import type { AIProvider, Message } from '../types'
 
 export class OllamaProvider implements AIProvider {
-  private baseUrl: string;
-  private model: string;
+  private baseUrl: string
+  private model: string
 
   constructor(model = 'llama3', baseUrl = 'http://localhost:11434') {
-    this.model = model;
-    this.baseUrl = baseUrl;
+    this.model = model
+    this.baseUrl = baseUrl
   }
 
   async sendMessage(messages: Message[], systemPrompt: string): Promise<string> {
@@ -18,18 +18,15 @@ export class OllamaProvider implements AIProvider {
       body: JSON.stringify({
         model: this.model,
         stream: false,
-        messages: [
-          { role: 'system', content: systemPrompt },
-          ...messages,
-        ],
+        messages: [{ role: 'system', content: systemPrompt }, ...messages],
       }),
-    });
+    })
 
     if (!response.ok) {
-      throw new Error(`Ollama API error: ${response.status} ${response.statusText}`);
+      throw new Error(`Ollama API error: ${response.status} ${response.statusText}`)
     }
 
-    const data = await response.json();
-    return data.message.content as string;
+    const data = await response.json()
+    return data.message.content as string
   }
 }

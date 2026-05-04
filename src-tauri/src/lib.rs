@@ -101,7 +101,7 @@ async fn open_panel_window(
             .map_err(|e| e.to_string())?;
         // Navigate in case the requested route changed
         let url = format!("index.html#{}", route);
-        win.eval(&format!("window.location.hash = '{}'", route))
+        win.eval(format!("window.location.hash = '{}'", route))
             .ok();
         let _ = url;
         win.show().map_err(|e| e.to_string())?;
@@ -153,8 +153,8 @@ async fn resize_panel_window(
 
 #[tauri::command]
 async fn open_url(app: tauri::AppHandle, url: String) -> Result<(), String> {
-    use tauri_plugin_shell::ShellExt;
-    app.shell().open(&url, None).map_err(|e| e.to_string())?;
+    use tauri_plugin_opener::OpenerExt;
+    app.opener().open_url(url, None::<&str>).map_err(|e| e.to_string())?;
     Ok(())
 }
 
@@ -279,6 +279,7 @@ pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_fs::init())
         .plugin(tauri_plugin_shell::init())
+        .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_autostart::init(
             tauri_plugin_autostart::MacosLauncher::LaunchAgent,
             None,

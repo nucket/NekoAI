@@ -21,6 +21,7 @@
     "core:window:allow-available-monitors",
     "core:window:allow-scale-factor",
     "shell:allow-open",
+    "opener:allow-open-url",
     {
       "identifier": "fs:allow-read-text-file",
       "allow": [

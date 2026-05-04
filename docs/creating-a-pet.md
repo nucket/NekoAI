@@ -28,9 +28,9 @@ The folder name is the pet's **ID** — it must be kebab-case and unique.
 ```jsonc
 {
   // ── Identity ────────────────────────────────────────────────────────────────
-  "name":        "Ember",           // Display name shown in the UI
-  "version":     "1.0.0",           // Semver
-  "author":      "yourname",
+  "name": "Ember", // Display name shown in the UI
+  "version": "1.0.0", // Semver
+  "author": "yourname",
   "description": "A tiny fire dragon who loves dark mode",
 
   // ── AI personality ──────────────────────────────────────────────────────────
@@ -38,7 +38,7 @@ The folder name is the pet's **ID** — it must be kebab-case and unique.
   "system_prompt": "You are Ember, a tiny fire dragon living on the user's desktop. You are witty, slightly dramatic, and give short punchy answers. Use 1-2 sentences max unless asked for more. Never use markdown.",
 
   // ── Sprites ─────────────────────────────────────────────────────────────────
-  "spritesDir": "sprites",          // subfolder containing frame PNGs
+  "spritesDir": "sprites", // subfolder containing frame PNGs
 
   // ── Animations ──────────────────────────────────────────────────────────────
   // Each animation is a sequence of PNG files played at a given fps.
@@ -47,37 +47,37 @@ The folder name is the pet's **ID** — it must be kebab-case and unique.
     "idle": {
       "files": ["idle1.png", "idle2.png"],
       "fps": 3,
-      "loop": true
+      "loop": true,
     },
     "walk_right": {
       "files": ["right1.png", "right2.png", "right3.png", "right4.png"],
       "fps": 10,
-      "loop": true
+      "loop": true,
     },
-    "walk_left":       { "files": ["left1.png", "left2.png"],         "fps": 10, "loop": true  },
-    "walk_up":         { "files": ["up1.png", "up2.png"],             "fps": 8,  "loop": true  },
-    "walk_down":       { "files": ["down1.png", "down2.png"],         "fps": 8,  "loop": true  },
-    "walk_up_right":   { "files": ["upright1.png", "upright2.png"],   "fps": 8,  "loop": true  },
-    "walk_up_left":    { "files": ["upleft1.png", "upleft2.png"],     "fps": 8,  "loop": true  },
-    "walk_down_right": { "files": ["downright1.png", "downright2.png"],"fps": 8, "loop": true  },
-    "walk_down_left":  { "files": ["downleft1.png", "downleft2.png"], "fps": 8,  "loop": true  },
-    "happy":           { "files": ["happy1.png", "happy2.png"],       "fps": 8,  "loop": false },
-    "sleep":           { "files": ["sleep1.png", "sleep2.png"],       "fps": 2,  "loop": true  },
-    "yawn":            { "files": ["yawn1.png", "yawn2.png"],         "fps": 3,  "loop": false },
-    "awaken":          { "files": ["awake.png"],                      "fps": 6,  "loop": false },
-    "falling_asleep":  { "files": ["fall1.png", "fall2.png", "fall3.png"], "fps": 4, "loop": false }
+    "walk_left": { "files": ["left1.png", "left2.png"], "fps": 10, "loop": true },
+    "walk_up": { "files": ["up1.png", "up2.png"], "fps": 8, "loop": true },
+    "walk_down": { "files": ["down1.png", "down2.png"], "fps": 8, "loop": true },
+    "walk_up_right": { "files": ["upright1.png", "upright2.png"], "fps": 8, "loop": true },
+    "walk_up_left": { "files": ["upleft1.png", "upleft2.png"], "fps": 8, "loop": true },
+    "walk_down_right": { "files": ["downright1.png", "downright2.png"], "fps": 8, "loop": true },
+    "walk_down_left": { "files": ["downleft1.png", "downleft2.png"], "fps": 8, "loop": true },
+    "happy": { "files": ["happy1.png", "happy2.png"], "fps": 8, "loop": false },
+    "sleep": { "files": ["sleep1.png", "sleep2.png"], "fps": 2, "loop": true },
+    "yawn": { "files": ["yawn1.png", "yawn2.png"], "fps": 3, "loop": false },
+    "awaken": { "files": ["awake.png"], "fps": 6, "loop": false },
+    "falling_asleep": { "files": ["fall1.png", "fall2.png", "fall3.png"], "fps": 4, "loop": false },
   },
 
   // ── Triggers ────────────────────────────────────────────────────────────────
   // Map system events to animation names. All optional.
   "triggers": {
-    "on_cursor_near":    "happy",          // cursor enters pet's proximity
-    "on_chat_open":      "awaken",         // user opens the chat bubble
-    "on_idle_3min":      "yawn",           // OS idle >= 3 minutes
-    "on_idle_5min":      "falling_asleep", // OS idle >= 5 minutes
-    "on_idle_6min":      "sleep",          // OS idle >= 6 minutes
-    "on_movement_start": "awaken"          // pet starts moving
-  }
+    "on_cursor_near": "happy", // cursor enters pet's proximity
+    "on_chat_open": "awaken", // user opens the chat bubble
+    "on_idle_3min": "yawn", // OS idle >= 3 minutes
+    "on_idle_5min": "falling_asleep", // OS idle >= 5 minutes
+    "on_idle_6min": "sleep", // OS idle >= 6 minutes
+    "on_movement_start": "awaken", // pet starts moving
+  },
 }
 ```
 
@@ -93,12 +93,12 @@ For a polished pet, implement all 8 walk directions plus `idle`, `happy`, `sleep
 
 ## Sprite specifications
 
-| Property | Recommendation |
-|---|---|
-| Format | PNG with transparency (RGBA) |
-| Frame size | 32×32 px or 48×48 px (consistent within a pet) |
-| Style | Pixel art — use `image-rendering: pixelated` in CSS |
-| Background | Transparent |
+| Property   | Recommendation                                      |
+| ---------- | --------------------------------------------------- |
+| Format     | PNG with transparency (RGBA)                        |
+| Frame size | 32×32 px or 48×48 px (consistent within a pet)      |
+| Style      | Pixel art — use `image-rendering: pixelated` in CSS |
+| Background | Transparent                                         |
 
 The engine renders sprites at 2× scale by default (`displaySize` prop on `PetRenderer`). A 32px sprite appears as 64px on screen.
 

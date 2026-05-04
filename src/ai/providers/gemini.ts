@@ -1,16 +1,16 @@
-import type { AIProvider, Message } from '../types';
+import type { AIProvider, Message } from '../types'
 
 export class GeminiProvider implements AIProvider {
-  private apiKey: string;
-  private model: string;
+  private apiKey: string
+  private model: string
 
   constructor(apiKey: string, model = 'gemini-1.5-flash') {
-    this.apiKey = apiKey;
-    this.model = model;
+    this.apiKey = apiKey
+    this.model = model
   }
 
   async sendMessage(messages: Message[], systemPrompt: string): Promise<string> {
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/${this.model}:generateContent?key=${this.apiKey}`;
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/${this.model}:generateContent?key=${this.apiKey}`
 
     const response = await fetch(url, {
       method: 'POST',
@@ -24,13 +24,13 @@ export class GeminiProvider implements AIProvider {
         })),
         generationConfig: { maxOutputTokens: 256 },
       }),
-    });
+    })
 
     if (!response.ok) {
-      throw new Error(`Gemini API error: ${response.status} ${response.statusText}`);
+      throw new Error(`Gemini API error: ${response.status} ${response.statusText}`)
     }
 
-    const data = await response.json();
-    return data.candidates[0].content.parts[0].text as string;
+    const data = await response.json()
+    return data.candidates[0].content.parts[0].text as string
   }
 }
