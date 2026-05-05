@@ -49,7 +49,7 @@ Neko:   *walks over, pops a bubble*
 | 🖱️ 8-direction cursor following & movement                                     | ✅         |
 | 💬 AI chat via animated speech bubble                                          | ✅         |
 | 🧠 Persistent memory — remembers your name, projects, preferences              | ✅         |
-| 🔌 Multi-provider AI (Claude, OpenAI, Gemini, Ollama local)                    | ✅         |
+| 🔌 Multi-provider AI (Claude, OpenAI, Gemini, NVIDIA NIM, Ollama local)        | ✅         |
 | 😴 Dynamic mood — energy changes with time of day & idle time                  | ✅         |
 | 🎭 Multiple pets — Classic Neko, Ghost, Ember, Pingu, Shiba                    | ✅         |
 | 🏠 Pet house — spawn point at bottom-right corner, click to bring pet home     | ✅         |
@@ -57,9 +57,12 @@ Neko:   *walks over, pops a bubble*
 | 🖥️ System tray — hide/show, switch pets, settings                              | ✅         |
 | 📏 Adjustable pet size (S/M/L/XL) with pixel-perfect scaling                   | ✅         |
 | 🖱️ Right-click context menu — quick settings & pet size adjustment             | ✅         |
-| 📷 NekoCapture — screenshots with username/date/app/comment footer             | 🔜 v0.5    |
-| 🖼️ Customizable screenshot borders (color, thickness, rounded corners, shadow) | 🔜 v0.5    |
-| ✏️ NekoAnnotate — full-screen drawing overlay (pen, shapes, arrows, text)      | 🔜 v0.6    |
+| 📊 NekoMetrics — anonymous keystroke / mouse / pet-step counters in a tooltip  | 🔜 v0.3    |
+| 🥁 BongoCat-style reactive paw animations driven by keystrokes                 | 🔜 v0.3    |
+| 📅 Daily/weekly/monthly activity history & GitHub-style heatmap                | 🔜 v0.3    |
+| 📷 NekoCapture — screenshots with username/date/app/comment footer             | 🔜 v0.6    |
+| 🖼️ Customizable screenshot borders (color, thickness, rounded corners, shadow) | 🔜 v0.6    |
+| ✏️ NekoAnnotate — full-screen drawing overlay (pen, shapes, arrows, text)      | 🔜 v0.7    |
 | 🌐 Cross-platform (Windows, macOS, Linux)                                      | 🔜 Planned |
 | 🧩 Plugin system for custom behaviors                                          | 🔜 Planned |
 | 🗣️ Voice interaction (TTS/STT)                                                 | 🔜 Planned |
@@ -84,8 +87,9 @@ Neko:   *walks over, pops a bubble*
                           ▼
               ┌─────────────────────┐
               │   AI Provider       │
-              │  Claude / OpenAI    │
-              │  / Ollama (local)   │
+              │  Claude / OpenAI /  │
+              │  Gemini / NVIDIA /  │
+              │  Ollama (local)     │
               └─────────────────────┘
                           │
               Response in animated speech bubble
@@ -133,7 +137,7 @@ Configuration is auto-created on first run:
 ```toml
 # ~/.config/nekoai/config.toml  (auto-created on first run)
 
-provider = "anthropic"           # "anthropic" | "openai" | "ollama"
+provider = "anthropic"           # "anthropic" | "openai" | "gemini" | "nvidia" | "ollama"
 api_key  = "sk-ant-..."          # Stored locally, never sent anywhere
 model    = "claude-haiku-4-5-20251001"
 pet_size = 64                    # pixels (32, 64, 96, or 128)
@@ -166,14 +170,16 @@ sqlite3 ~/.local/share/nekoai/memory.db "SELECT * FROM user_facts;"
 
 ### Supported AI providers
 
-| Provider      | Models                                | Requires                                                  |
-| ------------- | ------------------------------------- | --------------------------------------------------------- |
-| **Anthropic** | Claude Haiku, Sonnet                  | API Key                                                   |
-| **OpenAI**    | GPT-4o mini, GPT-4o                   | API Key                                                   |
-| **Google**    | Gemini 1.5 Flash, Gemini 2.0 Flash... | API Key ([Google AI Studio](https://aistudio.google.com)) |
-| **Ollama**    | Llama 3, Mistral, Phi-3...            | [Ollama](https://ollama.ai) running locally               |
+| Provider       | Models                                   | Requires                                                                     |
+| -------------- | ---------------------------------------- | ---------------------------------------------------------------------------- |
+| **Anthropic**  | Claude Haiku, Sonnet                     | API Key                                                                      |
+| **OpenAI**     | GPT-4o mini, GPT-4o                      | API Key                                                                      |
+| **Google**     | Gemini 1.5 Flash, Gemini 2.0 Flash...    | API Key ([Google AI Studio](https://aistudio.google.com))                    |
+| **NVIDIA NIM** | Llama 3.1, Mistral, Nemotron, MiniMax... | API Key ([build.nvidia.com](https://build.nvidia.com)) — free tier available |
+| **Ollama**     | Llama 3, Mistral, Phi-3...               | [Ollama](https://ollama.ai) running locally                                  |
 
 > 💡 **For full privacy**: Use Ollama — 100% local, no API costs, no data leaves your machine.
+> 🟢 **Free models**: NVIDIA NIM offers a generous free tier with 40+ open-source models at [build.nvidia.com](https://build.nvidia.com).
 
 ---
 
@@ -231,7 +237,7 @@ NekoAI/
 │   │   ├── index.ts             # Provider factory, system prompt builder
 │   │   ├── memory.ts            # Fact extraction & persistence (SQLite IPC)
 │   │   ├── types.ts             # AIProvider interface, Message type
-│   │   └── providers/           # anthropic.ts · openai.ts · ollama.ts
+│   │   └── providers/           # anthropic.ts · openai.ts · gemini.ts · ollama.ts · nvidia.ts
 │   ├── components/
 │   │   ├── SpeechBubble.tsx     # Animated chat bubble with scramble text effect
 │   │   ├── SettingsPanel.tsx    # Settings panel (API key, model, pet size)
@@ -265,6 +271,12 @@ NekoAI uses a Tauri command (`resize_window`) to bypass OS-level restrictions wh
 
 This allows the speech bubble, settings panel, pet selector, and context menu to dynamically expand/collapse without the user seeing the resize handles.
 
+### NVIDIA NIM — Rust-side HTTP proxy
+
+NVIDIA's `integrate.api.nvidia.com` endpoint is designed for server-to-server usage and does not send CORS headers. Unlike the other providers (Anthropic, OpenAI, Gemini) which explicitly support browser CORS, a direct `fetch()` from Tauri's WebView would be silently blocked.
+
+NekoAI works around this with a dedicated `nvidia_chat` Tauri command (`lib.rs`) that makes the HTTP request from native Rust via `reqwest`, completely bypassing the WebView's CORS enforcement. The TypeScript provider uses `invoke('nvidia_chat', ...)` instead of `fetch`. This keeps the same `AIProvider` interface for all providers while letting NVIDIA NIM work correctly.
+
 ### Pixel-Perfect Sprite Scaling
 
 All pet sizes are integer multiples of the native 32px sprite:
@@ -293,15 +305,16 @@ Read [CONTRIBUTING.md](CONTRIBUTING.md) before submitting.
 
 ## 🗺️ Roadmap
 
-| Version     | Focus                                                                                                                                                               |
-| ----------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **v0.1** ✅ | Core: transparent window, Neko sprite, cursor tracking, AI chat                                                                                                     |
-| **v0.2** 🚧 | Persistent memory, dynamic mood engine, pet house window, new pets (Ghost, Ember, Pingu), 8-direction movement                                                      |
-| **v0.3** 🔜 | Accessories/skins system, sound effects, sprite scale slider                                                                                                        |
-| **v0.4** 🔜 | Community pet gallery in-app, mini-games                                                                                                                            |
-| **v0.5** 🔜 | **NekoCapture** — native screenshots with metadata footer (username, timestamp, app name, comments), customizable borders & shadows, clipboard/file export, hotkeys |
-| **v0.6** 🔜 | **NekoAnnotate** — full-screen drawing overlay (pen, shapes, arrows, text, highlighter) with undo/redo, inspired by ZoomIt Draw; annotate before saving screenshots |
-| **v1.0** 🔜 | Cross-platform stable release, plugin API, voice support                                                                                                            |
+| Version     | Focus                                                                                                                                                                                                                       |
+| ----------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **v0.1** ✅ | Core: transparent window, Neko sprite, cursor tracking, AI chat                                                                                                                                                             |
+| **v0.2** 🚧 | Persistent memory, dynamic mood engine, pet house window, new pets (Ghost, Ember, Pingu), 8-direction movement                                                                                                              |
+| **v0.3** 🔜 | **NekoMetrics** — anonymous keystroke / mouse / pet-step counters with house right-click menu, animated tooltip above the house, daily/weekly/monthly history, GitHub-style heatmap, BongoCat-style reactive paw animations |
+| **v0.4** 🔜 | Accessories/skins system, sound effects, sprite scale slider                                                                                                                                                                |
+| **v0.5** 🔜 | Community pet gallery in-app, mini-games                                                                                                                                                                                    |
+| **v0.6** 🔜 | **NekoCapture** — native screenshots with metadata footer (username, timestamp, app name, comments), customizable borders & shadows, clipboard/file export, hotkeys                                                         |
+| **v0.7** 🔜 | **NekoAnnotate** — full-screen drawing overlay (pen, shapes, arrows, text, highlighter) with undo/redo, inspired by ZoomIt Draw; annotate before saving screenshots                                                         |
+| **v1.0** 🔜 | Cross-platform stable release, plugin API, voice support                                                                                                                                                                    |
 
 ---
 
