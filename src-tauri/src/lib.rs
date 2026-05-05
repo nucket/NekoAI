@@ -216,6 +216,59 @@ fn get_all_user_facts() -> Result<std::collections::HashMap<String, String>, Str
     storage::get_all_user_facts()
 }
 
+// ─── NVIDIA NIM proxy (bypasses WebView CORS) ────────────────────────────────
+
+#[derive(serde::Deserialize)]
+struct NimMessage {
+    role: String,
+    content: String,
+}
+
+#[tauri::command]
+async fn nvidia_chat(
+    api_key: String,
+    model: String,
+    messages: Vec<NimMessage>,
+) -> Result<String, String> {
+    let body = serde_json::json!({
+        "model": model,
+        "max_tokens": 256,
+        "messages": messages.iter().map(|m| serde_json::json!({
+            "role": m.role,
+            "content": m.content,
+        })).collect::<Vec<_>>(),
+    });
+
+    let client = reqwest::Client::builder()
+        .timeout(std::time::Duration::from_secs(30))
+        .build()
+        .map_err(|e| format!("NVIDIA NIM client error: {e}"))?;
+
+    let resp = client
+        .post("https://integrate.api.nvidia.com/v1/chat/completions")
+        .header("authorization", format!("Bearer {}", api_key))
+        .json(&body)
+        .send()
+        .await
+        .map_err(|e| format!("NVIDIA NIM request failed: {e}"))?;
+
+    if !resp.status().is_success() {
+        let status = resp.status();
+        let text = resp.text().await.unwrap_or_default();
+        return Err(format!("NVIDIA NIM API error: {status} — {text}"));
+    }
+
+    let data: serde_json::Value = resp
+        .json()
+        .await
+        .map_err(|e| format!("NVIDIA NIM parse error: {e}"))?;
+
+    data["choices"][0]["message"]["content"]
+        .as_str()
+        .map(str::to_string)
+        .ok_or_else(|| "NVIDIA NIM: unexpected response format".to_string())
+}
+
 // ─── Desktop monitor commands ─────────────────────────────────────────────────
 
 #[tauri::command]
@@ -449,6 +502,7 @@ pub fn run() {
             enable_autostart,
             disable_autostart,
             open_url,
+            nvidia_chat,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
