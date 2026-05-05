@@ -3,7 +3,7 @@ export interface AIProvider {
 }
 
 export type AIConfig = {
-  provider: 'anthropic' | 'openai' | 'ollama' | 'gemini'
+  provider: 'anthropic' | 'openai' | 'ollama' | 'gemini' | 'nvidia'
   apiKey?: string
   model: string
   baseUrl?: string

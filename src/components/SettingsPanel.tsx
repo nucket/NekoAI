@@ -4,6 +4,7 @@ import { getCurrentWindow, currentMonitor } from '@tauri-apps/api/window'
 import { PhysicalPosition } from '@tauri-apps/api/dpi'
 import { useConfigStore } from '../store/configStore'
 import { createAIProvider, buildContextBlock } from '../ai'
+import type { AIConfig } from '../ai/types'
 
 // ─── Layout constants ─────────────────────────────────────────────────────────
 
@@ -18,6 +19,7 @@ const PROVIDER_DEFAULTS: Record<string, { model: string; placeholder: string }> 
   openai: { model: 'gpt-4o-mini', placeholder: 'sk-…' },
   ollama: { model: 'llama3', placeholder: '(not required)' },
   gemini: { model: 'gemini-1.5-flash', placeholder: 'AIza…' },
+  nvidia: { model: 'meta/llama-3.1-8b-instruct', placeholder: 'nvapi-…' },
 }
 
 // ─── Component ────────────────────────────────────────────────────────────────
@@ -132,7 +134,7 @@ export function SettingsPanel({ isOpen, onClose }: Props) {
   // ── Provider change: reset model to provider default ──────────────────────
   const handleProviderChange = useCallback(
     (p: string) => {
-      setProvider(p as 'anthropic' | 'openai' | 'ollama')
+      setProvider(p as AIConfig['provider'])
       setModel(PROVIDER_DEFAULTS[p]?.model ?? config.model)
     },
     [config.model, setProvider, setModel]
@@ -183,6 +185,7 @@ export function SettingsPanel({ isOpen, onClose }: Props) {
           <option value="openai">OpenAI (GPT)</option>
           <option value="gemini">Google (Gemini)</option>
           <option value="ollama">Ollama (local)</option>
+          <option value="nvidia">NVIDIA NIM</option>
         </select>
 
         {/* ── Model ───────────────────────────────────────────────────────── */}
