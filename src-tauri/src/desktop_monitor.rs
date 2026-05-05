@@ -20,8 +20,8 @@ pub struct WindowInfo {
 #[cfg(target_os = "windows")]
 mod win_impl {
     use super::{Rect, WindowInfo};
-    use std::ptr::null_mut;
-    use windows::Win32::Foundation::{CloseHandle, BOOL, HMODULE, HWND, LPARAM, RECT};
+    use windows::core::BOOL;
+    use windows::Win32::Foundation::{CloseHandle, HWND, LPARAM, RECT};
     use windows::Win32::System::ProcessStatus::K32GetModuleBaseNameW;
     use windows::Win32::System::SystemInformation::GetTickCount64;
     use windows::Win32::System::Threading::{OpenProcess, PROCESS_QUERY_LIMITED_INFORMATION};
@@ -108,7 +108,7 @@ mod win_impl {
         unsafe {
             let handle = OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, false, pid).ok()?;
             let mut name_buf = [0u16; 260];
-            let len = K32GetModuleBaseNameW(handle, HMODULE(null_mut()), &mut name_buf);
+            let len = K32GetModuleBaseNameW(handle, None, &mut name_buf);
             let _ = CloseHandle(handle);
             if len == 0 {
                 return None;
