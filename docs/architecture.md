@@ -21,6 +21,7 @@ NekoAI is a **Tauri v2** application: a Rust backend exposes native OS APIs via 
 │  │ment + Mood │  │ (Anthropic /  │                     │
 │  │ Engine     │  │  OpenAI /     │                     │
 │  │            │  │  Gemini /     │                     │
+│  │            │  │  NVIDIA NIM / │                     │
 │  │            │  │  Ollama)      │                     │
 │  └──────┬─────┘  └───────┘       │                     │
 │         │                │                              │
@@ -116,6 +117,7 @@ Extracted facts are upserted into the `user_facts` SQLite table.
 | `get_active_window`                      | Foreground window title + process name                              |
 | `get_all_windows`                        | All visible windows                                                 |
 | `get_idle_millis`                        | OS-wide idle time in milliseconds                                   |
+| `nvidia_chat`                            | Native HTTP call to NVIDIA NIM API (bypasses WebView CORS)          |
 | `open_url`                               | Open a URL or mailto link via the system browser                    |
 | `enable_autostart` / `disable_autostart` | Launch-at-login                                                     |
 | `quit_app`                               | Exit the process                                                    |

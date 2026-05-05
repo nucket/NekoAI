@@ -3,7 +3,7 @@
 > **Author:** Naudy Castellanos ([@nucket](https://github.com/nucket))  
 > **Repository:** https://github.com/nucket/nekoai  
 > **License:** MIT  
-> **Status:** Active development — v0.1 in progress
+> **Status:** Active development — v0.2.0 shipped — v0.3 (NekoMetrics) in planning
 
 ---
 
@@ -36,6 +36,8 @@ The pet wanders freely across your desktop, reacts to cursor movement and window
 │  │ AI Providers    │                                     │
 │  │ Anthropic API   │  ← user's own API key               │
 │  │ OpenAI API      │  ← user's own API key               │
+│  │ Google Gemini   │  ← user's own API key               │
+│  │ NVIDIA NIM      │  ← free tier available              │
 │  │ Ollama (local)  │  ← no key required                  │
 │  └─────────────────┘                                     │
 └─────────────────────────────────────────────────────────┘
@@ -45,18 +47,18 @@ The pet wanders freely across your desktop, reacts to cursor movement and window
 
 ## Tech Stack
 
-| Layer             | Technology                                                     |
-| ----------------- | -------------------------------------------------------------- |
-| Desktop framework | Tauri v2                                                       |
-| Backend           | Rust 1.75+                                                     |
-| Frontend          | React 19 + TypeScript 6 + Vite                                 |
-| Persistence       | SQLite via rusqlite                                            |
-| AI (cloud)        | Anthropic Claude API, OpenAI API                               |
-| AI (local)        | Ollama                                                         |
-| Sprites           | PNG (RGBA, 32×32 px native, 1×/2×/3×/4× integer scaling)       |
-| Pet format        | JSON (pet.json schema)                                         |
-| State management  | Zustand                                                        |
-| Styling           | Inline CSS-in-JS + dynamic inline styles for responsive sizing |
+| Layer             | Technology                                                      |
+| ----------------- | --------------------------------------------------------------- |
+| Desktop framework | Tauri v2                                                        |
+| Backend           | Rust 1.75+                                                      |
+| Frontend          | React 19 + TypeScript 6 + Vite                                  |
+| Persistence       | SQLite via rusqlite                                             |
+| AI (cloud)        | Anthropic Claude API, OpenAI API, Google Gemini API, NVIDIA NIM |
+| AI (local)        | Ollama                                                          |
+| Sprites           | PNG (RGBA, 32×32 px native, 1×/2×/3×/4× integer scaling)        |
+| Pet format        | JSON (pet.json schema)                                          |
+| State management  | Zustand                                                         |
+| Styling           | Inline CSS-in-JS + dynamic inline styles for responsive sizing  |
 
 ---
 
@@ -92,13 +94,16 @@ The pet wanders freely across your desktop, reacts to cursor movement and window
 - [x] Animation fallback chain — pets with partial sprite sets animate without errors
 - [x] `activePetId` persisted across restarts via config store + SQLite
 - [x] Google Gemini AI provider
+- [x] NVIDIA NIM AI provider (5th provider — Rust-side HTTP via `reqwest` to bypass WebView CORS)
 - [x] Persistent user memory (name, project, language extracted from conversations)
 - [x] Dynamic mood engine (energy / happiness / curiosity based on time-of-day and idle time)
 
-### Planned
+### Planned (v0.3+)
 
-- [ ] v0.2.0 public release
-- [ ] macOS testing
+- [ ] NekoMetrics — anonymous keystroke / mouse / pet-step counters (spec: `docs/feature-nekometrics-v0.3.md`)
+- [ ] BongoCat-style reactive paw animations driven by keystrokes
+- [ ] Daily/weekly/monthly activity history + GitHub-style heatmap
+- [ ] macOS testing and stable cross-platform release
 - [ ] Community pet gallery in-app browser
 - [ ] Plugin system for custom behaviors
 - [ ] Voice interaction (TTS/STT)

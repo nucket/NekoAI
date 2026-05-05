@@ -66,6 +66,47 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - `src/hooks/useMoodEngine.ts`: reduced yawn idle window from 3–5 min to 1–2 min, aligning with the new `bored` phase at 1 min.
 
+### Added — NVIDIA NIM provider
+
+- `src/ai/providers/nvidia.ts`: new `NvidiaProvider` using `invoke('nvidia_chat', ...)` instead of `fetch()` — bypasses WebView CORS since `integrate.api.nvidia.com` is a server-to-server API
+- `src-tauri/src/lib.rs`: added `nvidia_chat` Tauri command that calls the NVIDIA endpoint via `reqwest` from native Rust
+- `src/ai/types.ts`: added `'nvidia'` to the `ProviderType` union
+- `src/ai/index.ts`: registered `NvidiaProvider` in the provider factory
+- `src/components/SettingsPanel.tsx`: added "NVIDIA NIM" option to the provider dropdown with `nvapi-…` key placeholder
+- Default model: `meta/llama-3.1-8b-instruct`; free tier at [build.nvidia.com](https://build.nvidia.com)
+
+### Changed — Dependency upgrades (May 2026)
+
+Maintenance bumps from Dependabot. No user-visible behavior changes.
+
+**JavaScript:**
+
+| Package                           | From   | To     |
+| --------------------------------- | ------ | ------ |
+| `vite`                            | 5.4.x  | 8.0.10 |
+| `@vitejs/plugin-react`            | 4.7.0  | 6.0.1  |
+| `eslint-config-prettier`          | 9.1.2  | 10.1.8 |
+| `typescript-eslint`               | 8.58.2 | 8.59.2 |
+| `eslint`                          | 10.2.1 | 10.3.0 |
+| `@commitlint/cli`                 | 20.5.0 | 20.5.3 |
+| `@commitlint/config-conventional` | 20.5.0 | 20.5.3 |
+| `@tauri-apps/api`                 | 2.10.1 | 2.11.0 |
+
+**Rust:**
+
+| Crate             | From   | To     |
+| ----------------- | ------ | ------ |
+| `tauri`           | 2.10.3 | 2.11.0 |
+| `tauri-build`     | 2.5.6  | 2.6.0  |
+| `tauri-plugin-fs` | 2.5.0  | 2.5.1  |
+| `rusqlite`        | 0.31   | 0.39.0 |
+| `toml`            | 0.8    | 0.9.12 |
+| `windows`         | 0.58   | 0.61.3 |
+
+### Fixed — windows 0.61 breaking changes
+
+- `src-tauri/src/desktop_monitor.rs`: `BOOL` moved from `Win32::Foundation` to `windows::core`; `K32GetModuleBaseNameW` second param changed from `HMODULE` to `Option<HMODULE>` — updated import and call site accordingly
+
 ### Changed — Dependency upgrades (April 2026)
 
 Major version bumps across the frontend toolchain. No user-visible behavior changes.
