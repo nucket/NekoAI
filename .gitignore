@@ -45,3 +45,6 @@ nekoai-*-portable-*.zip
 
 # NekoForge pet generator (dev tool, not for distribution)
 assets/nekoforge*.html
+
+# Windows portable (local builds)
+NekoAI-Win-Portable.zip
