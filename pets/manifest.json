@@ -34,13 +34,36 @@
       "bundled": true
     },
     {
-      "id": "shiba-pixel",
-      "name": "Shiba",
-      "description": "An enthusiastic pixel shiba inu always ready to help",
-      "emoji": "🐕",
-      "author": "NekoAI Community",
-      "bundled": true,
-      "spritesRequired": true
+      "id": "pac-man",
+      "name": "Pac-Man",
+      "description": "The classic arcade chomper, always hungry and chasing dots across your desktop",
+      "emoji": "🟡",
+      "author": "Namco / Neko98 community",
+      "bundled": true
+    },
+    {
+      "id": "bsd-daemon",
+      "name": "BSD Daemon",
+      "description": "The trident-wielding Unix daemon, guardian of your processes and file systems",
+      "emoji": "😈",
+      "author": "Marshall Kirk McKusick / Neko98 community",
+      "bundled": true
+    },
+    {
+      "id": "tabby",
+      "name": "Tabby",
+      "description": "The original tabby cat from the X-Windows Neko, dignified and old-school",
+      "emoji": "🐈",
+      "author": "Masayuki Koba / Neko98 community",
+      "bundled": true
+    },
+    {
+      "id": "tie-fighter",
+      "name": "TIE Fighter",
+      "description": "An Imperial TIE Fighter patrolling your desktop for Rebel activity",
+      "emoji": "🚀",
+      "author": "Lucasfilm / Neko98 community",
+      "bundled": true
     }
   ]
 }

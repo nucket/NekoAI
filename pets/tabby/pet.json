@@ -1,0 +1,140 @@
+{
+  "$schema": "../../schemas/pet.schema.json",
+  "name": "Tabby",
+  "version": "1.0.0",
+  "author": "Masayuki Koba / Neko98 community",
+  "description": "The original tabby cat from the X-Windows Neko, dignified and old-school",
+  "personality": "Tabby is dignified and old-school, the original desktop cat. Calmer than Neko, speaks in short reflective observations. Classic, unhurried.",
+  "system_prompt": "You are Tabby, the original desktop cat from the 1980s X-Windows Neko program. You are dignified, calm, and wise. Give 1-2 sentence replies, never hurried. You've seen decades of computing and have quiet opinions about it. Occasionally yawn mid-sentence. No markdown. No exclamation marks.",
+  "spritesDir": "sprites",
+  "animations": {
+    "idle": {
+      "files": ["idle.png"],
+      "fps": 2,
+      "loop": true
+    },
+    "awaken": {
+      "files": ["awake.png"],
+      "fps": 6,
+      "loop": false
+    },
+    "walk_right": {
+      "files": ["right1.png", "right2.png"],
+      "fps": 8,
+      "loop": true
+    },
+    "walk_left": {
+      "files": ["left1.png", "left2.png"],
+      "fps": 8,
+      "loop": true
+    },
+    "walk_up": {
+      "files": ["up1.png", "up2.png"],
+      "fps": 8,
+      "loop": true
+    },
+    "walk_down": {
+      "files": ["down1.png", "down2.png"],
+      "fps": 8,
+      "loop": true
+    },
+    "walk_up_right": {
+      "files": ["upright1.png", "upright2.png"],
+      "fps": 8,
+      "loop": true
+    },
+    "walk_up_left": {
+      "files": ["upleft1.png", "upleft2.png"],
+      "fps": 8,
+      "loop": true
+    },
+    "walk_down_right": {
+      "files": ["downright1.png", "downright2.png"],
+      "fps": 8,
+      "loop": true
+    },
+    "walk_down_left": {
+      "files": ["downleft1.png", "downleft2.png"],
+      "fps": 8,
+      "loop": true
+    },
+    "scratch_right": {
+      "files": ["rightclaw1.png", "rightclaw2.png"],
+      "fps": 6,
+      "loop": true
+    },
+    "scratch_left": {
+      "files": ["leftclaw1.png", "leftclaw2.png"],
+      "fps": 6,
+      "loop": true
+    },
+    "scratch_up": {
+      "files": ["upclaw1.png", "upclaw2.png"],
+      "fps": 6,
+      "loop": true
+    },
+    "scratch_down": {
+      "files": ["downclaw1.png", "downclaw2.png"],
+      "fps": 6,
+      "loop": true
+    },
+    "scratch_wall": {
+      "files": ["scratch1.png", "scratch2.png"],
+      "fps": 6,
+      "loop": true
+    },
+    "wash": {
+      "files": ["wash2.png"],
+      "fps": 4,
+      "loop": true
+    },
+    "yawn": {
+      "files": ["yawn2.png"],
+      "fps": 3,
+      "loop": false
+    },
+    "falling_asleep": {
+      "files": ["yawn2.png", "sleep1.png"],
+      "fps": 2,
+      "loop": false
+    },
+    "sleep": {
+      "files": ["sleep1.png", "sleep2.png"],
+      "fps": 2,
+      "loop": true
+    },
+    "happy": {
+      "files": ["scratch1.png", "scratch2.png"],
+      "fps": 8,
+      "loop": false
+    },
+    "thinking": {
+      "files": ["idle.png"],
+      "fps": 2,
+      "loop": true
+    },
+    "surprised": {
+      "files": ["awake.png"],
+      "fps": 6,
+      "loop": false
+    },
+    "eating": {
+      "files": ["wash2.png"],
+      "fps": 5,
+      "loop": true
+    }
+  },
+  "triggers": {
+    "on_cursor_near": "scratch_wall",
+    "on_chat_open": "awaken",
+    "on_ai_thinking": "thinking",
+    "on_ai_response": "happy",
+    "on_idle_3min": "yawn",
+    "on_idle_5min": "falling_asleep",
+    "on_idle_6min": "sleep",
+    "on_movement_start": "awaken",
+    "on_happy": "happy",
+    "on_surprised": "surprised",
+    "on_eating": "eating"
+  }
+}
