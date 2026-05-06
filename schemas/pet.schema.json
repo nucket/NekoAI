@@ -17,6 +17,10 @@
   ],
   "additionalProperties": false,
   "properties": {
+    "$schema": {
+      "type": "string",
+      "description": "JSON Schema reference for editor tooling"
+    },
     "name": {
       "type": "string",
       "description": "Display name of the pet shown in the UI",
@@ -105,7 +109,11 @@
         "on_movement_start": { "$ref": "#/definitions/triggerValue" },
         "on_happy": { "$ref": "#/definitions/triggerValue" },
         "on_surprised": { "$ref": "#/definitions/triggerValue" },
-        "on_eating": { "$ref": "#/definitions/triggerValue" }
+        "on_eating": { "$ref": "#/definitions/triggerValue" },
+        "on_edge_hit_right": { "$ref": "#/definitions/triggerValue" },
+        "on_edge_hit_left": { "$ref": "#/definitions/triggerValue" },
+        "on_edge_hit_up": { "$ref": "#/definitions/triggerValue" },
+        "on_edge_hit_down": { "$ref": "#/definitions/triggerValue" }
       }
     }
   },

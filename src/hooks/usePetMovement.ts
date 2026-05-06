@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { invoke } from '@tauri-apps/api/core'
-import { getCurrentWindow } from '@tauri-apps/api/window'
+import { getCurrentWindow, availableMonitors } from '@tauri-apps/api/window'
 import { PhysicalPosition } from '@tauri-apps/api/dpi'
 
 // ─── Public types ─────────────────────────────────────────────────────────────
@@ -15,6 +15,7 @@ export interface UsePetMovementOptions {
   enabled?: boolean
   mode?: 'work' | 'play'
   availableAnimations?: string[]
+  onEdgeHit?: (direction: 'right' | 'left' | 'up' | 'down') => void
 }
 
 export interface UsePetMovementResult {
@@ -33,7 +34,7 @@ const BORED_MS = 60_000 // 1 min idle → bored animation
 const STATE_ANIM: Record<PetState, string> = {
   IDLE: 'idle',
   WALKING: 'walk_right',
-  NEAR_CURSOR: 'happy',
+  NEAR_CURSOR: 'idle', // overridden by useIdleSequencer; 'idle' avoids loop:false freeze
   SLEEPING: 'sleep',
 }
 
@@ -101,6 +102,7 @@ export function usePetMovement({
   enabled = true,
   mode = 'work',
   availableAnimations = [],
+  onEdgeHit,
 }: UsePetMovementOptions = {}): UsePetMovementResult {
   const [petState, setPetState] = useState<PetState>('IDLE')
   const [currentAnimation, setCurrentAnimation] = useState('idle')
@@ -121,11 +123,58 @@ export function usePetMovement({
     availableAnimsRef.current = availableAnimations
   }, [availableAnimations])
 
+  // Track previous position for edge direction calculation
+  const prevPosRef = useRef<Vec2>({ x: 0, y: 0 })
+
   // Play-mode wander state
   const wanderTargetRef = useRef<Vec2 | null>(null)
   const wanderWaitUntil = useRef(0)
 
   const halfSize = windowSize / 2
+
+  // ── Monitor bounds for multi-monitor edge detection ─────────────────────
+  interface MonitorBounds {
+    x: number
+    y: number
+    width: number
+    height: number
+  }
+  const monitorBoundsRef = useRef<MonitorBounds[]>([])
+  const prevMonitorIndexRef = useRef<number>(-1)
+  const edgeCooldownRef = useRef(0)
+  const EDGE_COOLDOWN_MS = 800
+
+  useEffect(() => {
+    if (!enabled) return
+    async function loadMonitors() {
+      try {
+        const all = await availableMonitors()
+        if (all.length > 0) {
+          monitorBoundsRef.current = all.map((m) => ({
+            x: m.position.x,
+            y: m.position.y,
+            width: m.size.width,
+            height: m.size.height,
+          }))
+        }
+      } catch {
+        monitorBoundsRef.current = []
+      }
+    }
+    loadMonitors()
+  }, [enabled])
+
+  // ── Helper: find which monitor the pet center is on ─────────────────────
+  const findMonitorIndex = useCallback((cx: number, cy: number): number => {
+    const bounds = monitorBoundsRef.current
+    for (let i = 0; i < bounds.length; i++) {
+      const m = bounds[i]
+      if (cx >= m.x && cx < m.x + m.width && cy >= m.y && cy < m.y + m.height) {
+        return i
+      }
+    }
+    return -1
+  }, [])
 
   // ── Transition helper ──────────────────────────────────────────────────────
   const transition = useCallback((next: PetState, dx: number, dy: number) => {
@@ -374,6 +423,33 @@ export function usePetMovement({
           }
         }
       }
+
+      // ── Edge hit detection (cross-monitor boundary) ──────────────────────
+      if (state === 'WALKING' && onEdgeHit && monitorBoundsRef.current.length > 0) {
+        const now2 = Date.now()
+        if (now2 >= edgeCooldownRef.current) {
+          const prevMonIdx = prevMonitorIndexRef.current
+          const currMonIdx = findMonitorIndex(centre.x, centre.y)
+
+          if (prevMonIdx !== -1 && currMonIdx !== prevMonIdx) {
+            // Determine crossing direction from movement delta
+            const ddX = centre.x - prevPosRef.current.x
+            const ddY = centre.y - prevPosRef.current.y
+            let edgeDir: 'right' | 'left' | 'up' | 'down'
+            if (Math.abs(ddX) > Math.abs(ddY)) {
+              edgeDir = ddX > 0 ? 'right' : 'left'
+            } else {
+              edgeDir = ddY > 0 ? 'down' : 'up'
+            }
+            onEdgeHit(edgeDir)
+            edgeCooldownRef.current = now2 + EDGE_COOLDOWN_MS
+          }
+          prevMonitorIndexRef.current = currMonIdx
+        }
+      }
+
+      // Track position for next frame's edge direction calculation
+      prevPosRef.current = { x: centre.x, y: centre.y }
     }
 
     rafIdRef.current = requestAnimationFrame(loop)
@@ -389,6 +465,8 @@ export function usePetMovement({
     transition,
     setWalkDir,
     setIdleAnim,
+    onEdgeHit,
+    findMonitorIndex,
   ])
 
   // ─── External override ─────────────────────────────────────────────────────
