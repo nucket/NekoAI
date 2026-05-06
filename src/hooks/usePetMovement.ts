@@ -118,7 +118,10 @@ export function usePetMovement({
   const animRef = useRef('idle')
   const rafIdRef = useRef(0)
   const pollTimerRef = useRef<ReturnType<typeof setInterval> | null>(null)
-  const lastMoveTimeRef = useRef(0) // for tick-based movement timing
+
+  // Smooth movement accumulator (tracks fractional pixels to avoid losing small steps)
+  const moveAccumX = useRef(0)
+  const moveAccumY = useRef(0)
 
   // Keep a ref to availableAnimations so RAF/callbacks always see fresh list
   const availableAnimsRef = useRef(availableAnimations)
@@ -251,8 +254,13 @@ export function usePetMovement({
         const pos = await invoke<Vec2>('get_cursor_pos')
         const prev = prevCursorRef.current
         const d = distance(pos, prev)
-        if (d > CURSOR_MOVE_PX) {
+        // Always update lastCursorMoveRef on any detected change — even small
+        // movements count as "cursor active". The 4px threshold was only for
+        // filtering jitter on prevCursorRef, not for activity detection.
+        if (d > 0) {
           lastCursorMoveRef.current = Date.now()
+        }
+        if (d > CURSOR_MOVE_PX) {
           prevCursorRef.current = pos
         }
         cursorRef.current = pos
@@ -352,21 +360,27 @@ export function usePetMovement({
               wanderWaitUntil.current = now + 2000 + Math.random() * 3000
               transition('IDLE', 0, 1)
               lastCursorMoveRef.current = now
+              moveAccumX.current = 0
+              moveAccumY.current = 0
               break
             }
 
             setWalkDir(wtDx, wtDy)
 
-            // Tick-based movement: move at consistent speed regardless of frame rate
-            const deltaMs = now - lastMoveTimeRef.current
-            const step = Math.min((SPEED_PX_PER_SEC * deltaMs) / 1000, wtDist)
+            // Frame-based movement with accumulator for smooth motion
+            const frameStep = SPEED_PX_PER_SEC / 60 // ~16.67ms frame
+            moveAccumX.current += (wtDx / wtDist) * frameStep
+            moveAccumY.current += (wtDy / wtDist) * frameStep
 
-            if (step > 0) {
-              lastMoveTimeRef.current = now
-              const nx = wtDx / wtDist
-              const ny = wtDy / wtDist
-              const newX = winPos.x + nx * step
-              const newY = winPos.y + ny * step
+            const intStepX = Math.trunc(moveAccumX.current)
+            const intStepY = Math.trunc(moveAccumY.current)
+
+            if (intStepX !== 0 || intStepY !== 0) {
+              moveAccumX.current -= intStepX
+              moveAccumY.current -= intStepY
+
+              const newX = winPos.x + intStepX
+              const newY = winPos.y + intStepY
 
               winPosRef.current = { x: newX, y: newY }
               win
@@ -413,23 +427,41 @@ export function usePetMovement({
           case 'WALKING': {
             // Only stop chasing when cursor is near AND has been idle (stopped moving)
             const cursorIdleMs = now - lastCursorMoveRef.current
-            if (dist <= nearThreshold && cursorIdleMs >= CURSOR_IDLE_MS) {
+            const isCursorStopped = cursorIdleMs >= CURSOR_IDLE_MS
+
+            if (dist <= nearThreshold && isCursorStopped) {
               transition('NEAR_CURSOR', dx, dy)
+              moveAccumX.current = 0
+              moveAccumY.current = 0
               break
             }
 
-            setWalkDir(dx, dy)
+            // Keep walking towards cursor (even if within threshold, if cursor is still moving)
+            // Avoid micro-jittering when very close: require minimum step distance
+            if (dist < 5) {
+              break
+            }
 
-            // Tick-based movement: move at consistent speed regardless of frame rate
-            const deltaMs = now - lastMoveTimeRef.current
-            const step = Math.min((SPEED_PX_PER_SEC * deltaMs) / 1000, dist)
+            const walkDx = dx
+            const walkDy = dy
+            const walkDist = dist
 
-            if (step > 0) {
-              lastMoveTimeRef.current = now
-              const nx = dx / dist
-              const ny = dy / dist
-              const newX = winPos.x + nx * step
-              const newY = winPos.y + ny * step
+            setWalkDir(walkDx, walkDy)
+
+            // Frame-based movement with accumulator for smooth motion
+            const frameStep = SPEED_PX_PER_SEC / 60 // ~16.67ms frame
+            moveAccumX.current += (walkDx / walkDist) * frameStep
+            moveAccumY.current += (walkDy / walkDist) * frameStep
+
+            const intStepX = Math.trunc(moveAccumX.current)
+            const intStepY = Math.trunc(moveAccumY.current)
+
+            if (intStepX !== 0 || intStepY !== 0) {
+              moveAccumX.current -= intStepX
+              moveAccumY.current -= intStepY
+
+              const newX = winPos.x + intStepX
+              const newY = winPos.y + intStepY
 
               winPosRef.current = { x: newX, y: newY }
               win
