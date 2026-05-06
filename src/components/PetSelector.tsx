@@ -7,7 +7,7 @@ import { useConfigStore } from '../store/configStore'
 // ─── Layout constants ─────────────────────────────────────────────────────────
 
 const SELECTOR_W = 240
-const SELECTOR_H = 280
+const SELECTOR_H = 320
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -127,6 +127,7 @@ export function PetSelector({ isOpen, activePetId, onSelect, onClose }: Props) {
 
   return (
     <div style={styles.overlay} onClick={onClose}>
+      <style>{scrollbarCss}</style>
       <div style={styles.panel} onClick={(e) => e.stopPropagation()}>
         <div style={styles.header}>
           <span style={styles.title}>Select Pet</span>
@@ -135,7 +136,7 @@ export function PetSelector({ isOpen, activePetId, onSelect, onClose }: Props) {
           </button>
         </div>
 
-        <div style={styles.list}>
+        <div style={styles.list} className="neko-pet-list">
           {pets.map((pet) => (
             <button
               key={pet.id}
@@ -163,6 +164,15 @@ export function PetSelector({ isOpen, activePetId, onSelect, onClose }: Props) {
   )
 }
 
+// ─── Scrollbar CSS (injected via <style> — inline styles can't target pseudo-elements) ───
+
+const scrollbarCss = `
+  .neko-pet-list::-webkit-scrollbar { width: 4px; }
+  .neko-pet-list::-webkit-scrollbar-track { background: transparent; }
+  .neko-pet-list::-webkit-scrollbar-thumb { background: #3a3a6c; border-radius: 4px; }
+  .neko-pet-list::-webkit-scrollbar-thumb:hover { background: #5555aa; }
+`
+
 // ─── Styles ───────────────────────────────────────────────────────────────────
 
 const styles: Record<string, React.CSSProperties> = {
@@ -180,19 +190,22 @@ const styles: Record<string, React.CSSProperties> = {
   panel: {
     background: 'rgba(20,20,30,0.97)',
     borderRadius: 12,
-    padding: '12px 14px',
     width: `${SELECTOR_W - 16}px`,
+    height: `${SELECTOR_H - 16}px`,
     color: '#e0e0e0',
     fontFamily: 'system-ui, sans-serif',
     fontSize: 13,
     boxShadow: '0 4px 24px rgba(0,0,0,0.6)',
-    overflowY: 'auto' as const,
+    display: 'flex',
+    flexDirection: 'column',
+    overflow: 'hidden',
   },
   header: {
     display: 'flex',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 10,
+    padding: '12px 14px 10px',
+    flexShrink: 0,
   },
   title: {
     fontWeight: 700,
@@ -211,6 +224,9 @@ const styles: Record<string, React.CSSProperties> = {
     display: 'flex',
     flexDirection: 'column',
     gap: 6,
+    overflowY: 'auto',
+    flex: 1,
+    padding: '0 14px 12px',
   },
   petBtn: {
     display: 'flex',
