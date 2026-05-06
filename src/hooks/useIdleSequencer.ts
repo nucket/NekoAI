@@ -1,17 +1,18 @@
 import { useEffect, useRef, useState } from 'react'
 import type { PetState } from './usePetMovement'
 
-// ─── Timing constants (ms) ────────────────────────────────────────────────────
+// ─── Timing constants (ms) — faithful to original x11 Neko (125ms/tick) ───
 
-const WASH_MS = 1200
-const SCRATCH_MS = 1500
-const YAWN_MS = 900
-const FALLING_ASLEEP_MS = 1500
+const WASH_MS = 1250 // original: JARE_TIME = 10 ticks × 125ms
+const SCRATCH_MS = 500 // original: KAKI_TIME = 4 ticks × 125ms
+const YAWN_MS = 375 // original: AKUBI_TIME = 3 ticks × 125ms
+const AWAKE_MS = 375 // original: AWAKE_TIME = 3 ticks × 125ms
+const FALLING_ASLEEP_MS = 1500 // transition animation duration
 
-const GROOM_AT_MS = 60_000 // 1 min → one-time groom
-const SLEEP_AT_MS = 300_000 // 5 min → sleep loop
+const GROOM_AT_MS = 60_000 // 1 min → one-time groom (extended idle only)
+const SLEEP_AT_MS = 30000 // ~30s after arriving at cursor before sleeping (original: ~2s, extended for modern pet charm)
 
-/** Random yawn interval: 12–35 seconds */
+/** Random yawn interval while resting: 12–35 seconds (for extended idle) */
 function yawnIntervalMs() {
   return 12000 + Math.random() * 23_000
 }
@@ -21,27 +22,27 @@ function yawnIntervalMs() {
 type Phase =
   | 'wash'
   | 'scratch'
-  | 'resting'
   | 'yawning'
-  | 'groom_wash'
-  | 'groom_scratch'
   | 'falling_asleep'
   | 'sleeping'
+  | 'resting'
+  | 'groom_scratch'
+  | 'groom_wash'
 
 // ─── Hook ─────────────────────────────────────────────────────────────────────
 
 /**
- * Drives the nkosrc4 idle animation sequence while petState === 'NEAR_CURSOR',
- * then emits a brief 'awaken' flash when the pet starts moving again.
+ * Drives the classic Neko idle animation sequence while petState === 'NEAR_CURSOR'.
  *
- * On arrival at cursor:
- *   wash (1.2s) → scratch_wall (0.8s)
- *   → resting: idle by default, yawn every 3–20s
- *   at 60s: one-time groom (wash→scratch→resting)
- *   at 300s: sleep loop
+ * Faithful to the original x11 Neko / Neko98 state machine:
+ *   On arrival at cursor (STOP):
+ *     wash (JARE, 1.25s) → scratch (KAKI, 0.5s) → yawn (AKUBI, 0.375s) → sleep
  *
  * On departure (cursor moves away):
- *   → 'awaken' for ~350ms, then null
+ *   → 'awaken' flash for ~350ms, then null
+ *
+ * If the user stays idle near Neko for extended periods (>SLEEP_AT_MS without
+ * leaving), Neko cycles: rest → periodic yawn → groom (wash+scratch) → sleep.
  */
 export function useIdleSequencer(petState: PetState, availableAnimations: string[]): string | null {
   const [anim, setAnim] = useState<string | null>(null)
@@ -73,7 +74,8 @@ export function useIdleSequencer(petState: PetState, availableAnimations: string
       }
     }
 
-    let phase: Phase = 'scratch'
+    // Original sequence: wash → scratch → yawn → sleep
+    let phase: Phase = 'wash'
     let nearStart = Date.now()
     let groomed = false
     let nextYawnAt = 0
@@ -84,17 +86,23 @@ export function useIdleSequencer(petState: PetState, availableAnimations: string
       const elapsed = Date.now() - nearStart
 
       switch (phase) {
+        case 'wash':
+          setAnim(safe('wash'))
+          phase = 'scratch'
+          timerId = setTimeout(tick, WASH_MS)
+          break
+
         case 'scratch':
           setAnim(safe('scratch_wall'))
-          phase = 'wash'
+          phase = 'yawning'
           timerId = setTimeout(tick, SCRATCH_MS)
           break
 
-        case 'wash':
-          setAnim(safe('wash'))
+        case 'yawning':
+          setAnim(safe('yawn'))
           phase = 'resting'
           nextYawnAt = elapsed + yawnIntervalMs()
-          timerId = setTimeout(tick, WASH_MS)
+          timerId = setTimeout(tick, YAWN_MS)
           break
 
         case 'resting': {
@@ -116,19 +124,11 @@ export function useIdleSequencer(petState: PetState, availableAnimations: string
             timerId = setTimeout(tick, YAWN_MS)
             return
           }
-          // Default: hold on idle, wake up when next event is due
           setAnim(safe('idle'))
           const wait = Math.max(200, Math.min(nextYawnAt, GROOM_AT_MS, SLEEP_AT_MS) - elapsed)
           timerId = setTimeout(tick, wait)
           break
         }
-
-        case 'yawning':
-          phase = 'resting'
-          nextYawnAt = elapsed + yawnIntervalMs()
-          setAnim(safe('idle'))
-          timerId = setTimeout(tick, 200)
-          break
 
         case 'groom_scratch':
           setAnim(safe('scratch_wall'))
@@ -144,11 +144,13 @@ export function useIdleSequencer(petState: PetState, availableAnimations: string
           break
 
         case 'falling_asleep':
+          setAnim(safe('falling_asleep', 'sleep'))
           phase = 'sleeping'
-          setAnim(safe('sleep'))
+          timerId = setTimeout(tick, FALLING_ASLEEP_MS)
           break
 
         case 'sleeping':
+          setAnim(safe('sleep'))
           break
       }
     }
@@ -180,7 +182,7 @@ export function useIdleSequencer(petState: PetState, availableAnimations: string
 
       setWakeAnim('awaken')
       if (wakeTimer.current) clearTimeout(wakeTimer.current)
-      wakeTimer.current = setTimeout(() => setWakeAnim(null), 350)
+      wakeTimer.current = setTimeout(() => setWakeAnim(null), AWAKE_MS)
     }
 
     handleTransition()

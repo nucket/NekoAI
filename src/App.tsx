@@ -107,7 +107,7 @@ export default function App() {
   )
 
   const { petState, currentAnimation, overridePosition } = usePetMovement({
-    speed: 3,
+    speed: 8,
     nearThreshold: 50,
     sleepTimeout: 10 * 60 * 1000, // sequencer handles sleep at 5 min; this is a safety fallback
     windowSize: spriteSize,
