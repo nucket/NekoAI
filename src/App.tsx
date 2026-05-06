@@ -14,6 +14,7 @@ import { createAIProvider, buildContextBlock } from './ai'
 import { loadFacts, extractAndSaveFacts } from './ai/memory'
 import { useDesktopContext } from './hooks/useDesktopContext'
 import { useMoodEngine } from './hooks/useMoodEngine'
+import { useIdleSequencer } from './hooks/useIdleSequencer'
 import './App.css'
 
 // ─── Layout constants ──────────────────────────────────────────────────────────
@@ -48,6 +49,10 @@ export default function App() {
   const [petSelectorOpen, setPetSelectorOpen] = useState(false)
   const [notificationAlert, setNotificationAlert] = useState(false)
   const notificationTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const [clickWakeAnim, setClickWakeAnim] = useState<string | null>(null)
+  const clickWakeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const [edgeAnimOverride, setEdgeAnimOverride] = useState<string | null>(null)
+  const edgeAnimTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const activePetId = config.activePetId || 'classic-neko'
   // Context menu lives in a separate Tauri window — the main window never
   // gets taken over, so the sprite stays free to follow the cursor.
@@ -86,14 +91,30 @@ export default function App() {
     [petDef]
   )
 
+  // Edge hit handler — triggers directional scratch animation on monitor boundary crossing
+  const handleEdgeHit = useCallback(
+    (direction: 'right' | 'left' | 'up' | 'down') => {
+      if (!petDef?.triggers) return
+      const triggerKey = `on_edge_hit_${direction}`
+      const scratchAnim = petDef.triggers[triggerKey]
+      if (scratchAnim && petDef.animations?.[scratchAnim]) {
+        setEdgeAnimOverride(scratchAnim)
+        if (edgeAnimTimerRef.current) clearTimeout(edgeAnimTimerRef.current)
+        edgeAnimTimerRef.current = setTimeout(() => setEdgeAnimOverride(null), 1500)
+      }
+    },
+    [petDef]
+  )
+
   const { petState, currentAnimation, overridePosition } = usePetMovement({
     speed: 3,
     nearThreshold: 50,
-    sleepTimeout: 3 * 60 * 1000,
+    sleepTimeout: 10 * 60 * 1000, // sequencer handles sleep at 5 min; this is a safety fallback
     windowSize: spriteSize,
     enabled: !dragging && !bubbleOpen && !anyPanelOpen && !notificationAlert,
     mode: config.petMode ?? 'work',
     availableAnimations: availableAnimationsList,
+    onEdgeHit: handleEdgeHit,
   })
 
   // ── Tray event listeners ───────────────────────────────────────────────────
@@ -172,6 +193,8 @@ export default function App() {
     return () => {
       unlisteners.then((fns) => fns.forEach((fn) => fn()))
       if (notificationTimerRef.current) clearTimeout(notificationTimerRef.current)
+      if (clickWakeTimerRef.current) clearTimeout(clickWakeTimerRef.current)
+      if (edgeAnimTimerRef.current) clearTimeout(edgeAnimTimerRef.current)
     }
   }, [overridePosition, spriteSize])
 
@@ -191,6 +214,9 @@ export default function App() {
 
   // ── Mood engine (updates store + emits animation overrides) ──────────────
   const { moodOverride } = useMoodEngine({ idleMinutes, appCategory, petState })
+
+  // ── Idle sequencer — nkosrc4 stop/groom/sleep state machine ──────────────
+  const idleAnim = useIdleSequencer(petState, availableAnimationsList)
 
   // ── AI send with persistent memory ────────────────────────────────────────
   const handleSendMessage = useCallback(async (text: string): Promise<string> => {
@@ -282,8 +308,21 @@ export default function App() {
 
   // ── Interaction handlers ───────────────────────────────────────────────────
   const handleSpriteClick = useCallback(() => {
-    if (!bubbleOpen && !settingsOpen) openBubble()
-  }, [bubbleOpen, settingsOpen, openBubble])
+    if (bubbleOpen || settingsOpen) return
+
+    const flashAwaken = Math.random() < 0.4 && availableAnimationsList.includes('awaken')
+
+    if (flashAwaken) {
+      setClickWakeAnim('awaken')
+      if (clickWakeTimerRef.current) clearTimeout(clickWakeTimerRef.current)
+      clickWakeTimerRef.current = setTimeout(() => {
+        setClickWakeAnim(null)
+        openBubble()
+      }, 350)
+    } else {
+      openBubble()
+    }
+  }, [bubbleOpen, settingsOpen, openBubble, availableAnimationsList])
 
   const handleRightClick = useCallback(
     async (e: React.MouseEvent) => {
@@ -419,7 +458,11 @@ export default function App() {
                   ? animations.alert
                     ? 'alert'
                     : 'idle'
-                  : (moodOverride ?? currentAnimation)
+                  : (edgeAnimOverride ??
+                    clickWakeAnim ??
+                    idleAnim ??
+                    moodOverride ??
+                    currentAnimation)
               }
               animations={animations}
               displaySize={spriteSize}
