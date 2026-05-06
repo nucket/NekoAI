@@ -30,6 +30,8 @@ const CURSOR_POLL_MS = 50
 const CURSOR_MOVE_PX = 4
 const NEAR_LEAVE_FACTOR = 1.5
 const BORED_MS = 60_000 // 1 min idle → bored animation
+const CURSOR_IDLE_MS = 250 // cursor must be still this long before Neko stops chasing
+const SPEED_PX_PER_SEC = 130 // original Neko: 16px/125ms = 128px/s
 
 const STATE_ANIM: Record<PetState, string> = {
   IDLE: 'idle',
@@ -116,6 +118,7 @@ export function usePetMovement({
   const animRef = useRef('idle')
   const rafIdRef = useRef(0)
   const pollTimerRef = useRef<ReturnType<typeof setInterval> | null>(null)
+  const lastMoveTimeRef = useRef(0) // for tick-based movement timing
 
   // Keep a ref to availableAnimations so RAF/callbacks always see fresh list
   const availableAnimsRef = useRef(availableAnimations)
@@ -354,16 +357,22 @@ export function usePetMovement({
 
             setWalkDir(wtDx, wtDy)
 
-            const step = Math.min(speed, wtDist)
-            const nx = wtDx / wtDist
-            const ny = wtDy / wtDist
-            const newX = winPos.x + nx * step
-            const newY = winPos.y + ny * step
+            // Tick-based movement: move at consistent speed regardless of frame rate
+            const deltaMs = now - lastMoveTimeRef.current
+            const step = Math.min((SPEED_PX_PER_SEC * deltaMs) / 1000, wtDist)
 
-            winPosRef.current = { x: newX, y: newY }
-            win
-              .setPosition(new PhysicalPosition(Math.round(newX), Math.round(newY)))
-              .catch(() => {})
+            if (step > 0) {
+              lastMoveTimeRef.current = now
+              const nx = wtDx / wtDist
+              const ny = wtDy / wtDist
+              const newX = winPos.x + nx * step
+              const newY = winPos.y + ny * step
+
+              winPosRef.current = { x: newX, y: newY }
+              win
+                .setPosition(new PhysicalPosition(Math.round(newX), Math.round(newY)))
+                .catch(() => {})
+            }
             break
           }
         }
@@ -402,23 +411,31 @@ export function usePetMovement({
             break
 
           case 'WALKING': {
-            if (dist <= nearThreshold) {
+            // Only stop chasing when cursor is near AND has been idle (stopped moving)
+            const cursorIdleMs = now - lastCursorMoveRef.current
+            if (dist <= nearThreshold && cursorIdleMs >= CURSOR_IDLE_MS) {
               transition('NEAR_CURSOR', dx, dy)
               break
             }
 
             setWalkDir(dx, dy)
 
-            const step = Math.min(speed, dist)
-            const nx = dx / dist
-            const ny = dy / dist
-            const newX = winPos.x + nx * step
-            const newY = winPos.y + ny * step
+            // Tick-based movement: move at consistent speed regardless of frame rate
+            const deltaMs = now - lastMoveTimeRef.current
+            const step = Math.min((SPEED_PX_PER_SEC * deltaMs) / 1000, dist)
 
-            winPosRef.current = { x: newX, y: newY }
-            win
-              .setPosition(new PhysicalPosition(Math.round(newX), Math.round(newY)))
-              .catch(() => {})
+            if (step > 0) {
+              lastMoveTimeRef.current = now
+              const nx = dx / dist
+              const ny = dy / dist
+              const newX = winPos.x + nx * step
+              const newY = winPos.y + ny * step
+
+              winPosRef.current = { x: newX, y: newY }
+              win
+                .setPosition(new PhysicalPosition(Math.round(newX), Math.round(newY)))
+                .catch(() => {})
+            }
             break
           }
         }
