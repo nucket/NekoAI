@@ -1,6 +1,19 @@
 use rusqlite::{params, Connection};
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
+use std::sync::atomic::{AtomicU32, Ordering};
+
+// ─── Pruning policy ───────────────────────────────────────────────────────────
+// Conversations are pruned after every Nth `save_message` so the table cannot
+// grow unbounded across months of use. The whichever-cuts-more rule keeps
+// chatty users from blowing past the row cap and idle users from carrying
+// stale rows forever.
+
+const PRUNE_MAX_ROWS: u32 = 200;
+const PRUNE_MAX_AGE_DAYS: i64 = 30;
+const PRUNE_EVERY_N_INSERTS: u32 = 20;
+
+static INSERTS_SINCE_PRUNE: AtomicU32 = AtomicU32::new(0);
 
 // ─── Shared types ─────────────────────────────────────────────────────────────
 
@@ -127,6 +140,10 @@ fn init_db(conn: &Connection) -> Result<(), String> {
             role      TEXT    NOT NULL,
             content   TEXT    NOT NULL
         );
+        CREATE INDEX IF NOT EXISTS idx_conversations_id_desc
+            ON conversations(id DESC);
+        CREATE INDEX IF NOT EXISTS idx_conversations_timestamp
+            ON conversations(timestamp);
         CREATE TABLE IF NOT EXISTS user_facts (
             key   TEXT PRIMARY KEY,
             value TEXT NOT NULL
@@ -167,7 +184,60 @@ pub fn save_message(role: &str, content: &str) -> Result<(), String> {
         params![role, content],
     )
     .map_err(|e| e.to_string())?;
+
+    // Periodic pruning: amortise the cleanup so we are not running it on
+    // every single insert.
+    let count = INSERTS_SINCE_PRUNE.fetch_add(1, Ordering::Relaxed) + 1;
+    if count >= PRUNE_EVERY_N_INSERTS {
+        INSERTS_SINCE_PRUNE.store(0, Ordering::Relaxed);
+        // Pruning failure must not break the user-visible save path.
+        let _ = prune_with_conn(&conn, PRUNE_MAX_ROWS, PRUNE_MAX_AGE_DAYS);
+    }
+
     Ok(())
+}
+
+/// Deletes conversation rows older than `max_age_days` and rows beyond the
+/// most-recent `max_rows`, whichever cuts more. Returns the number of rows
+/// removed.
+pub fn prune_conversations(max_rows: u32, max_age_days: i64) -> Result<u32, String> {
+    let conn = open_db()?;
+    prune_with_conn(&conn, max_rows, max_age_days)
+}
+
+fn prune_with_conn(conn: &Connection, max_rows: u32, max_age_days: i64) -> Result<u32, String> {
+    let cutoff_secs = max_age_days.saturating_mul(86_400);
+
+    let aged = conn
+        .execute(
+            "DELETE FROM conversations
+             WHERE timestamp < (strftime('%s', 'now') - ?1)",
+            params![cutoff_secs],
+        )
+        .map_err(|e| e.to_string())?;
+
+    let over_cap = conn
+        .execute(
+            "DELETE FROM conversations
+             WHERE id NOT IN (
+                 SELECT id FROM conversations
+                 ORDER BY id DESC
+                 LIMIT ?1
+             )",
+            params![max_rows],
+        )
+        .map_err(|e| e.to_string())?;
+
+    Ok((aged + over_cap) as u32)
+}
+
+/// Deletes every conversation row. Used by the "Reset memory" action.
+pub fn clear_conversations() -> Result<u32, String> {
+    let conn = open_db()?;
+    let removed = conn
+        .execute("DELETE FROM conversations", [])
+        .map_err(|e| e.to_string())?;
+    Ok(removed as u32)
 }
 
 // ─── User facts ───────────────────────────────────────────────────────────────

@@ -191,6 +191,16 @@ fn save_message(role: String, content: String) -> Result<(), String> {
     storage::save_message(&role, &content)
 }
 
+#[tauri::command]
+fn prune_conversations(max_rows: u32, max_age_days: i64) -> Result<u32, String> {
+    storage::prune_conversations(max_rows, max_age_days)
+}
+
+#[tauri::command]
+fn clear_conversations() -> Result<u32, String> {
+    storage::clear_conversations()
+}
+
 // ─── User fact commands ───────────────────────────────────────────────────────
 
 #[tauri::command]
@@ -494,6 +504,8 @@ pub fn run() {
             save_config,
             get_recent_messages,
             save_message,
+            prune_conversations,
+            clear_conversations,
             get_user_fact,
             set_user_fact,
             get_all_user_facts,
