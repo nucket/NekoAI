@@ -2,6 +2,8 @@ use rusqlite::{params, Connection};
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
 use std::sync::atomic::{AtomicU32, Ordering};
+use std::sync::{Mutex, MutexGuard, OnceLock};
+use std::time::Duration;
 
 // ─── Pruning policy ───────────────────────────────────────────────────────────
 // Conversations are pruned after every Nth `save_message` so the table cannot
@@ -121,13 +123,46 @@ pub fn write_config(config: &AIConfig) -> Result<(), String> {
 }
 
 // ─── SQLite ───────────────────────────────────────────────────────────────────
+//
+// NekoAI is a single-user desktop app, so a process-wide `Mutex<Connection>`
+// is the right shape: it serialises concurrent writers (chat saves vs config
+// writes) and avoids the SQLITE_BUSY errors that came from opening a fresh
+// `rusqlite::Connection` per call. WAL + a 5s busy_timeout keep readers from
+// blocking on a slow writer. A real connection pool (r2d2) would be overkill
+// for this workload.
 
-fn open_db() -> Result<Connection, String> {
+static DB: OnceLock<Mutex<Connection>> = OnceLock::new();
+
+fn db() -> Result<MutexGuard<'static, Connection>, String> {
+    let mutex = match DB.get() {
+        Some(m) => m,
+        None => {
+            let conn = open_connection()?;
+            // Two threads can race to set this; only the winner's Connection
+            // is kept, the other is dropped harmlessly.
+            DB.get_or_init(|| Mutex::new(conn))
+        }
+    };
+    // A poisoned mutex means a previous holder panicked mid-statement; we
+    // recover the guard rather than propagate the panic.
+    Ok(mutex.lock().unwrap_or_else(|p| p.into_inner()))
+}
+
+fn open_connection() -> Result<Connection, String> {
     let path = db_path();
     if let Some(parent) = path.parent() {
         std::fs::create_dir_all(parent).map_err(|e| e.to_string())?;
     }
     let conn = Connection::open(&path).map_err(|e| e.to_string())?;
+    conn.busy_timeout(Duration::from_secs(5))
+        .map_err(|e| e.to_string())?;
+    // WAL keeps readers and a writer concurrent on a single DB file — the
+    // common case here (chat reads context while saving the next message).
+    let _: String = conn
+        .pragma_update_and_check(None, "journal_mode", "WAL", |row| row.get(0))
+        .map_err(|e| e.to_string())?;
+    conn.pragma_update(None, "synchronous", "NORMAL")
+        .map_err(|e| e.to_string())?;
     init_db(&conn)?;
     Ok(conn)
 }
@@ -155,7 +190,7 @@ fn init_db(conn: &Connection) -> Result<(), String> {
 // ─── Conversations ────────────────────────────────────────────────────────────
 
 pub fn get_recent_messages(limit: u32) -> Result<Vec<StoredMessage>, String> {
-    let conn = open_db()?;
+    let conn = db()?;
     let mut stmt = conn
         .prepare(
             "SELECT role, content FROM conversations
@@ -178,7 +213,7 @@ pub fn get_recent_messages(limit: u32) -> Result<Vec<StoredMessage>, String> {
 }
 
 pub fn save_message(role: &str, content: &str) -> Result<(), String> {
-    let conn = open_db()?;
+    let conn = db()?;
     conn.execute(
         "INSERT INTO conversations (role, content) VALUES (?1, ?2)",
         params![role, content],
@@ -201,7 +236,7 @@ pub fn save_message(role: &str, content: &str) -> Result<(), String> {
 /// most-recent `max_rows`, whichever cuts more. Returns the number of rows
 /// removed.
 pub fn prune_conversations(max_rows: u32, max_age_days: i64) -> Result<u32, String> {
-    let conn = open_db()?;
+    let conn = db()?;
     prune_with_conn(&conn, max_rows, max_age_days)
 }
 
@@ -233,7 +268,7 @@ fn prune_with_conn(conn: &Connection, max_rows: u32, max_age_days: i64) -> Resul
 
 /// Deletes every conversation row. Used by the "Reset memory" action.
 pub fn clear_conversations() -> Result<u32, String> {
-    let conn = open_db()?;
+    let conn = db()?;
     let removed = conn
         .execute("DELETE FROM conversations", [])
         .map_err(|e| e.to_string())?;
@@ -243,7 +278,7 @@ pub fn clear_conversations() -> Result<u32, String> {
 // ─── User facts ───────────────────────────────────────────────────────────────
 
 pub fn get_user_fact(key: &str) -> Result<Option<String>, String> {
-    let conn = open_db()?;
+    let conn = db()?;
     match conn.query_row(
         "SELECT value FROM user_facts WHERE key = ?1",
         params![key],
@@ -256,7 +291,7 @@ pub fn get_user_fact(key: &str) -> Result<Option<String>, String> {
 }
 
 pub fn set_user_fact(key: &str, value: &str) -> Result<(), String> {
-    let conn = open_db()?;
+    let conn = db()?;
     conn.execute(
         "INSERT INTO user_facts (key, value) VALUES (?1, ?2)
          ON CONFLICT(key) DO UPDATE SET value = excluded.value",
@@ -267,7 +302,7 @@ pub fn set_user_fact(key: &str, value: &str) -> Result<(), String> {
 }
 
 pub fn get_all_user_facts() -> Result<std::collections::HashMap<String, String>, String> {
-    let conn = open_db()?;
+    let conn = db()?;
     let mut stmt = conn
         .prepare("SELECT key, value FROM user_facts")
         .map_err(|e| e.to_string())?;
