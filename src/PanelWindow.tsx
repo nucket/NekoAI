@@ -77,7 +77,7 @@ function ContextMenuPanel() {
   }
 
   const currentSize = config.petSize ?? 32
-  const currentMode = config.petMode ?? 'work'
+  const currentMode = config.petMode ?? 'buddy'
 
   if (view === 'about') {
     return (
@@ -155,24 +155,30 @@ function ContextMenuPanel() {
           <span style={styles.modeLabel}>Mode</span>
           <div style={styles.modeBtns}>
             <button
-              style={{ ...styles.modeBtn, ...(currentMode === 'work' ? styles.modeBtnActive : {}) }}
+              style={{
+                ...styles.modeBtn,
+                ...(currentMode === 'buddy' ? styles.modeBtnActive : {}),
+              }}
               onClick={() => {
-                setPetMode('work')
-                panelAction('pet-mode:work')
+                setPetMode('buddy')
+                panelAction('pet-mode:buddy')
               }}
               title="Follow mouse cursor"
             >
-              💼 Work
+              Buddy
             </button>
             <button
-              style={{ ...styles.modeBtn, ...(currentMode === 'play' ? styles.modeBtnActive : {}) }}
+              style={{
+                ...styles.modeBtn,
+                ...(currentMode === 'wanderer' ? styles.modeBtnActive : {}),
+              }}
               onClick={() => {
-                setPetMode('play')
-                panelAction('pet-mode:play')
+                setPetMode('wanderer')
+                panelAction('pet-mode:wanderer')
               }}
               title="Wander freely"
             >
-              🎮 Play
+              Wanderer
             </button>
           </div>
         </div>
