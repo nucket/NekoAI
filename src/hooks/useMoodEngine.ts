@@ -92,12 +92,16 @@ export function useMoodEngine({ idleMinutes, appCategory, petState }: UseMoodEng
         curiosity: computeCuriosity(cat),
       })
 
-      // Yawn trigger: OS idle in 1–2 min window, pet must be still (not moving or idle near cursor)
+      // Yawn trigger: OS idle in 1–2 min window, pet must be still (not moving)
+      // and must NOT be currently NEAR_CURSOR — the idle sequencer owns that
+      // state and emits its own yawn at the right moment, so a parallel
+      // moodOverride yawn would race it. We also wait 5s after the last
+      // WALKING transition so a yawn never pre-empts a fresh walk_*.
       if (
-        (petStateRef.current === 'IDLE' || petStateRef.current === 'NEAR_CURSOR') &&
+        petStateRef.current === 'IDLE' &&
         idle >= YAWN_IDLE_MIN &&
         idle < YAWN_IDLE_MAX &&
-        Date.now() - lastWalkingTimeRef.current >= 2000 // no yawn for 2s after walking
+        Date.now() - lastWalkingTimeRef.current >= 5000
       ) {
         const now = Date.now()
         if (now - lastYawnRef.current >= YAWN_COOLDOWN_MS) {
