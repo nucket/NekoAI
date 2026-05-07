@@ -64,9 +64,13 @@ export function useMoodEngine({ idleMinutes, appCategory, petState }: UseMoodEng
   const idleMinutesRef = useRef(idleMinutes)
   const appCategoryRef = useRef(appCategory)
   const yawnTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const lastWalkingTimeRef = useRef(0) // tracks last WALKING state to prevent yawn during movement
 
   useEffect(() => {
     petStateRef.current = petState
+    if (petState === 'WALKING') {
+      lastWalkingTimeRef.current = Date.now()
+    }
   }, [petState])
   useEffect(() => {
     idleMinutesRef.current = idleMinutes
@@ -88,8 +92,17 @@ export function useMoodEngine({ idleMinutes, appCategory, petState }: UseMoodEng
         curiosity: computeCuriosity(cat),
       })
 
-      // Yawn trigger: OS idle in 3–5 min window, pet must be IDLE
-      if (petStateRef.current === 'IDLE' && idle >= YAWN_IDLE_MIN && idle < YAWN_IDLE_MAX) {
+      // Yawn trigger: OS idle in 1–2 min window, pet must be still (not moving)
+      // and must NOT be currently NEAR_CURSOR — the idle sequencer owns that
+      // state and emits its own yawn at the right moment, so a parallel
+      // moodOverride yawn would race it. We also wait 5s after the last
+      // WALKING transition so a yawn never pre-empts a fresh walk_*.
+      if (
+        petStateRef.current === 'IDLE' &&
+        idle >= YAWN_IDLE_MIN &&
+        idle < YAWN_IDLE_MAX &&
+        Date.now() - lastWalkingTimeRef.current >= 5000
+      ) {
         const now = Date.now()
         if (now - lastYawnRef.current >= YAWN_COOLDOWN_MS) {
           lastYawnRef.current = now

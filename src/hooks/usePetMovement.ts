@@ -7,6 +7,9 @@ import { PhysicalPosition } from '@tauri-apps/api/dpi'
 
 export type PetState = 'IDLE' | 'WALKING' | 'NEAR_CURSOR' | 'SLEEPING'
 
+export type EdgeDirection = 'right' | 'left' | 'up' | 'down'
+export type EdgeAnimationKind = 'scratch' | 'yawn' | 'idle'
+
 export interface UsePetMovementOptions {
   speed?: number
   nearThreshold?: number
@@ -15,7 +18,9 @@ export interface UsePetMovementOptions {
   enabled?: boolean
   mode?: 'work' | 'play'
   availableAnimations?: string[]
-  onEdgeHit?: (direction: 'right' | 'left' | 'up' | 'down') => void
+  /** Called by the edge state machine when an animation override should play
+   *  for `durationMs` while the pet is frozen at a monitor boundary. */
+  onEdgeAnimation?: (kind: EdgeAnimationKind, direction: EdgeDirection, durationMs: number) => void
 }
 
 export interface UsePetMovementResult {
@@ -29,7 +34,20 @@ export interface UsePetMovementResult {
 const CURSOR_POLL_MS = 50
 const CURSOR_MOVE_PX = 4
 const NEAR_LEAVE_FACTOR = 1.5
+const NEAR_ENTER_FACTOR = 0.7 // pet must be visibly close (not just within "near" zone) to stop and groom
 const BORED_MS = 60_000 // 1 min idle → bored animation
+const CURSOR_IDLE_MS = 400 // cursor must be still this long before Neko stops chasing — bumped from 250ms so brief mouse pauses during approach don't trigger a fake NEAR_CURSOR
+const SPEED_PX_PER_SEC = 130 // original Neko: 16px/125ms = 128px/s
+// Edge-sequence timings — classic Neko-style "stuck at the wall" behaviour.
+// Sequence: scratch1 → maybe(yawn → rest) → scratch2 → cross. At each phase
+// the sprite is frozen fully inside the current monitor (bounding-box clamp),
+// so the pet never appears split across screens.
+const EDGE_SCRATCH_MS = 1500
+const EDGE_YAWN_MS = 750
+const EDGE_REST_MIN_MS = 1500
+const EDGE_REST_MAX_MS = 3000
+const EDGE_YAWN_PROBABILITY = 0.5 // 50% chance the yawn+rest sequence runs between the two scratches
+const EDGE_CROSS_GRACE_MS = 600 // grace after sequence ends so the pet can step through the boundary before edge can re-trigger
 
 const STATE_ANIM: Record<PetState, string> = {
   IDLE: 'idle',
@@ -102,7 +120,7 @@ export function usePetMovement({
   enabled = true,
   mode = 'work',
   availableAnimations = [],
-  onEdgeHit,
+  onEdgeAnimation,
 }: UsePetMovementOptions = {}): UsePetMovementResult {
   const [petState, setPetState] = useState<PetState>('IDLE')
   const [currentAnimation, setCurrentAnimation] = useState('idle')
@@ -116,6 +134,10 @@ export function usePetMovement({
   const animRef = useRef('idle')
   const rafIdRef = useRef(0)
   const pollTimerRef = useRef<ReturnType<typeof setInterval> | null>(null)
+
+  // Smooth movement accumulator (tracks fractional pixels to avoid losing small steps)
+  const moveAccumX = useRef(0)
+  const moveAccumY = useRef(0)
 
   // Keep a ref to availableAnimations so RAF/callbacks always see fresh list
   const availableAnimsRef = useRef(availableAnimations)
@@ -142,7 +164,45 @@ export function usePetMovement({
   const monitorBoundsRef = useRef<MonitorBounds[]>([])
   const prevMonitorIndexRef = useRef<number>(-1)
   const edgeCooldownRef = useRef(0)
-  const EDGE_COOLDOWN_MS = 800
+  const edgePauseUntilRef = useRef(0)
+
+  // Edge state machine — drives the classic Neko "stuck at the wall" sequence
+  type EdgePhase = 'none' | 'scratch1' | 'yawning' | 'resting' | 'scratch2'
+  const edgePhaseRef = useRef<EdgePhase>('none')
+  const edgeDirRef = useRef<EdgeDirection>('right')
+
+  // Returns the bounding-box edge that would be crossed by stepping to (projX, projY),
+  // or null if the sprite would still fit fully inside `mon`. When more than one edge
+  // would be violated (corner case), the larger violation wins so the scratch
+  // direction matches what the user perceives as the "wall".
+  const getBoundingBoxEdgeHit = useCallback(
+    (projX: number, projY: number, size: number, mon: MonitorBounds): EdgeDirection | null => {
+      const overRight = projX + size - (mon.x + mon.width)
+      const overLeft = mon.x - projX
+      const overDown = projY + size - (mon.y + mon.height)
+      const overUp = mon.y - projY
+
+      let best: EdgeDirection | null = null
+      let bestAmount = 0
+      if (overRight > bestAmount) {
+        best = 'right'
+        bestAmount = overRight
+      }
+      if (overLeft > bestAmount) {
+        best = 'left'
+        bestAmount = overLeft
+      }
+      if (overDown > bestAmount) {
+        best = 'down'
+        bestAmount = overDown
+      }
+      if (overUp > bestAmount) {
+        best = 'up'
+      }
+      return best
+    },
+    []
+  )
 
   useEffect(() => {
     if (!enabled) return
@@ -248,7 +308,11 @@ export function usePetMovement({
         const pos = await invoke<Vec2>('get_cursor_pos')
         const prev = prevCursorRef.current
         const d = distance(pos, prev)
-        if (d > CURSOR_MOVE_PX) {
+        // Use the same 4px threshold for both activity detection and prevCursor
+        // update. Without this, a stationary cursor sitting 1–3px from prevCursor
+        // (within the jitter band) keeps resetting lastCursorMoveRef every poll,
+        // so isCursorStopped is never true and NEAR_CURSOR is never reached.
+        if (d >= CURSOR_MOVE_PX) {
           lastCursorMoveRef.current = Date.now()
           prevCursorRef.current = pos
         }
@@ -349,21 +413,33 @@ export function usePetMovement({
               wanderWaitUntil.current = now + 2000 + Math.random() * 3000
               transition('IDLE', 0, 1)
               lastCursorMoveRef.current = now
+              moveAccumX.current = 0
+              moveAccumY.current = 0
               break
             }
 
             setWalkDir(wtDx, wtDy)
 
-            const step = Math.min(speed, wtDist)
-            const nx = wtDx / wtDist
-            const ny = wtDy / wtDist
-            const newX = winPos.x + nx * step
-            const newY = winPos.y + ny * step
+            // Frame-based movement with accumulator for smooth motion
+            const frameStep = SPEED_PX_PER_SEC / 60 // ~16.67ms frame
+            moveAccumX.current += (wtDx / wtDist) * frameStep
+            moveAccumY.current += (wtDy / wtDist) * frameStep
 
-            winPosRef.current = { x: newX, y: newY }
-            win
-              .setPosition(new PhysicalPosition(Math.round(newX), Math.round(newY)))
-              .catch(() => {})
+            const intStepX = Math.trunc(moveAccumX.current)
+            const intStepY = Math.trunc(moveAccumY.current)
+
+            if (intStepX !== 0 || intStepY !== 0) {
+              moveAccumX.current -= intStepX
+              moveAccumY.current -= intStepY
+
+              const newX = winPos.x + intStepX
+              const newY = winPos.y + intStepY
+
+              winPosRef.current = { x: newX, y: newY }
+              win
+                .setPosition(new PhysicalPosition(Math.round(newX), Math.round(newY)))
+                .catch(() => {})
+            }
             break
           }
         }
@@ -402,49 +478,151 @@ export function usePetMovement({
             break
 
           case 'WALKING': {
-            if (dist <= nearThreshold) {
+            // ── Edge state machine ───────────────────────────────────────
+            // While in any non-'none' phase, position is frozen (state stays
+            // WALKING so resolveAnimation lets edgeAnimOverride win). When the
+            // pause for the current phase expires, advance to the next phase.
+            // Sequence: scratch1 → maybe(yawn → resting) → scratch2 → 'none' (cross).
+            if (edgePhaseRef.current !== 'none') {
+              if (now < edgePauseUntilRef.current) break
+
+              const dir = edgeDirRef.current
+              switch (edgePhaseRef.current) {
+                case 'scratch1':
+                  if (Math.random() < EDGE_YAWN_PROBABILITY) {
+                    edgePhaseRef.current = 'yawning'
+                    edgePauseUntilRef.current = now + EDGE_YAWN_MS
+                    onEdgeAnimation?.('yawn', dir, EDGE_YAWN_MS)
+                  } else {
+                    edgePhaseRef.current = 'none'
+                    edgeCooldownRef.current = now + EDGE_CROSS_GRACE_MS
+                  }
+                  break
+                case 'yawning': {
+                  const restMs =
+                    EDGE_REST_MIN_MS + Math.random() * (EDGE_REST_MAX_MS - EDGE_REST_MIN_MS)
+                  edgePhaseRef.current = 'resting'
+                  edgePauseUntilRef.current = now + restMs
+                  onEdgeAnimation?.('idle', dir, restMs)
+                  break
+                }
+                case 'resting':
+                  edgePhaseRef.current = 'scratch2'
+                  edgePauseUntilRef.current = now + EDGE_SCRATCH_MS
+                  onEdgeAnimation?.('scratch', dir, EDGE_SCRATCH_MS)
+                  break
+                case 'scratch2':
+                  edgePhaseRef.current = 'none'
+                  edgeCooldownRef.current = now + EDGE_CROSS_GRACE_MS
+                  break
+              }
+
+              if (edgePhaseRef.current !== 'none') break
+              // Sequence finished — fall through and let the pet step across this frame.
+            }
+
+            // Only stop chasing when cursor is near AND has been idle (stopped moving).
+            // Use a stricter inner radius for entry (nearThreshold * 0.7) so the pet
+            // is visibly next to the cursor before grooming kicks in. The exit
+            // radius stays at nearThreshold * 1.5 — that hysteresis avoids
+            // immediate re-walk when the cursor wiggles within the near zone.
+            const cursorIdleMs = now - lastCursorMoveRef.current
+            const isCursorStopped = cursorIdleMs >= CURSOR_IDLE_MS
+            const nearEnterRadius = nearThreshold * NEAR_ENTER_FACTOR
+
+            if (dist <= nearEnterRadius && isCursorStopped) {
               transition('NEAR_CURSOR', dx, dy)
+              moveAccumX.current = 0
+              moveAccumY.current = 0
               break
             }
 
-            setWalkDir(dx, dy)
+            // Keep walking towards cursor (even if within threshold, if cursor is still moving)
+            // Avoid micro-jittering when very close: require minimum step distance
+            if (dist < 5) {
+              break
+            }
 
-            const step = Math.min(speed, dist)
-            const nx = dx / dist
-            const ny = dy / dist
-            const newX = winPos.x + nx * step
-            const newY = winPos.y + ny * step
+            const walkDx = dx
+            const walkDy = dy
+            const walkDist = dist
 
-            winPosRef.current = { x: newX, y: newY }
-            win
-              .setPosition(new PhysicalPosition(Math.round(newX), Math.round(newY)))
-              .catch(() => {})
+            setWalkDir(walkDx, walkDy)
+
+            // Frame-based movement with accumulator for smooth motion
+            const frameStep = SPEED_PX_PER_SEC / 60 // ~16.67ms frame
+            moveAccumX.current += (walkDx / walkDist) * frameStep
+            moveAccumY.current += (walkDy / walkDist) * frameStep
+
+            const intStepX = Math.trunc(moveAccumX.current)
+            const intStepY = Math.trunc(moveAccumY.current)
+
+            if (intStepX !== 0 || intStepY !== 0) {
+              // ── Pre-cross edge detection (bounding box) ──────────────────
+              // Project the next sprite bounding box. If any edge would leave
+              // the current monitor, freeze the pet WITHIN this monitor and
+              // start the scratch/yawn sequence. Position is clamped so the
+              // sprite stays fully visible on the current screen — the pet
+              // never appears split between two monitors.
+              if (
+                onEdgeAnimation &&
+                monitorBoundsRef.current.length > 0 &&
+                now >= edgeCooldownRef.current
+              ) {
+                const currMonIdx = findMonitorIndex(centre.x, centre.y)
+                if (currMonIdx !== -1) {
+                  const mon = monitorBoundsRef.current[currMonIdx]
+                  const projWinX = winPos.x + intStepX
+                  const projWinY = winPos.y + intStepY
+                  const edgeDir = getBoundingBoxEdgeHit(projWinX, projWinY, windowSize, mon)
+
+                  if (edgeDir !== null) {
+                    // Clamp the sprite back to fit fully inside the current
+                    // monitor — handles the case where the previous frame
+                    // already left it partially poking out.
+                    const clampedX = Math.max(
+                      mon.x,
+                      Math.min(winPos.x, mon.x + mon.width - windowSize)
+                    )
+                    const clampedY = Math.max(
+                      mon.y,
+                      Math.min(winPos.y, mon.y + mon.height - windowSize)
+                    )
+                    if (clampedX !== winPos.x || clampedY !== winPos.y) {
+                      winPosRef.current = { x: clampedX, y: clampedY }
+                      win
+                        .setPosition(
+                          new PhysicalPosition(Math.round(clampedX), Math.round(clampedY))
+                        )
+                        .catch(() => {})
+                    }
+
+                    edgePhaseRef.current = 'scratch1'
+                    edgeDirRef.current = edgeDir
+                    edgePauseUntilRef.current = now + EDGE_SCRATCH_MS
+                    onEdgeAnimation('scratch', edgeDir, EDGE_SCRATCH_MS)
+                    moveAccumX.current = 0
+                    moveAccumY.current = 0
+                    prevMonitorIndexRef.current = currMonIdx
+                    break // do NOT apply this step
+                  }
+                  prevMonitorIndexRef.current = currMonIdx
+                }
+              }
+
+              moveAccumX.current -= intStepX
+              moveAccumY.current -= intStepY
+
+              const newX = winPos.x + intStepX
+              const newY = winPos.y + intStepY
+
+              winPosRef.current = { x: newX, y: newY }
+              win
+                .setPosition(new PhysicalPosition(Math.round(newX), Math.round(newY)))
+                .catch(() => {})
+            }
             break
           }
-        }
-      }
-
-      // ── Edge hit detection (cross-monitor boundary) ──────────────────────
-      if (state === 'WALKING' && onEdgeHit && monitorBoundsRef.current.length > 0) {
-        const now2 = Date.now()
-        if (now2 >= edgeCooldownRef.current) {
-          const prevMonIdx = prevMonitorIndexRef.current
-          const currMonIdx = findMonitorIndex(centre.x, centre.y)
-
-          if (prevMonIdx !== -1 && currMonIdx !== prevMonIdx) {
-            // Determine crossing direction from movement delta
-            const ddX = centre.x - prevPosRef.current.x
-            const ddY = centre.y - prevPosRef.current.y
-            let edgeDir: 'right' | 'left' | 'up' | 'down'
-            if (Math.abs(ddX) > Math.abs(ddY)) {
-              edgeDir = ddX > 0 ? 'right' : 'left'
-            } else {
-              edgeDir = ddY > 0 ? 'down' : 'up'
-            }
-            onEdgeHit(edgeDir)
-            edgeCooldownRef.current = now2 + EDGE_COOLDOWN_MS
-          }
-          prevMonitorIndexRef.current = currMonIdx
         }
       }
 
@@ -465,8 +643,9 @@ export function usePetMovement({
     transition,
     setWalkDir,
     setIdleAnim,
-    onEdgeHit,
+    onEdgeAnimation,
     findMonitorIndex,
+    getBoundingBoxEdgeHit,
   ])
 
   // ─── External override ─────────────────────────────────────────────────────

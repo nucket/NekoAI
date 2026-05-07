@@ -20,42 +20,42 @@
     },
     "walk_right": {
       "files": ["right1.png", "right2.png"],
-      "fps": 8,
+      "fps": 4,
       "loop": true
     },
     "walk_left": {
       "files": ["left1.png", "left2.png"],
-      "fps": 8,
+      "fps": 4,
       "loop": true
     },
     "walk_up": {
       "files": ["up1.png", "up2.png"],
-      "fps": 8,
+      "fps": 4,
       "loop": true
     },
     "walk_down": {
       "files": ["down1.png", "down2.png"],
-      "fps": 8,
+      "fps": 4,
       "loop": true
     },
     "walk_up_right": {
       "files": ["upright1.png", "upright2.png"],
-      "fps": 8,
+      "fps": 4,
       "loop": true
     },
     "walk_up_left": {
       "files": ["upleft1.png", "upleft2.png"],
-      "fps": 8,
+      "fps": 4,
       "loop": true
     },
     "walk_down_right": {
       "files": ["downright1.png", "downright2.png"],
-      "fps": 8,
+      "fps": 4,
       "loop": true
     },
     "walk_down_left": {
       "files": ["downleft1.png", "downleft2.png"],
-      "fps": 8,
+      "fps": 4,
       "loop": true
     },
     "scratch_right": {
@@ -125,7 +125,7 @@
     }
   },
   "triggers": {
-    "on_cursor_near": "scratch_wall",
+    "on_cursor_near": "idle",
     "on_chat_open": "awaken",
     "on_ai_thinking": "thinking",
     "on_ai_response": "happy",

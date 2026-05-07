@@ -22,6 +22,39 @@ import './App.css'
 const WIN_OPEN_W = 300
 const WIN_OPEN_H = 300
 
+// ─── Animation resolver ───────────────────────────────────────────────────────
+// Single source of truth for which sprite plays, with two firm rules:
+//   1. notificationAlert always wins (pet was teleported to notify the user).
+//   2. While WALKING, the directional walk_* animation is sacred — only the
+//      edge-hit scratch override is allowed (classic Neko "scratches the wall"
+//      behaviour). Idle sequencer / mood / wake flashes never pre-empt a walk.
+
+interface ResolveAnimationArgs {
+  petState: 'IDLE' | 'WALKING' | 'NEAR_CURSOR' | 'SLEEPING'
+  notificationAlert: boolean
+  hasAlert: boolean
+  edgeAnimOverride: string | null
+  clickWakeAnim: string | null
+  idleAnim: string | null
+  moodOverride: string | null
+  currentAnimation: string
+}
+
+function resolveAnimation({
+  petState,
+  notificationAlert,
+  hasAlert,
+  edgeAnimOverride,
+  clickWakeAnim,
+  idleAnim,
+  moodOverride,
+  currentAnimation,
+}: ResolveAnimationArgs): string {
+  if (notificationAlert) return hasAlert ? 'alert' : 'idle'
+  if (petState === 'WALKING') return edgeAnimOverride ?? currentAnimation
+  return edgeAnimOverride ?? clickWakeAnim ?? idleAnim ?? moodOverride ?? currentAnimation
+}
+
 // ─── Pet definition type ───────────────────────────────────────────────────────
 
 interface PetDefinition {
@@ -91,30 +124,43 @@ export default function App() {
     [petDef]
   )
 
-  // Edge hit handler — triggers directional scratch animation on monitor boundary crossing
-  const handleEdgeHit = useCallback(
-    (direction: 'right' | 'left' | 'up' | 'down') => {
-      if (!petDef?.triggers) return
-      const triggerKey = `on_edge_hit_${direction}`
-      const scratchAnim = petDef.triggers[triggerKey]
-      if (scratchAnim && petDef.animations?.[scratchAnim]) {
-        setEdgeAnimOverride(scratchAnim)
-        if (edgeAnimTimerRef.current) clearTimeout(edgeAnimTimerRef.current)
-        edgeAnimTimerRef.current = setTimeout(() => setEdgeAnimOverride(null), 1500)
+  // Edge animation dispatcher — invoked by the movement hook's edge state
+  // machine. Resolves the right sprite for each phase and pushes it through
+  // edgeAnimOverride for `durationMs`. The pet is frozen on the movement side
+  // for the same duration, so animation and position stay in sync.
+  const handleEdgeAnimation = useCallback(
+    (
+      kind: 'scratch' | 'yawn' | 'idle',
+      direction: 'right' | 'left' | 'up' | 'down',
+      durationMs: number
+    ) => {
+      if (!petDef) return
+      let animName: string | null = null
+      if (kind === 'scratch') {
+        const triggerKey = `on_edge_hit_${direction}`
+        animName = petDef.triggers?.[triggerKey] ?? null
+      } else if (kind === 'yawn') {
+        animName = petDef.animations?.yawn ? 'yawn' : null
+      } else if (kind === 'idle') {
+        animName = 'idle'
       }
+      if (!animName || !petDef.animations?.[animName]) return
+
+      setEdgeAnimOverride(animName)
+      if (edgeAnimTimerRef.current) clearTimeout(edgeAnimTimerRef.current)
+      edgeAnimTimerRef.current = setTimeout(() => setEdgeAnimOverride(null), durationMs)
     },
     [petDef]
   )
 
   const { petState, currentAnimation, overridePosition } = usePetMovement({
-    speed: 3,
     nearThreshold: 50,
     sleepTimeout: 10 * 60 * 1000, // sequencer handles sleep at 5 min; this is a safety fallback
     windowSize: spriteSize,
     enabled: !dragging && !bubbleOpen && !anyPanelOpen && !notificationAlert,
     mode: config.petMode ?? 'work',
     availableAnimations: availableAnimationsList,
-    onEdgeHit: handleEdgeHit,
+    onEdgeAnimation: handleEdgeAnimation,
   })
 
   // ── Tray event listeners ───────────────────────────────────────────────────
@@ -453,17 +499,16 @@ export default function App() {
           {spritesDir && Object.keys(animations).length > 0 ? (
             <PetRenderer
               spritesDir={spritesDir}
-              currentAnimation={
-                notificationAlert
-                  ? animations.alert
-                    ? 'alert'
-                    : 'idle'
-                  : (edgeAnimOverride ??
-                    clickWakeAnim ??
-                    idleAnim ??
-                    moodOverride ??
-                    currentAnimation)
-              }
+              currentAnimation={resolveAnimation({
+                petState,
+                notificationAlert,
+                hasAlert: !!animations.alert,
+                edgeAnimOverride,
+                clickWakeAnim,
+                idleAnim,
+                moodOverride,
+                currentAnimation,
+              })}
               animations={animations}
               displaySize={spriteSize}
             />
