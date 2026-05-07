@@ -97,6 +97,11 @@ The pet wanders freely across your desktop, reacts to cursor movement and window
 - [x] NVIDIA NIM AI provider (5th provider — Rust-side HTTP via `reqwest` to bypass WebView CORS)
 - [x] Persistent user memory (name, project, language extracted from conversations)
 - [x] Dynamic mood engine (energy / happiness / curiosity based on time-of-day and idle time)
+- [x] Animation / movement separation — `resolveAnimation()` ensures `walk_*` sprites are never overridden by idle/mood animations during WALKING state
+- [x] Classic Neko idle sequencer — faithful STOP→wash→scratch→yawn→sleep sequence with `awaken` flash only after genuine rest (`useIdleSequencer.ts`)
+- [x] Bounding-box monitor edge detection — pet never appears split across two screens; clamp + scratch/yawn/scratch/cross sequence before crossing
+- [x] EdgePhase state machine — `scratch1 → (50%) yawn → idle rest (1.5–3 s) → scratch2 → cross`; all phases with synchronized animation and frozen position
+- [x] NEAR_CURSOR hysteresis — stricter entry radius (×0.7) + longer cursor stillness (400 ms) eliminates oscillation between WALKING and NEAR_CURSOR
 
 ### Planned (v0.3+)
 

@@ -225,27 +225,25 @@ Also add `core:menu:default` if not already present, so the house can show conte
 Reactive paws path (separate, not persisted):
 
 ```
-[input_monitor] ─emit("nekometrics:key")─► [App.tsx listener] ─dispatch on_keystroke trigger─► [usePetAnimation]
+[input_monitor] ─emit("nekometrics:key")─► [App.tsx listener] ─dispatch on_keystroke trigger─► [PetRenderer]
 ```
 
 ---
 
 ## 7. Step definition (recommended option B)
 
-The pet's animation engine in `src/hooks/usePetAnimation.ts` advances frames on a fixed tick. When the active animation is a `walk_*` variant, count one **step** every time the animation completes a full cycle (i.e. frame index wraps from `frames.length - 1` back to `0`). This corresponds to one full leg cycle and is the most readable definition for the user.
+The pet's animation engine in `src/pets/PetRenderer.tsx` advances frames via `requestAnimationFrame`. When the active animation is a `walk_*` variant, count one **step** every time the animation completes a full cycle (i.e. `frameIndexRef` wraps back to `0`). This corresponds to one full leg cycle and is the most readable definition for the user.
+
+> **Note:** `src/hooks/usePetAnimation.ts` was removed — it was dead code. `PetRenderer.tsx` already owns the frame loop via RAF. Step counting should be added directly inside `PetRenderer`.
 
 Implementation sketch:
 
 ```ts
-// in usePetAnimation.ts (pseudo)
-const prevFrame = useRef(0)
-useEffect(() => {
-  const isWalking = currentClip.startsWith('walk_')
-  if (isWalking && prevFrame.current === frames.length - 1 && frame === 0) {
-    incrementPetStep() // calls invoke('record_pet_steps', { steps: 1 })
-  }
-  prevFrame.current = frame
-}, [frame, currentClip])
+// in PetRenderer.tsx — inside the RAF loop after advancing frameIndexRef
+const isWalking = currentAnimation.startsWith('walk_')
+if (isWalking && prevFrameIdx === animDef.files.length - 1 && frameIndexRef.current === 0) {
+  incrementPetStep() // calls invoke('record_pet_steps', { steps: 1 })
+}
 ```
 
 Batch on the JS side too (e.g. flush every 2 s) to avoid IPC chatter.
@@ -353,7 +351,7 @@ src/AboutWindow.tsx                               # NEW
 src/HouseWindow.tsx                               # onContextMenu handler
 src/components/HeatmapCalendar.tsx                # NEW
 src/hooks/usePetSteps.ts                          # NEW
-src/hooks/usePetAnimation.ts                      # emit step on walk-cycle wrap
+src/pets/PetRenderer.tsx                          # emit step on walk-cycle wrap (usePetAnimation.ts removed — PetRenderer owns frame loop via RAF)
 src/store/configStore.ts                          # surface new toggles
 src/store/metricsStore.ts                         # NEW
 

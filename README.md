@@ -244,10 +244,10 @@ NekoAI/
 │   │   ├── ContextMenu.tsx      # Right-click context menu (settings, pet, size)
 │   │   └── PetSelector.tsx      # Pet picker with dynamic window resizing
 │   ├── hooks/
-│   │   ├── usePetMovement.ts    # 8-direction movement, bored idle, overridePosition
+│   │   ├── usePetMovement.ts    # 8-direction movement, overridePosition, EdgePhase state machine
+│   │   ├── useIdleSequencer.ts  # Classic Neko stop→wash→scratch→yawn→sleep idle sequence
 │   │   ├── useMoodEngine.ts     # Energy/happiness/curiosity + animation overrides
-│   │   ├── useDesktopContext.ts # Active window detection & app categorization
-│   │   └── usePetAnimation.ts   # Sprite frame ticker
+│   │   └── useDesktopContext.ts # Active window detection & app categorization
 │   └── store/
 │       ├── index.ts             # Zustand store (mood, active pet, animation)
 │       └── configStore.ts       # AI config & pet size persisted via Tauri commands

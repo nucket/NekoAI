@@ -9,6 +9,66 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [0.2.0] — Unreleased
 
+### Fixed — Movement / Animation separation (May 2026)
+
+Movement state and sprite animation were tightly coupled, causing idle/groom
+animations to visually override walking sprites. Full audit and refactor applied.
+
+**`src/App.tsx` — `resolveAnimation()` priority arbiter**
+
+- Extracted animation selection into a pure `resolveAnimation()` function with two firm rules:
+  1. `notificationAlert` always wins (pet teleported to notification).
+  2. While `petState === 'WALKING'`, only `edgeAnimOverride` (scratch at wall) can override `walk_*` — `idleAnim`, `moodOverride`, and `clickWakeAnim` are ignored completely.
+- This fixes the visible glitch where the `awaken`/`wash` sprite appeared mid-walk for 375ms.
+
+**`src/hooks/useIdleSequencer.ts` — faithful classic Neko STOP sequence**
+
+- Added `stop` phase (250 ms) before `wash` — pet settles briefly on arrival (original `NIKAKI_TIME`).
+- `awaken` wake-up flash now only fires if the pet reached at least the `yawning` phase before the cursor moved away — brief NEAR_CURSOR bumps during approach no longer trigger `awaken`.
+- `lastPhaseRef` tracks how deep into the sequence the pet went.
+- On NEAR_CURSOR exit, `anim` is cleared immediately so no stale sprite bleeds into the next state.
+
+**`src/hooks/useMoodEngine.ts` — yawn scoping**
+
+- Yawn override restricted to `petState === 'IDLE'` only (was also firing during `NEAR_CURSOR`, racing the idle sequencer's own yawn).
+- Post-WALKING cooldown extended from 2 s → 5 s so a yawn never appears immediately after a walk ends.
+
+**`src/hooks/usePetMovement.ts` — tighter NEAR_CURSOR hysteresis**
+
+- Added `NEAR_ENTER_FACTOR = 0.7`: pet must be within `nearThreshold × 0.7` (≈ 35 px) to enter NEAR_CURSOR; exit radius stays at `× 1.5` (75 px) — prevents oscillation.
+- `CURSOR_IDLE_MS` raised from 250 ms → 400 ms so a brief mouse pause during approach doesn't prematurely trigger NEAR_CURSOR.
+- `EDGE_PAUSE_MS` / `EDGE_COOLDOWN_MS` moved to module-level constants.
+
+**Deleted `src/hooks/usePetAnimation.ts`** — hook was never imported; `PetRenderer` already drives frames via `requestAnimationFrame`. Removal eliminates a stale `setInterval` that was counted in the timer budget for no benefit.
+
+---
+
+### Fixed — Monitor edge-crossing: bounding-box scratch sequence (May 2026)
+
+The pet previously crossed monitor boundaries mid-animation (sprite appeared split across
+two screens) and edge detection fired after the cross instead of before.
+
+**`src/hooks/usePetMovement.ts` — pre-cross bbox detection + EdgePhase state machine**
+
+- Edge detection now projects the **full sprite bounding box** (`[winX, winX+windowSize]`) against the current monitor's bounds; a hit triggers before any pixel leaves the monitor.
+- When a bounding-box violation is detected, the pet is **clamped** to fit entirely within the current monitor before the scratch sequence starts — sprite never straddles two screens.
+- `onEdgeHit(direction)` replaced by `onEdgeAnimation(kind, direction, durationMs)` supporting `kind ∈ {'scratch','yawn','idle'}` for multi-phase dispatch.
+- New `EdgePhase` state machine (`scratch1 → yawning → resting → scratch2 → cross`):
+  - Pet freezes in current monitor during all non-`none` phases.
+  - After `scratch1`, with `EDGE_YAWN_PROBABILITY = 0.5` (configurable), the pet plays `yawn` (750 ms) → idle rest (1.5–3 s random) → `scratch2` (1.5 s) before crossing.
+  - Without the extended sequence (other 50%), the pet crosses immediately after `scratch1`.
+  - `EDGE_CROSS_GRACE_MS = 600 ms` cooldown after the sequence ends lets the pet step through the boundary without immediately re-triggering.
+- Removed the post-cross `prevMonIdx !== currMonIdx` detection block — all detection is now pre-cross.
+- Added `getBoundingBoxEdgeHit()` helper (picks direction from largest bounding-box violation).
+
+**`src/App.tsx` — `handleEdgeAnimation()`**
+
+- Replaced `handleEdgeHit` with `handleEdgeAnimation(kind, direction, durationMs)`.
+- Resolves animation name from `pet.json` triggers for `scratch` (`on_edge_hit_<dir>`), uses `yawn` sprite directly, and `idle` as the resting fallback.
+- `edgeAnimOverride` is set for exactly the duration the movement hook requested, keeping animation and frozen-position in sync.
+
+---
+
 ### Added — House Window
 
 - `src/HouseWindow.tsx`: new 64×64 transparent Tauri window that renders the active pet's `house.png` (CSS fallback for pets without one)
