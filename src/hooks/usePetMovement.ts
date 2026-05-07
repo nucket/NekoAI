@@ -254,13 +254,12 @@ export function usePetMovement({
         const pos = await invoke<Vec2>('get_cursor_pos')
         const prev = prevCursorRef.current
         const d = distance(pos, prev)
-        // Always update lastCursorMoveRef on any detected change — even small
-        // movements count as "cursor active". The 4px threshold was only for
-        // filtering jitter on prevCursorRef, not for activity detection.
-        if (d > 0) {
+        // Use the same 4px threshold for both activity detection and prevCursor
+        // update. Without this, a stationary cursor sitting 1–3px from prevCursor
+        // (within the jitter band) keeps resetting lastCursorMoveRef every poll,
+        // so isCursorStopped is never true and NEAR_CURSOR is never reached.
+        if (d >= CURSOR_MOVE_PX) {
           lastCursorMoveRef.current = Date.now()
-        }
-        if (d > CURSOR_MOVE_PX) {
           prevCursorRef.current = pos
         }
         cursorRef.current = pos
