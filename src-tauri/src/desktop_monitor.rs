@@ -27,8 +27,8 @@ mod win_impl {
     use windows::Win32::System::Threading::{OpenProcess, PROCESS_QUERY_LIMITED_INFORMATION};
     use windows::Win32::UI::Input::KeyboardAndMouse::{GetLastInputInfo, LASTINPUTINFO};
     use windows::Win32::UI::WindowsAndMessaging::{
-        EnumWindows, GetForegroundWindow, GetWindowRect, GetWindowTextW,
-        GetWindowThreadProcessId, IsWindowVisible,
+        EnumWindows, GetForegroundWindow, GetWindowRect, GetWindowTextW, GetWindowThreadProcessId,
+        IsWindowVisible,
     };
 
     pub fn get_active_window() -> Option<WindowInfo> {
@@ -175,7 +175,10 @@ mod linux_impl {
         let (conn, screen_num) = RustConnection::connect(None)?;
         let root = conn.setup().roots[screen_num].root;
 
-        let net_active_window = conn.intern_atom(false, b"_NET_ACTIVE_WINDOW")?.reply()?.atom;
+        let net_active_window = conn
+            .intern_atom(false, b"_NET_ACTIVE_WINDOW")?
+            .reply()?
+            .atom;
         let prop = conn
             .get_property(false, root, net_active_window, AtomEnum::WINDOW, 0, 1)?
             .reply()?;
@@ -187,10 +190,18 @@ mod linux_impl {
 
         let title = window_title(&conn, win_id).unwrap_or_default();
         let process_name = window_process_name(&conn, win_id).unwrap_or_default();
-        let rect = window_rect(&conn, win_id)
-            .unwrap_or(Rect { x: 0, y: 0, width: 0, height: 0 });
+        let rect = window_rect(&conn, win_id).unwrap_or(Rect {
+            x: 0,
+            y: 0,
+            width: 0,
+            height: 0,
+        });
 
-        Ok(Some(WindowInfo { title, process_name, rect }))
+        Ok(Some(WindowInfo {
+            title,
+            process_name,
+            rect,
+        }))
     }
 
     // ── All visible windows via _NET_CLIENT_LIST (EWMH / X11) ────────────────
@@ -225,9 +236,17 @@ mod linux_impl {
                 continue;
             }
             let process_name = window_process_name(&conn, win_id).unwrap_or_default();
-            let rect = window_rect(&conn, win_id)
-                .unwrap_or(Rect { x: 0, y: 0, width: 0, height: 0 });
-            windows.push(WindowInfo { title, process_name, rect });
+            let rect = window_rect(&conn, win_id).unwrap_or(Rect {
+                x: 0,
+                y: 0,
+                width: 0,
+                height: 0,
+            });
+            windows.push(WindowInfo {
+                title,
+                process_name,
+                rect,
+            });
         }
         Ok(windows)
     }
@@ -243,7 +262,9 @@ mod linux_impl {
         let net_wm_name = conn.intern_atom(false, b"_NET_WM_NAME")?.reply()?.atom;
         let utf8 = conn.intern_atom(false, b"UTF8_STRING")?.reply()?.atom;
 
-        let prop = conn.get_property(false, win, net_wm_name, utf8, 0, 1024)?.reply()?;
+        let prop = conn
+            .get_property(false, win, net_wm_name, utf8, 0, 1024)?
+            .reply()?;
         if !prop.value.is_empty() {
             return Ok(String::from_utf8_lossy(&prop.value).to_string());
         }

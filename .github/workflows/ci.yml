@@ -47,7 +47,7 @@ jobs:
 
       - uses: dtolnay/rust-toolchain@stable
         with:
-          components: clippy
+          components: clippy, rustfmt
 
       - uses: Swatinem/rust-cache@v2
         with:
@@ -61,6 +61,10 @@ jobs:
             libayatana-appindicator3-dev \
             librsvg2-dev \
             patchelf
+
+      - name: cargo fmt --check
+        run: cargo fmt --all -- --check
+        working-directory: src-tauri
 
       - name: cargo check
         run: cargo check
