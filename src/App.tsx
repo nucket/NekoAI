@@ -3,7 +3,8 @@ import { getCurrentWindow, currentMonitor } from '@tauri-apps/api/window'
 import { PhysicalPosition } from '@tauri-apps/api/dpi'
 import { listen } from '@tauri-apps/api/event'
 import { invoke } from '@tauri-apps/api/core'
-import { PetRenderer, AnimationDef } from './pets/PetRenderer'
+import { PetRenderer } from './pets/PetRenderer'
+import type { PetDefinition } from './types/pet'
 import { usePetMovement } from './hooks/usePetMovement'
 import { SpeechBubble } from './components/SpeechBubble'
 import { SettingsPanel } from './components/SettingsPanel'
@@ -53,15 +54,6 @@ function resolveAnimation({
   if (notificationAlert) return hasAlert ? 'alert' : 'idle'
   if (petState === 'WALKING') return edgeAnimOverride ?? currentAnimation
   return edgeAnimOverride ?? clickWakeAnim ?? idleAnim ?? moodOverride ?? currentAnimation
-}
-
-// ─── Pet definition type ───────────────────────────────────────────────────────
-
-interface PetDefinition {
-  name: string
-  spritesDir: string
-  animations: Record<string, AnimationDef>
-  triggers: Record<string, string>
 }
 
 // ─── App ───────────────────────────────────────────────────────────────────────
@@ -137,7 +129,7 @@ export default function App() {
       if (!petDef) return
       let animName: string | null = null
       if (kind === 'scratch') {
-        const triggerKey = `on_edge_hit_${direction}`
+        const triggerKey = `on_edge_hit_${direction}` as const
         animName = petDef.triggers?.[triggerKey] ?? null
       } else if (kind === 'yawn') {
         animName = petDef.animations?.yawn ? 'yawn' : null
@@ -253,7 +245,7 @@ export default function App() {
   }, [spriteSize, isLoaded]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── Animations from pet.json, fallback to empty while loading ─────────────
-  const animations = useMemo(() => petDef?.animations ?? {}, [petDef])
+  const animations = useMemo<PetDefinition['animations']>(() => petDef?.animations ?? {}, [petDef])
 
   // ── Desktop context (idle time, active app) ───────────────────────────────
   const { appCategory, idleMinutes } = useDesktopContext()
@@ -502,7 +494,7 @@ export default function App() {
               currentAnimation={resolveAnimation({
                 petState,
                 notificationAlert,
-                hasAlert: !!animations.alert,
+                hasAlert: !!animations['alert'],
                 edgeAnimOverride,
                 clickWakeAnim,
                 idleAnim,

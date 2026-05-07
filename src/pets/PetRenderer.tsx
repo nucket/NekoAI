@@ -1,12 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
+import type { AnimationConfig } from '../types/pet'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
-
-export interface AnimationDef {
-  files: string[]
-  fps: number
-  loop: boolean
-}
 
 export interface PetRendererProps {
   /** Absolute path to the sprites folder on disk (e.g. .../pets/classic-neko/sprites) */
@@ -14,7 +9,7 @@ export interface PetRendererProps {
   /** Animation name to play (must exist in `animations`) */
   currentAnimation: string
   /** Animation definitions loaded from pet.json */
-  animations: Record<string, AnimationDef>
+  animations: Record<string, AnimationConfig>
   /** Render size in CSS px (sprites are 32px, scaled up) */
   displaySize?: number
 }
