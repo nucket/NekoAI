@@ -64,9 +64,13 @@ export function useMoodEngine({ idleMinutes, appCategory, petState }: UseMoodEng
   const idleMinutesRef = useRef(idleMinutes)
   const appCategoryRef = useRef(appCategory)
   const yawnTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const lastWalkingTimeRef = useRef(0) // tracks last WALKING state to prevent yawn during movement
 
   useEffect(() => {
     petStateRef.current = petState
+    if (petState === 'WALKING') {
+      lastWalkingTimeRef.current = Date.now()
+    }
   }, [petState])
   useEffect(() => {
     idleMinutesRef.current = idleMinutes
@@ -88,8 +92,13 @@ export function useMoodEngine({ idleMinutes, appCategory, petState }: UseMoodEng
         curiosity: computeCuriosity(cat),
       })
 
-      // Yawn trigger: OS idle in 3–5 min window, pet must be IDLE
-      if (petStateRef.current === 'IDLE' && idle >= YAWN_IDLE_MIN && idle < YAWN_IDLE_MAX) {
+      // Yawn trigger: OS idle in 1–2 min window, pet must be still (not moving or idle near cursor)
+      if (
+        (petStateRef.current === 'IDLE' || petStateRef.current === 'NEAR_CURSOR') &&
+        idle >= YAWN_IDLE_MIN &&
+        idle < YAWN_IDLE_MAX &&
+        Date.now() - lastWalkingTimeRef.current >= 2000 // no yawn for 2s after walking
+      ) {
         const now = Date.now()
         if (now - lastYawnRef.current >= YAWN_COOLDOWN_MS) {
           lastYawnRef.current = now
