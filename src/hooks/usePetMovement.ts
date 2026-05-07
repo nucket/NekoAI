@@ -16,7 +16,7 @@ export interface UsePetMovementOptions {
   sleepTimeout?: number
   windowSize?: number
   enabled?: boolean
-  mode?: 'work' | 'play'
+  mode?: 'buddy' | 'wanderer'
   availableAnimations?: string[]
   /** Called by the edge state machine when an animation override should play
    *  for `durationMs` while the pet is frozen at a monitor boundary. */
@@ -118,7 +118,7 @@ export function usePetMovement({
   sleepTimeout = 3 * 60 * 1000,
   windowSize = 128,
   enabled = true,
-  mode = 'work',
+  mode = 'buddy',
   availableAnimations = [],
   onEdgeAnimation,
 }: UsePetMovementOptions = {}): UsePetMovementResult {
@@ -352,8 +352,8 @@ export function usePetMovement({
 
       // ── State machine ──────────────────────────────────────────────────────
 
-      if (mode === 'play') {
-        // ── Play Mode ─────────────────────────────────────────────────────────
+      if (mode === 'wanderer') {
+        // ── Wanderer Mode ─────────────────────────────────────────────────────
 
         if (dist <= nearThreshold && state !== 'NEAR_CURSOR' && state !== 'SLEEPING') {
           transition('NEAR_CURSOR', dx, dy)
@@ -444,7 +444,7 @@ export function usePetMovement({
           }
         }
       } else {
-        // ── Work Mode: pet follows cursor ─────────────────────────────────────
+        // ── Buddy Mode: pet follows cursor ────────────────────────────────────
 
         switch (state) {
           case 'SLEEPING':

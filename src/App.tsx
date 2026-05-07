@@ -158,7 +158,7 @@ export default function App() {
     sleepTimeout: 10 * 60 * 1000, // sequencer handles sleep at 5 min; this is a safety fallback
     windowSize: spriteSize,
     enabled: !dragging && !bubbleOpen && !anyPanelOpen && !notificationAlert,
-    mode: config.petMode ?? 'work',
+    mode: config.petMode ?? 'buddy',
     availableAnimations: availableAnimationsList,
     onEdgeAnimation: handleEdgeAnimation,
   })
@@ -184,8 +184,8 @@ export default function App() {
           const size = parseInt(action.split(':')[1], 10)
           if (!isNaN(size)) useConfigStore.getState().setPetSize(size)
         } else if (action.startsWith('pet-mode:')) {
-          const m = action.split(':')[1] as 'work' | 'play'
-          if (m === 'work' || m === 'play') useConfigStore.getState().setPetMode(m)
+          const m = action.split(':')[1] as 'buddy' | 'wanderer'
+          if (m === 'buddy' || m === 'wanderer') useConfigStore.getState().setPetMode(m)
         } else if (action.startsWith('house_pos:')) {
           const [xStr, yStr] = action.split(':')[1].split(',')
           const x = parseInt(xStr, 10)

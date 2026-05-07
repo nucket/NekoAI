@@ -8,7 +8,7 @@ export type AIConfig = {
   model: string
   baseUrl?: string
   petSize?: number
-  petMode?: 'work' | 'play'
+  petMode?: 'buddy' | 'wanderer'
   activePetId?: string
 }
 
