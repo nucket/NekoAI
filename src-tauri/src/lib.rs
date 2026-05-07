@@ -1,13 +1,20 @@
 use serde::Serialize;
+use std::sync::mpsc;
+use std::sync::Mutex;
 use tauri::{
     menu::{Menu, MenuItem, PredefinedMenuItem, Submenu},
     tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent},
-    Emitter, Manager,
+    Emitter, Manager, RunEvent,
 };
 
 mod desktop_monitor;
 mod storage;
 use storage::{AIConfig, StoredMessage};
+
+/// Wraps the shutdown sender for the notification monitor thread so it can be
+/// signalled from the Tauri RunEvent::Exit handler. The Option lets the
+/// handler `take()` the sender exactly once.
+struct NotificationShutdown(Mutex<Option<mpsc::Sender<()>>>);
 
 // ─── Shared types ─────────────────────────────────────────────────────────────
 
@@ -368,10 +375,19 @@ pub fn run() {
             // notification took focus. Emits "neko-notification" to all windows.
             {
                 let app_handle = app.handle().clone();
+                let (shutdown_tx, shutdown_rx) = mpsc::channel::<()>();
+                app.manage(NotificationShutdown(Mutex::new(Some(shutdown_tx))));
+
                 std::thread::spawn(move || {
                     let mut prev_title = String::new();
                     loop {
-                        std::thread::sleep(std::time::Duration::from_millis(500));
+                        // Recv-with-timeout doubles as the polling interval and
+                        // the shutdown signal: a sent unit OR a disconnected
+                        // sender both end the loop cleanly.
+                        match shutdown_rx.recv_timeout(std::time::Duration::from_millis(500)) {
+                            Ok(_) | Err(mpsc::RecvTimeoutError::Disconnected) => break,
+                            Err(mpsc::RecvTimeoutError::Timeout) => {}
+                        }
 
                         // Only act when the user hasn't touched input for >1s
                         let idle_ms = desktop_monitor::get_idle_millis();
@@ -517,6 +533,18 @@ pub fn run() {
             open_url,
             nvidia_chat,
         ])
-        .run(tauri::generate_context!())
-        .expect("error while running tauri application");
+        .build(tauri::generate_context!())
+        .expect("error while building tauri application")
+        .run(|app_handle, event| {
+            if let RunEvent::Exit = event {
+                // Drop the notification monitor's shutdown sender so the
+                // background thread leaves its recv_timeout loop cleanly
+                // instead of being torn down mid-poll.
+                if let Some(state) = app_handle.try_state::<NotificationShutdown>() {
+                    if let Some(tx) = state.0.lock().ok().and_then(|mut g| g.take()) {
+                        let _ = tx.send(());
+                    }
+                }
+            }
+        });
 }
