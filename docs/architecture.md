@@ -47,14 +47,23 @@ NekoAI is a **Tauri v2** application: a Rust backend exposes native OS APIs via 
 
 `PetRenderer` runs a `requestAnimationFrame` loop that advances sprite frames at the animation's FPS. It accepts a `currentAnimation` string and looks up the frame list in `animations` from the loaded `pet.json`.
 
-The final animation shown is computed as:
+The final animation is resolved by `resolveAnimation()` in `App.tsx` — a pure function that applies a strict priority order:
 
 ```
-displayed = moodOverride ?? movementAnimation
+1. notificationAlert → 'alert' (or 'idle' if no alert anim)   [always wins]
+2. petState === 'WALKING'  → edgeAnimOverride ?? currentAnimation
+   (walk_* sprites are immune to idle, mood, and wake overrides)
+3. other states → edgeAnimOverride ?? clickWakeAnim ?? idleAnim ?? moodOverride ?? currentAnimation
 ```
 
-- `movementAnimation` — from `usePetMovement` (idle / walk\_\* / near_cursor / sleep)
-- `moodOverride` — from `useMoodEngine` (yawn when OS idle 3–5 min)
+Sources of each layer:
+
+- `currentAnimation` — `usePetMovement` (idle / walk\_\* / sleep)
+- `moodOverride` — `useMoodEngine` (yawn when OS idle; only fires in `IDLE` state)
+- `idleAnim` — `useIdleSequencer` (wash / scratch_wall / yawn / falling_asleep / sleep; only in `NEAR_CURSOR`)
+- `clickWakeAnim` — brief `awaken` flash on sprite click (only in stationary states)
+- `edgeAnimOverride` — scratch / yawn / idle during monitor-edge crossing
+- `notificationAlert` — overrides everything when the pet was teleported to a notification
 
 ### Movement
 
@@ -111,7 +120,9 @@ Extracted facts are upserted into the `user_facts` SQLite table.
 | `set_ignore_cursor_events`               | Pass-through click events                                           |
 | `get_config` / `save_config`             | Read/write config (SQLite)                                          |
 | `get_recent_messages`                    | Last N messages from SQLite                                         |
-| `save_message`                           | Append a message to SQLite                                          |
+| `save_message`                           | Append a message to SQLite (triggers pruning every 20 inserts)      |
+| `prune_conversations`                    | Delete rows beyond max_rows / max_age_days (on-demand)              |
+| `clear_conversations`                    | Wipe all conversation history ("Reset memory")                      |
 | `get_user_fact` / `set_user_fact`        | Key-value facts storage                                             |
 | `get_all_user_facts`                     | All facts as a JSON object                                          |
 | `get_active_window`                      | Foreground window title + process name                              |
@@ -138,14 +149,16 @@ when portable mode is active.
 
 ### Platform support in `desktop_monitor.rs`
 
-| Feature             | Windows                     | Linux (X11 / XWayland)              | Pure Wayland   |
-| ------------------- | --------------------------- | ----------------------------------- | -------------- |
-| `get_idle_millis`   | Win32 `GetLastInputInfo`    | XScreenSaver extension (`x11rb`)    | Returns `0`    |
-| `get_active_window` | Win32 `GetForegroundWindow` | EWMH `_NET_ACTIVE_WINDOW` (`x11rb`) | Returns `None` |
-| `get_all_windows`   | Win32 `EnumWindows`         | EWMH `_NET_CLIENT_LIST` (`x11rb`)   | Returns `[]`   |
+| Feature             | Windows                     | Linux (X11 / XWayland)              | Pure Wayland   | macOS          |
+| ------------------- | --------------------------- | ----------------------------------- | -------------- | -------------- |
+| `get_idle_millis`   | Win32 `GetLastInputInfo`    | XScreenSaver extension (`x11rb`)    | Returns `0`    | Returns `0`    |
+| `get_active_window` | Win32 `GetForegroundWindow` | EWMH `_NET_ACTIVE_WINDOW` (`x11rb`) | Returns `None` | Returns `None` |
+| `get_all_windows`   | Win32 `EnumWindows`         | EWMH `_NET_CLIENT_LIST` (`x11rb`)   | Returns `[]`   | Returns `[]`   |
 
-Pure Wayland sessions (XWayland disabled) gracefully degrade: the mood engine runs on
-time-of-day only, and desktop context is empty. All other features are unaffected.
+Pure Wayland sessions and macOS gracefully degrade: the mood engine runs on
+time-of-day only, desktop context is empty, and the notification monitor is effectively
+disabled. All other features are unaffected. macOS implementation (via `core-graphics`
+/ `objc2`) is planned for v0.3+.
 
 ```sql
 CREATE TABLE conversations (
@@ -154,12 +167,19 @@ CREATE TABLE conversations (
     role      TEXT    NOT NULL,   -- 'user' | 'assistant'
     content   TEXT    NOT NULL
 );
+-- Indexed for the prune query (by-recency cap) and the age cutoff.
+CREATE INDEX idx_conversations_id_desc  ON conversations(id DESC);
+CREATE INDEX idx_conversations_timestamp ON conversations(timestamp);
 
 CREATE TABLE user_facts (
     key   TEXT PRIMARY KEY,
     value TEXT NOT NULL
 );
 ```
+
+**Retention policy:** `save_message` prunes the `conversations` table every 20 inserts, deleting rows older than 30 days and rows beyond the most-recent 200 (whichever cuts more). Use `clear_conversations()` to reset all history.
+
+**Connection:** one process-wide `rusqlite::Connection` held behind `OnceLock<Mutex<Connection>>`. `journal_mode=WAL` allows concurrent reads; `synchronous=NORMAL` and `busy_timeout=5s` cover edge cases.
 
 Config file at `~/.config/nekoai/config.toml`:
 
