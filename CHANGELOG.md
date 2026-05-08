@@ -9,6 +9,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [0.2.0] — Unreleased
 
+### Security — Content Security Policy (May 2026)
+
+The WebView shipped with `csp: null`, which left it with no Content Security Policy at all. Replaced with a restrictive policy that lists only the network surface the app actually uses.
+
+**`src-tauri/tauri.conf.json` — production `csp` and `devCsp`**
+
+- `connect-src` allows the three providers fetched directly from the WebView (`api.anthropic.com`, `api.openai.com`, `generativelanguage.googleapis.com`), Tauri IPC (`ipc:` + `http://ipc.localhost`), and Ollama on loopback (`http://localhost:11434` / `http://127.0.0.1:11434`). NVIDIA NIM is not listed because the call goes through the Rust `nvidia_chat` command and never touches the WebView.
+- `default-src 'self'`, `object-src 'none'`, `base-uri 'self'`, `frame-ancestors 'none'` — standard hardening directives that block plugin injection, base-tag tampering, and clickjacking.
+- `style-src 'self' 'unsafe-inline'` — required because React applies inline `style={...}` attributes throughout the app.
+- `devCsp` adds `'unsafe-eval'` + `'unsafe-inline'` to `script-src` and `ws://localhost:1420 ws://localhost:1421` to `connect-src` so Vite's HMR keeps working in `npm run tauri dev`. Production never gets either of these relaxations.
+
 ### Changed — Codebase audit and hardening (May 2026)
 
 Seven targeted fixes from a static audit of the v0.2.0 codebase. No user-visible behaviour changes.

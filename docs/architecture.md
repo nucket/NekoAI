@@ -160,6 +160,24 @@ time-of-day only, desktop context is empty, and the notification monitor is effe
 disabled. All other features are unaffected. macOS implementation (via `core-graphics`
 / `objc2`) is planned for v0.3+.
 
+### Content Security Policy
+
+The WebView runs with a strict CSP defined in `src-tauri/tauri.conf.json` (`app.security.csp` for production, `app.security.devCsp` for development).
+
+`connect-src` is the load-bearing directive — it enumerates every host the WebView is allowed to reach:
+
+| Host                                        | Reason                               |
+| ------------------------------------------- | ------------------------------------ |
+| `'self'`                                    | `pet.json`, `manifest.json`, sprites |
+| `ipc:` / `http://ipc.localhost`             | Tauri IPC (`invoke()`)               |
+| `https://api.anthropic.com`                 | Anthropic provider                   |
+| `https://api.openai.com`                    | OpenAI provider                      |
+| `https://generativelanguage.googleapis.com` | Gemini provider                      |
+| `http://localhost:11434` / `127.0.0.1`      | Ollama provider (loopback only)      |
+| `ws://localhost:1420` + `1421` _(dev only)_ | Vite HMR WebSocket                   |
+
+NVIDIA NIM is intentionally absent from `connect-src` — its endpoint is reached from native Rust via `nvidia_chat`, so the WebView never touches `integrate.api.nvidia.com`. If you add a new provider that calls `fetch()` directly, append its host to `connect-src` (and to `devCsp`).
+
 ```sql
 CREATE TABLE conversations (
     id        INTEGER PRIMARY KEY AUTOINCREMENT,
