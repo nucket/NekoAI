@@ -1,4 +1,4 @@
-import type { AIProvider, Message } from '../types'
+import { DEFAULT_MAX_TOKENS, type AIProvider, type Message } from '../types'
 
 export class OllamaProvider implements AIProvider {
   private baseUrl: string
@@ -18,6 +18,9 @@ export class OllamaProvider implements AIProvider {
       body: JSON.stringify({
         model: this.model,
         stream: false,
+        // `num_predict` is Ollama's analogue of max_tokens; without it the
+        // server defaults to 2048+ and the typewriter takes minutes to reveal.
+        options: { num_predict: DEFAULT_MAX_TOKENS },
         messages: [{ role: 'system', content: systemPrompt }, ...messages],
       }),
     })

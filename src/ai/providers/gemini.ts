@@ -1,4 +1,4 @@
-import type { AIProvider, Message } from '../types'
+import { DEFAULT_MAX_TOKENS, type AIProvider, type Message } from '../types'
 
 export class GeminiProvider implements AIProvider {
   private apiKey: string
@@ -22,7 +22,7 @@ export class GeminiProvider implements AIProvider {
           role: m.role === 'assistant' ? 'model' : 'user',
           parts: [{ text: m.content }],
         })),
-        generationConfig: { maxOutputTokens: 256 },
+        generationConfig: { maxOutputTokens: DEFAULT_MAX_TOKENS },
       }),
     })
 
