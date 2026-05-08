@@ -1,120 +1,105 @@
-// ─── Sprite ──────────────────────────────────────────────────────────────────
-
-/** Configuration for the PNG sprite sheet */
-export interface SpriteConfig {
-  /** Path to the PNG file, relative to the pet's base directory */
-  path: string
-  /** Width of each individual frame in pixels */
-  frameWidth: number
-  /** Height of each individual frame in pixels */
-  frameHeight: number
-}
-
 // ─── Animations ──────────────────────────────────────────────────────────────
 
-/** A single animation sequence defined by frame indices into the sprite sheet */
+/**
+ * A single animation clip — an ordered list of PNG frames inside the pet's
+ * sprites directory. Mirrors `definitions.animation` in
+ * `schemas/pet.schema.json` exactly: each frame is a separate file on disk.
+ */
 export interface AnimationConfig {
-  /**
-   * Frame indices from the sprite sheet, 0-based, ordered left-to-right.
-   * e.g. [0, 1, 2] plays frames at x=0, x=frameWidth, x=frameWidth*2
-   */
-  frames: number[]
-  /** Playback speed in frames per second */
+  /** Ordered list of sprite filenames (relative to spritesDir). One file per frame. */
+  files: string[]
+  /** Playback speed in frames per second (1–60). */
   fps: number
-  /** Whether the animation loops back to the first frame when it ends */
+  /** Whether the animation loops (true) or plays once (false). */
   loop: boolean
-  /**
-   * Name of the animation to transition to automatically when this one ends.
-   * Only meaningful when loop=false. Defaults to "idle" if omitted.
-   */
-  next?: string
 }
 
-/** Well-known animation names — a valid pet must implement at least "idle" */
-export type BuiltinAnimationName =
+/** Well-known animation names a pet may declare. Open union — custom names allowed. */
+export type AnimationName =
   | 'idle'
-  | 'walk'
   | 'walk_right'
   | 'walk_left'
-  | 'run'
+  | 'walk_up'
+  | 'walk_down'
+  | 'walk_up_right'
+  | 'walk_up_left'
+  | 'walk_down_right'
+  | 'walk_down_left'
+  | 'awaken'
+  | 'yawn'
+  | 'falling_asleep'
+  | 'sleep'
   | 'happy'
   | 'thinking'
-  | 'sleep'
-  | 'scratch'
-  | 'yawn'
-  | 'alert'
-
-export type AnimationName = BuiltinAnimationName | string
+  | 'surprised'
+  | 'eating'
+  | 'wash'
+  | 'scratch_wall'
+  | 'scratch_right'
+  | 'scratch_left'
+  | 'scratch_up'
+  | 'scratch_down'
+  | (string & {})
 
 // ─── Triggers ────────────────────────────────────────────────────────────────
 
-/**
- * System or interaction events that can trigger an animation change.
- * Custom events can be added as plain strings.
- */
+/** System / interaction events that can map to an animation. Mirrors the schema. */
 export type TriggerEvent =
-  | 'onIdle' // user hasn't moved the mouse for a while
-  | 'onMouseNear' // cursor entered the pet's proximity radius
-  | 'onMouseFar' // cursor left the proximity radius
-  | 'onDragStart' // user started dragging the window
-  | 'onDragEnd' // drag released
-  | 'onDoubleClick' // double-click on the pet
-  | 'onRightClick' // right-click on the pet
-  | 'onSystemIdle' // OS idle (no keyboard/mouse input)
-  | 'onHourChange' // wall-clock hour ticked over
-  | 'onNight' // 20:00–07:00 local time
-  | string
+  | 'on_cursor_near'
+  | 'on_chat_open'
+  | 'on_ai_thinking'
+  | 'on_ai_response'
+  | 'on_idle_3min'
+  | 'on_idle_5min'
+  | 'on_idle_6min'
+  | 'on_movement_start'
+  | 'on_happy'
+  | 'on_surprised'
+  | 'on_eating'
+  | 'on_edge_hit_right'
+  | 'on_edge_hit_left'
+  | 'on_edge_hit_up'
+  | 'on_edge_hit_down'
 
-/** Maps trigger events to the animation that should play when they fire */
+/** Maps trigger events to animation names. */
 export type TriggerMap = Partial<Record<TriggerEvent, AnimationName>>
 
 // ─── Pet Definition ──────────────────────────────────────────────────────────
 
-/** Full pet definition as stored on disk in pet.json */
+/** Full pet definition as stored on disk in pet.json (validated by pet.schema.json). */
 export interface PetDefinition {
-  /** Unique identifier, kebab-case (e.g. "classic-neko") */
-  id: string
-  /** Human-readable display name */
+  /** Display name shown in the UI. */
   name: string
-  /** Creator / maintainer */
-  author: string
-  /** Semver version string (e.g. "1.0.0") */
+  /** Semantic version of this pet definition (e.g. "1.0.0"). */
   version: string
-  /** Optional description shown in the pet picker UI */
-  description?: string
-  /** Sprite sheet configuration */
-  sprite: SpriteConfig
-  /** All available animation sequences */
-  animations: Record<AnimationName, AnimationConfig>
-  /** Event → animation mappings (all optional) */
-  triggers: TriggerMap
-  /** Animation to play on app startup. Defaults to "idle". */
-  defaultAnimation?: AnimationName
-}
-
-/**
- * PetDefinition enriched with resolved paths after being loaded from disk.
- * This is what the rest of the app works with at runtime.
- */
-export interface LoadedPet extends PetDefinition {
-  /** Absolute directory path that contained the pet.json */
-  basePath: string
+  /** Author / creator handle. */
+  author: string
+  /** One-line description shown in the pet selector. */
+  description: string
+  /** Human-readable personality summary (kept for contributor reference). */
+  personality: string
+  /** Prompt sent to the AI to define the pet's voice. */
+  system_prompt: string
+  /** Path to the sprites directory, relative to pet.json. Almost always "sprites". */
+  spritesDir: string
   /**
-   * Fully resolved URL for the sprite sheet, ready to use as
-   * HTMLImageElement.src or as a canvas drawImage source.
-   * In Tauri this is an asset:// URL; in the browser it's a relative path.
+   * Animation map keyed by name. The schema requires at least
+   * `idle`, `walk_right`, `walk_left`, `sleep`, but custom names are also
+   * allowed, so this stays an open record.
    */
-  spritesheetUrl: string
+  animations: Record<string, AnimationConfig>
+  /** Optional event → animation mappings. */
+  triggers: TriggerMap
 }
 
-// ─── Mood (used by AI and store) ─────────────────────────────────────────────
+// ─── Mood (used by the mood engine and AI context) ───────────────────────────
 
-/** Runtime emotional state of the active pet */
+/** Runtime emotional state of the active pet. */
 export interface PetMood {
-  /** 0-100: how energetic the pet currently feels */
+  /** 0-100: how energetic the pet currently feels. */
   energy: number
-  /** 0-100: happiness level — affects idle animation variant */
+  /** 0-100: happiness level — affects idle animation variant. */
   happiness: number
-  /** 0-100: how curious / attention-seeking the pet is */
+  /** 0-100: how curious / attention-seeking the pet is. */
   curiosity: number
 }

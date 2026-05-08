@@ -9,6 +9,47 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [0.2.0] — Unreleased
 
+### Changed — Codebase audit and hardening (May 2026)
+
+Seven targeted fixes from a static audit of the v0.2.0 codebase. No user-visible behaviour changes.
+
+**`src/types/pet.ts` — type alignment with `pet.schema.json`**
+
+- Rewrote `AnimationConfig` to match the actual on-disk format: `files: string[]` (one PNG per frame) instead of the old `frames: number[]` (sprite-sheet indices). Removed the now-unnecessary `SpriteConfig` interface.
+- Added the missing fields `personality`, `system_prompt`, `spritesDir`, `description`, and `version` to `PetDefinition` — all present in the JSON schema but absent from the TS type, which meant App.tsx had been carrying a redundant private copy of the interface.
+- `PetRenderer.tsx` now imports `AnimationConfig` directly from `src/types/pet.ts` instead of declaring its own `AnimationDef`.
+
+**Dead code removal**
+
+- Deleted `src/pets/loader.ts`, `src/pets/placeholderSprite.ts`, and `src/pets/index.ts` (barrel re-export). These described the old sprite-sheet paradigm and were never imported anywhere; the active runtime path fetches `pet.json` directly in `App.tsx`.
+
+**`src/store/index.ts` — remove unused `activePet`**
+
+- Removed `activePet: PetDefinition | null` and `setActivePet` from `AppState`. The fields were declared, never set, and never read — `configStore.activePetId` (persisted to TOML) is the single source of truth for the active pet, and the loaded `PetDefinition` object lives in `App.tsx` local state.
+
+**`src-tauri/src/storage.rs` — SQLite stability**
+
+- Replaced the per-call `rusqlite::Connection::open()` with a process-wide `OnceLock<Mutex<Connection>>`. Concurrent writes (chat save + config update) previously risked `SQLITE_BUSY`; the mutex serialises them without a full pool.
+- Enabled `journal_mode=WAL` and `synchronous=NORMAL` so reads don't block on a writer.
+- Set `busy_timeout=5s` as a backstop.
+
+**`src-tauri/src/storage.rs` — conversation pruning**
+
+- The `conversations` table now prunes itself after every 20 inserts: rows older than 30 days and rows beyond the most-recent 200 are deleted (whichever cuts more). Two new indexes (`idx_conversations_id_desc`, `idx_conversations_timestamp`) keep both the read path and the prune query efficient.
+- Exposed `prune_conversations(max_rows, max_age_days)` and `clear_conversations()` as Tauri commands so the frontend can run an on-demand purge or a "Reset memory" action.
+
+**`src-tauri/src/lib.rs` — notification thread shutdown**
+
+- The background notification monitor previously ran a `loop { thread::sleep(500ms); ... }` with no exit path. Replaced with `mpsc::recv_timeout` — same 500 ms polling interval, but the loop exits cleanly when `RunEvent::Exit` fires. The shutdown sender is stored in Tauri managed state (`NotificationShutdown`).
+
+**`.github/workflows/ci.yml` — cross-platform CI + rustfmt**
+
+- Added `cargo fmt --all -- --check` to the `rust-check` job (was only running clippy). Includes a repo-wide `rustfmt` pass to establish the baseline.
+- Converted `rust-check` and `test` jobs to a `strategy.matrix` over `ubuntu-latest`, `windows-latest`, and `macos-latest`. Platform-specific compile errors in `desktop_monitor.rs` and the Windows/Linux crate flags are now caught before release.
+- Added `npm run build` (Vite production build) to the `typecheck` job so frontend bundling regressions are caught alongside type errors.
+
+---
+
 ### Fixed — Movement / Animation separation (May 2026)
 
 Movement state and sprite animation were tightly coupled, causing idle/groom

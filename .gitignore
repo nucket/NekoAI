@@ -48,3 +48,6 @@ assets/nekoforge*.html
 
 # Windows portable (local builds)
 NekoAI-Win-Portable.zip
+
+# Local working docs (auditoría / planes de acción no versionados)
+PLAN_RECOMENDACIONES.md

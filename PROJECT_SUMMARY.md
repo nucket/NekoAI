@@ -102,6 +102,12 @@ The pet wanders freely across your desktop, reacts to cursor movement and window
 - [x] Bounding-box monitor edge detection — pet never appears split across two screens; clamp + scratch/yawn/scratch/cross sequence before crossing
 - [x] EdgePhase state machine — `scratch1 → (50%) yawn → idle rest (1.5–3 s) → scratch2 → cross`; all phases with synchronized animation and frozen position
 - [x] NEAR_CURSOR hysteresis — stricter entry radius (×0.7) + longer cursor stillness (400 ms) eliminates oscillation between WALKING and NEAR_CURSOR
+- [x] `PetDefinition` TypeScript type aligned with `pet.schema.json` — `files: string[]` per animation, added `personality` / `system_prompt` / `spritesDir` / `version` fields
+- [x] Dead code removal — deleted `src/pets/loader.ts`, `src/pets/placeholderSprite.ts`, `src/pets/index.ts` (sprite-sheet paradigm, never imported by the active runtime)
+- [x] SQLite stability — single `OnceLock<Mutex<Connection>>` replaces per-call `Connection::open()`; WAL mode + 5s busy_timeout prevent `SQLITE_BUSY` on concurrent writes
+- [x] Conversation pruning — `conversations` table auto-prunes to 200 rows / 30 days every 20 inserts; `prune_conversations` and `clear_conversations` Tauri commands exposed
+- [x] Notification monitor thread shutdown — `mpsc::recv_timeout` + `RunEvent::Exit` handler for clean process exit (was a bare infinite loop)
+- [x] CI cross-platform matrix — `rust-check` and `test` jobs run on Linux + Windows + macOS; `cargo fmt --check` enforced; `npm run build` added to typecheck job
 
 ### Planned (v0.3+)
 

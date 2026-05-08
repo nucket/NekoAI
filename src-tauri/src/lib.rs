@@ -1,13 +1,20 @@
 use serde::Serialize;
+use std::sync::mpsc;
+use std::sync::Mutex;
 use tauri::{
     menu::{Menu, MenuItem, PredefinedMenuItem, Submenu},
     tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent},
-    Emitter, Manager,
+    Emitter, Manager, RunEvent,
 };
 
-mod storage;
 mod desktop_monitor;
+mod storage;
 use storage::{AIConfig, StoredMessage};
+
+/// Wraps the shutdown sender for the notification monitor thread so it can be
+/// signalled from the Tauri RunEvent::Exit handler. The Option lets the
+/// handler `take()` the sender exactly once.
+struct NotificationShutdown(Mutex<Option<mpsc::Sender<()>>>);
 
 // ─── Shared types ─────────────────────────────────────────────────────────────
 
@@ -62,10 +69,7 @@ fn set_always_on_top(window: tauri::WebviewWindow, always_on_top: bool) -> Resul
 }
 
 #[tauri::command]
-fn set_ignore_cursor_events(
-    window: tauri::WebviewWindow,
-    ignore: bool,
-) -> Result<(), String> {
+fn set_ignore_cursor_events(window: tauri::WebviewWindow, ignore: bool) -> Result<(), String> {
     window
         .set_ignore_cursor_events(ignore)
         .map_err(|e| e.to_string())
@@ -101,8 +105,7 @@ async fn open_panel_window(
             .map_err(|e| e.to_string())?;
         // Navigate in case the requested route changed
         let url = format!("index.html#{}", route);
-        win.eval(format!("window.location.hash = '{}'", route))
-            .ok();
+        win.eval(format!("window.location.hash = '{}'", route)).ok();
         let _ = url;
         win.show().map_err(|e| e.to_string())?;
         win.set_focus().ok();
@@ -110,21 +113,18 @@ async fn open_panel_window(
     }
 
     let url = format!("index.html#{}", route);
-    let builder = tauri::WebviewWindowBuilder::new(
-        &app,
-        "panel",
-        tauri::WebviewUrl::App(url.into()),
-    )
-    .title("NekoAI Panel")
-    .inner_size(width, height)
-    .position(x, y)
-    .decorations(false)
-    .transparent(true)
-    .always_on_top(true)
-    .skip_taskbar(true)
-    .resizable(false)
-    .shadow(false)
-    .focused(true);
+    let builder =
+        tauri::WebviewWindowBuilder::new(&app, "panel", tauri::WebviewUrl::App(url.into()))
+            .title("NekoAI Panel")
+            .inner_size(width, height)
+            .position(x, y)
+            .decorations(false)
+            .transparent(true)
+            .always_on_top(true)
+            .skip_taskbar(true)
+            .resizable(false)
+            .shadow(false)
+            .focused(true);
 
     builder.build().map_err(|e| e.to_string())?;
     Ok(())
@@ -139,11 +139,7 @@ async fn close_panel_window(app: tauri::AppHandle) -> Result<(), String> {
 }
 
 #[tauri::command]
-async fn resize_panel_window(
-    app: tauri::AppHandle,
-    width: f64,
-    height: f64,
-) -> Result<(), String> {
+async fn resize_panel_window(app: tauri::AppHandle, width: f64, height: f64) -> Result<(), String> {
     if let Some(win) = app.get_webview_window("panel") {
         win.set_size(tauri::LogicalSize::new(width, height))
             .map_err(|e| e.to_string())?;
@@ -154,7 +150,9 @@ async fn resize_panel_window(
 #[tauri::command]
 async fn open_url(app: tauri::AppHandle, url: String) -> Result<(), String> {
     use tauri_plugin_opener::OpenerExt;
-    app.opener().open_url(url, None::<&str>).map_err(|e| e.to_string())?;
+    app.opener()
+        .open_url(url, None::<&str>)
+        .map_err(|e| e.to_string())?;
     Ok(())
 }
 
@@ -162,7 +160,8 @@ async fn open_url(app: tauri::AppHandle, url: String) -> Result<(), String> {
 /// JS `emit()` may not reach other windows reliably; Rust `app.emit()` is global.
 #[tauri::command]
 async fn panel_action(app: tauri::AppHandle, action: String) -> Result<(), String> {
-    app.emit("panel-action", &action).map_err(|e| e.to_string())?;
+    app.emit("panel-action", &action)
+        .map_err(|e| e.to_string())?;
     // Hide the panel after any action that opens a new view
     if action == "settings" || action == "select-pet" {
         if let Some(win) = app.get_webview_window("panel") {
@@ -197,6 +196,16 @@ fn get_recent_messages(limit: u32) -> Result<Vec<StoredMessage>, String> {
 #[tauri::command]
 fn save_message(role: String, content: String) -> Result<(), String> {
     storage::save_message(&role, &content)
+}
+
+#[tauri::command]
+fn prune_conversations(max_rows: u32, max_age_days: i64) -> Result<u32, String> {
+    storage::prune_conversations(max_rows, max_age_days)
+}
+
+#[tauri::command]
+fn clear_conversations() -> Result<u32, String> {
+    storage::clear_conversations()
 }
 
 // ─── User fact commands ───────────────────────────────────────────────────────
@@ -366,10 +375,19 @@ pub fn run() {
             // notification took focus. Emits "neko-notification" to all windows.
             {
                 let app_handle = app.handle().clone();
+                let (shutdown_tx, shutdown_rx) = mpsc::channel::<()>();
+                app.manage(NotificationShutdown(Mutex::new(Some(shutdown_tx))));
+
                 std::thread::spawn(move || {
                     let mut prev_title = String::new();
                     loop {
-                        std::thread::sleep(std::time::Duration::from_millis(500));
+                        // Recv-with-timeout doubles as the polling interval and
+                        // the shutdown signal: a sent unit OR a disconnected
+                        // sender both end the loop cleanly.
+                        match shutdown_rx.recv_timeout(std::time::Duration::from_millis(500)) {
+                            Ok(_) | Err(mpsc::RecvTimeoutError::Disconnected) => break,
+                            Err(mpsc::RecvTimeoutError::Timeout) => {}
+                        }
 
                         // Only act when the user hasn't touched input for >1s
                         let idle_ms = desktop_monitor::get_idle_millis();
@@ -394,28 +412,37 @@ pub fn run() {
             }
 
             // ── Tray menu ──────────────────────────────────────────────────
-            let show_hide   = MenuItem::with_id(app, "show_hide",   "Show/Hide NekoAI",     true, None::<&str>)?;
-            let settings    = MenuItem::with_id(app, "settings",    "Settings",              true, None::<&str>)?;
-            let pet_classic  = MenuItem::with_id(app, "pet_classic",  "Classic Neko",  true, None::<&str>)?;
-            let pet_ghost    = MenuItem::with_id(app, "pet_ghost",    "Ghost",         true, None::<&str>)?;
-            let pet_dragon   = MenuItem::with_id(app, "pet_dragon",   "Ember (Dragon)", true, None::<&str>)?;
-            let pet_penguin  = MenuItem::with_id(app, "pet_penguin",  "Pingu (Penguin)", true, None::<&str>)?;
-            let pet_shiba    = MenuItem::with_id(app, "pet_shiba",    "Shiba",         true, None::<&str>)?;
-            let select_pet   = Submenu::with_items(app, "Select Pet", true, &[
-                &pet_classic, &pet_ghost, &pet_dragon, &pet_penguin, &pet_shiba,
-            ])?;
-            let sep         = PredefinedMenuItem::separator(app)?;
-            let about       = MenuItem::with_id(app, "about",       "About NekoAI v0.2.0",  true, None::<&str>)?;
-            let quit        = MenuItem::with_id(app, "quit",        "Quit",                  true, None::<&str>)?;
+            let show_hide =
+                MenuItem::with_id(app, "show_hide", "Show/Hide NekoAI", true, None::<&str>)?;
+            let settings = MenuItem::with_id(app, "settings", "Settings", true, None::<&str>)?;
+            let pet_classic =
+                MenuItem::with_id(app, "pet_classic", "Classic Neko", true, None::<&str>)?;
+            let pet_ghost = MenuItem::with_id(app, "pet_ghost", "Ghost", true, None::<&str>)?;
+            let pet_dragon =
+                MenuItem::with_id(app, "pet_dragon", "Ember (Dragon)", true, None::<&str>)?;
+            let pet_penguin =
+                MenuItem::with_id(app, "pet_penguin", "Pingu (Penguin)", true, None::<&str>)?;
+            let pet_shiba = MenuItem::with_id(app, "pet_shiba", "Shiba", true, None::<&str>)?;
+            let select_pet = Submenu::with_items(
+                app,
+                "Select Pet",
+                true,
+                &[
+                    &pet_classic,
+                    &pet_ghost,
+                    &pet_dragon,
+                    &pet_penguin,
+                    &pet_shiba,
+                ],
+            )?;
+            let sep = PredefinedMenuItem::separator(app)?;
+            let about = MenuItem::with_id(app, "about", "About NekoAI v0.2.0", true, None::<&str>)?;
+            let quit = MenuItem::with_id(app, "quit", "Quit", true, None::<&str>)?;
 
-            let menu = Menu::with_items(app, &[
-                &show_hide,
-                &settings,
-                &select_pet,
-                &sep,
-                &about,
-                &quit,
-            ])?;
+            let menu = Menu::with_items(
+                app,
+                &[&show_hide, &settings, &select_pet, &sep, &about, &quit],
+            )?;
 
             let logo_bytes = include_bytes!("../icons/logo.png");
             let tray_icon = {
@@ -493,6 +520,8 @@ pub fn run() {
             save_config,
             get_recent_messages,
             save_message,
+            prune_conversations,
+            clear_conversations,
             get_user_fact,
             set_user_fact,
             get_all_user_facts,
@@ -504,6 +533,18 @@ pub fn run() {
             open_url,
             nvidia_chat,
         ])
-        .run(tauri::generate_context!())
-        .expect("error while running tauri application");
+        .build(tauri::generate_context!())
+        .expect("error while building tauri application")
+        .run(|app_handle, event| {
+            if let RunEvent::Exit = event {
+                // Drop the notification monitor's shutdown sender so the
+                // background thread leaves its recv_timeout loop cleanly
+                // instead of being torn down mid-poll.
+                if let Some(state) = app_handle.try_state::<NotificationShutdown>() {
+                    if let Some(tx) = state.0.lock().ok().and_then(|mut g| g.take()) {
+                        let _ = tx.send(());
+                    }
+                }
+            }
+        });
 }
