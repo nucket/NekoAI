@@ -227,6 +227,13 @@ fn get_all_user_facts() -> Result<std::collections::HashMap<String, String>, Str
 
 // ─── NVIDIA NIM proxy (bypasses WebView CORS) ────────────────────────────────
 
+// Mirror of `DEFAULT_MAX_TOKENS` in src/ai/types.ts — keep both in sync.
+// NIM lives on the Rust side because of CORS, so the JS constant cannot reach
+// it without a duplicate. Once `config.maxTokens` ships (rec K), the value
+// will flow in through the `nvidia_chat` command args and this becomes a
+// fallback for `None`.
+const DEFAULT_MAX_TOKENS: u32 = 256;
+
 #[derive(serde::Deserialize)]
 struct NimMessage {
     role: String,
@@ -241,7 +248,7 @@ async fn nvidia_chat(
 ) -> Result<String, String> {
     let body = serde_json::json!({
         "model": model,
-        "max_tokens": 256,
+        "max_tokens": DEFAULT_MAX_TOKENS,
         "messages": messages.iter().map(|m| serde_json::json!({
             "role": m.role,
             "content": m.content,

@@ -1,4 +1,4 @@
-import type { AIProvider, Message } from '../types'
+import { DEFAULT_MAX_TOKENS, type AIProvider, type Message } from '../types'
 
 export class OpenAIProvider implements AIProvider {
   private apiKey: string
@@ -18,7 +18,7 @@ export class OpenAIProvider implements AIProvider {
       },
       body: JSON.stringify({
         model: this.model,
-        max_tokens: 256,
+        max_tokens: DEFAULT_MAX_TOKENS,
         messages: [{ role: 'system', content: systemPrompt }, ...messages],
       }),
     })
