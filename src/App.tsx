@@ -6,7 +6,7 @@ import { invoke } from '@tauri-apps/api/core'
 import { PetRenderer } from './pets/PetRenderer'
 import type { PetDefinition } from './types/pet'
 import { usePetMovement } from './hooks/usePetMovement'
-import { SpeechBubble } from './components/SpeechBubble'
+import { SpeechBubble, type AnnouncementContent } from './components/SpeechBubble'
 import { SettingsPanel } from './components/SettingsPanel'
 import { PetSelector } from './components/PetSelector'
 import { useConfigStore } from './store/configStore'
@@ -16,7 +16,16 @@ import { loadFacts, extractAndSaveFacts } from './ai/memory'
 import { useDesktopContext } from './hooks/useDesktopContext'
 import { useMoodEngine } from './hooks/useMoodEngine'
 import { useIdleSequencer } from './hooks/useIdleSequencer'
+import { useOnboarding } from './hooks/useOnboarding'
 import './App.css'
+
+// Onboarding bubble stays up at most this long; user can close earlier via
+// the action buttons. After it closes, regular cursor-following resumes.
+const ONBOARDING_AUTOCLOSE_MS = 10_000
+
+// "Walk out of the house" slide duration. Pet starts at the house corner
+// (bottom-right) and slides left to monitor center-bottom over this period.
+const ONBOARDING_SLIDE_MS = 5500
 
 // ─── Layout constants ──────────────────────────────────────────────────────────
 
@@ -71,6 +80,10 @@ export default function App() {
   const [bubblePos, setBubblePos] = useState<'above' | 'below'>('above')
   const [dragging, setDragging] = useState(false)
   const [settingsOpen, setSettingsOpen] = useState(false)
+  const [onboardingAnnouncement, setOnboardingAnnouncement] = useState<AnnouncementContent | null>(
+    null
+  )
+  const onboardingAutocloseRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const [petSelectorOpen, setPetSelectorOpen] = useState(false)
   const [notificationAlert, setNotificationAlert] = useState(false)
   const notificationTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -145,11 +158,22 @@ export default function App() {
     [petDef]
   )
 
+  // ── First-launch onboarding ────────────────────────────────────────────────
+  // Declared here (before usePetMovement) so the movement hook can disable
+  // cursor following while the onboarding sequence runs.
+  const onboarding = useOnboarding()
+
+  // Cursor following is paused for the entire onboarding sequence (detection
+  // ping, slide-out from house, announcement bubble, autoclose). Once the
+  // user dismisses or the timeout fires, `onboarding.state` flips to 'done'
+  // and the regular movement state machine takes over.
+  const onboardingActive = onboarding.state !== 'done'
+
   const { petState, currentAnimation, overridePosition } = usePetMovement({
     nearThreshold: 50,
     sleepTimeout: 10 * 60 * 1000, // sequencer handles sleep at 5 min; this is a safety fallback
     windowSize: spriteSize,
-    enabled: !dragging && !bubbleOpen && !anyPanelOpen && !notificationAlert,
+    enabled: !dragging && !bubbleOpen && !anyPanelOpen && !notificationAlert && !onboardingActive,
     mode: config.petMode ?? 'buddy',
     availableAnimations: availableAnimationsList,
     onEdgeAnimation: handleEdgeAnimation,
@@ -344,6 +368,127 @@ export default function App() {
     }
   }, [])
 
+  // ── Onboarding sequence ────────────────────────────────────────────────────
+  // Cursor following stays paused via `onboardingActive` (see usePetMovement
+  // above). Sequence:
+  //   1. Teleport pet just left of the house (bottom-right corner).
+  //   2. Slide horizontally to monitor center-bottom while playing walk_left.
+  //   3. Show the announcement bubble (CTA for needs_setup, celebratory for
+  //      ollama_found). Auto-closes after ONBOARDING_AUTOCLOSE_MS or on user
+  //      action — whichever comes first.
+  //   4. After close, `onboarding.dismiss()` flips state to 'done' and the
+  //      regular movement hook takes over (cursor following resumes).
+  const closeOnboardingBubble = useCallback(
+    (openSettings: boolean) => {
+      if (onboardingAutocloseRef.current) {
+        clearTimeout(onboardingAutocloseRef.current)
+        onboardingAutocloseRef.current = null
+      }
+      setOnboardingAnnouncement(null)
+      void closeBubble().then(() => {
+        if (openSettings) setSettingsOpen(true)
+      })
+      onboarding.dismiss()
+    },
+    [closeBubble, onboarding]
+  )
+
+  useEffect(() => {
+    if (onboarding.state !== 'needs_setup' && onboarding.state !== 'ollama_found') return
+
+    let cancelled = false
+
+    void (async () => {
+      try {
+        const monitor = await currentMonitor()
+        const scale = monitor?.scaleFactor ?? window.devicePixelRatio ?? 1
+        const monX = monitor?.position.x ?? 0
+        const monY = monitor?.position.y ?? 0
+        const monW = monitor?.size.width ?? window.screen.width * scale
+        const monH = monitor?.size.height ?? window.screen.height * scale
+        const sz = useConfigStore.getState().config.petSize ?? 32
+
+        // Same approximations the notification handler uses.
+        const taskbarH = 48 * scale
+        const houseW = 64 * scale
+        const bottomY = Math.round(monY + monH - taskbarH - sz * scale)
+        // Pet starts immediately to the left of the house with a small gap.
+        const startX = Math.round(monX + monW - houseW - sz * scale - 8 * scale)
+        // Target = horizontally centred on the active monitor, same Y line.
+        const targetX = Math.round(monX + monW / 2 - (sz * scale) / 2)
+
+        // 1. Teleport to "exiting house" pose.
+        overridePosition(startX, bottomY)
+        const hasWalkLeft = availableAnimationsList.includes('walk_left')
+        if (hasWalkLeft) setEdgeAnimOverride('walk_left')
+
+        // 2. Slide horizontally over ONBOARDING_SLIDE_MS.
+        const t0 = performance.now()
+        await new Promise<void>((resolve) => {
+          const tick = () => {
+            if (cancelled) return resolve()
+            const t = Math.min((performance.now() - t0) / ONBOARDING_SLIDE_MS, 1)
+            const x = startX + (targetX - startX) * t
+            overridePosition(Math.round(x), bottomY)
+            if (t < 1) requestAnimationFrame(tick)
+            else resolve()
+          }
+          requestAnimationFrame(tick)
+        })
+        if (cancelled) return
+        setEdgeAnimOverride(null)
+
+        // 3. Build and show the announcement bubble.
+        const announcement: AnnouncementContent =
+          onboarding.state === 'ollama_found'
+            ? {
+                text: `Hello! I detected Ollama running and automatically set myself up to use ${
+                  onboarding.detectedModel ?? 'your local model'
+                }. You can change this in Settings anytime — ask me anything!`,
+                actions: [
+                  { label: 'Got it', primary: true, onClick: () => closeOnboardingBubble(false) },
+                  { label: 'Open Settings', onClick: () => closeOnboardingBubble(true) },
+                ],
+              }
+            : {
+                text: "Hello! I'm your new desktop pet. To chat with you, I need to be connected to an AI engine. Will you help me set one up?",
+                actions: [
+                  {
+                    label: '⚙ Configure AI',
+                    primary: true,
+                    onClick: () => closeOnboardingBubble(true),
+                  },
+                  { label: 'Later', onClick: () => closeOnboardingBubble(false) },
+                ],
+              }
+
+        setOnboardingAnnouncement(announcement)
+        void openBubble()
+
+        // 4. Autoclose after ONBOARDING_AUTOCLOSE_MS — same path as a click.
+        onboardingAutocloseRef.current = setTimeout(
+          () => closeOnboardingBubble(false),
+          ONBOARDING_AUTOCLOSE_MS
+        )
+      } catch (err) {
+        console.error('[onboarding] sequence failed:', err)
+        // Don't block the user behind a broken animation — give up cleanly.
+        onboarding.dismiss()
+      }
+    })()
+
+    return () => {
+      cancelled = true
+      if (onboardingAutocloseRef.current) {
+        clearTimeout(onboardingAutocloseRef.current)
+        onboardingAutocloseRef.current = null
+      }
+      setEdgeAnimOverride(null)
+    }
+    // openBubble/closeBubble are stable (empty deps); onboarding fns from a hook.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [onboarding.state, onboarding.detectedModel])
+
   // ── Interaction handlers ───────────────────────────────────────────────────
   const handleSpriteClick = useCallback(() => {
     if (bubbleOpen || settingsOpen) return
@@ -469,6 +614,7 @@ export default function App() {
         position={bubblePos}
         onClose={closeBubble}
         onSendMessage={handleSendMessage}
+        announcement={onboardingAnnouncement ?? undefined}
       />
 
       {/* Hide sprite while any panel occupies the window so it doesn't

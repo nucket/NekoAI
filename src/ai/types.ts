@@ -10,6 +10,8 @@ export type AIConfig = {
   petSize?: number
   petMode?: 'buddy' | 'wanderer'
   activePetId?: string
+  onboardingCompleted?: boolean
+  ollamaAutoDetected?: boolean
 }
 
 export type Message = {

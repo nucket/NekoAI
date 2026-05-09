@@ -9,6 +9,60 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [0.2.0] — Unreleased
 
+### Added — Zero-config onboarding (May 2026)
+
+First-launch flow that gets the pet talking with no manual setup required.
+
+**`src/hooks/useOnboarding.ts`** — new first-launch state machine
+
+- States: `idle → detecting → ollama_found | needs_setup → done`
+- On first launch (no `onboardingCompleted` flag and no saved API key), silently pings `http://localhost:11434/api/tags` with an 800ms `AbortController` timeout.
+- If Ollama responds with ≥1 model, calls `applyOllamaAutoConfig(model)` — one atomic TOML write of `provider + model + baseUrl + ollamaAutoDetected + onboardingCompleted`. Pet is ready to chat with no user action.
+- If Ollama is absent, transitions to `needs_setup` and prompts the user to configure an AI provider.
+- **Self-healing upgrade path**: existing users who have credentials but no `onboardingCompleted` flag (upgraded from a pre-onboarding install) get the flag stamped silently; the flow is skipped.
+- Runs at most once per session (gated by `ranRef` + `isLoaded`).
+
+**`src/components/SpeechBubble.tsx`** — announcement mode
+
+- New `announcement?: AnnouncementContent` prop. When set: typewriter plays on the announcement text, CTA action buttons appear after typing completes, the inactivity autoclose timer is disabled, and the chat input is hidden.
+- Used exclusively during the onboarding sequence; reverts to normal chat mode after `dismiss()`.
+
+**`src/App.tsx`** — pet slide sequence
+
+- `onboardingActive = onboarding.state !== 'done'` disables cursor following (`usePetMovement.enabled`) for the entire onboarding flow.
+- On entering `ollama_found` or `needs_setup`: pet is teleported (`overridePosition`) to a start position just left of the house (bottom-right corner), then a `requestAnimationFrame`-driven linear interpolation slides it to center-bottom over `ONBOARDING_SLIDE_MS` (5500 ms).
+- After the slide, the announcement bubble appears. A `ONBOARDING_AUTOCLOSE_MS` (10 000 ms) timer fires if the user does not click.
+
+**`src/ai/providers/ollama.ts`** — `OllamaProvider.detect()`
+
+- New `static async detect(baseUrl?, timeoutMs?): Promise<OllamaDetectResult>` method. Hits `${baseUrl}/api/tags`, returns `{ ok: true, models: string[] }` or `{ ok: false }`.
+
+**`src/store/configStore.ts`** — new helpers
+
+- `isConfigured(config)` — exported helper; returns `true` for Ollama (always ready) or any provider with a non-empty `apiKey`.
+- `applyOllamaAutoConfig(model, baseUrl?)` — atomic write of provider + model + baseUrl + flags in a single `save_config` call.
+- `setOnboardingCompleted(bool)` and `setOllamaAutoDetected(bool)` — individual flag setters.
+
+**`src/components/SettingsPanel.tsx`** — connection status badge + help links
+
+- Status badge in the header: 🟢 `connected` (credentials present + test passed) / 🟡 `untested` (credentials present, not yet tested) / 🔴 `disconnected` (no credentials or test failed).
+- Per-provider help link rendered below the API key field when no credentials are configured.
+- Provider dropdown reordered: Google (Gemini) listed first.
+
+### Changed — Default provider: Gemini (May 2026)
+
+- `src/store/configStore.ts` `DEFAULT_CONFIG` and `src-tauri/src/storage.rs` `AIConfig::default()` now set `provider = "gemini"` / `model = "gemini-2.5-flash"`.
+- Rationale: Google AI Studio offers a free tier with no credit card required — lowest onboarding friction for new users.
+- `src/ai/providers/gemini.ts`: constructor default model updated from `gemini-1.5-flash` to `gemini-2.5-flash`.
+- `src-tauri/src/storage.rs`: `AIConfig` struct extended with `onboarding_completed: Option<bool>` and `ollama_auto_detected: Option<bool>` (both `skip_serializing_if = "Option::is_none"`, backward-compatible with existing TOML files).
+- `src/ai/types.ts`: `AIConfig` extended with `onboardingCompleted?: boolean` and `ollamaAutoDetected?: boolean`.
+
+### Changed — DEFAULT_MAX_TOKENS shared constant (May 2026)
+
+- `src/ai/types.ts`: `export const DEFAULT_MAX_TOKENS = 256` — single source of truth for the output token cap shared by all five AI providers.
+- Ollama was previously uncapped; it now passes `options: { num_predict: DEFAULT_MAX_TOKENS }` in the request body.
+- `src-tauri/src/lib.rs`: matching `const DEFAULT_MAX_TOKENS: u32 = 256` for the `nvidia_chat` Tauri command.
+
 ### Security — Content Security Policy (May 2026)
 
 The WebView shipped with `csp: null`, which left it with no Content Security Policy at all. Replaced with a restrictive policy that lists only the network surface the app actually uses.

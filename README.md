@@ -43,29 +43,30 @@ Neko:   *walks over, pops a bubble*
 
 ## 🌟 Features
 
-| Feature                                                                        | Status     |
-| ------------------------------------------------------------------------------ | ---------- |
-| 🐱 Animated sprite pets that roam your desktop                                 | ✅         |
-| 🖱️ 8-direction cursor following & movement                                     | ✅         |
-| 💬 AI chat via animated speech bubble                                          | ✅         |
-| 🧠 Persistent memory — remembers your name, projects, preferences              | ✅         |
-| 🔌 Multi-provider AI (Claude, OpenAI, Gemini, NVIDIA NIM, Ollama local)        | ✅         |
-| 😴 Dynamic mood — energy changes with time of day & idle time                  | ✅         |
-| 🎭 Multiple pets — Classic Neko, Ghost, Ember, Pingu, Shiba                    | ✅         |
-| 🏠 Pet house — spawn point at bottom-right corner, click to bring pet home     | ✅         |
-| 🔔 Proactive nudges ("coding 90 min — take a break!")                          | ✅         |
-| 🖥️ System tray — hide/show, switch pets, settings                              | ✅         |
-| 📏 Adjustable pet size (S/M/L/XL) with pixel-perfect scaling                   | ✅         |
-| 🖱️ Right-click context menu — quick settings & pet size adjustment             | ✅         |
-| 📊 NekoMetrics — anonymous keystroke / mouse / pet-step counters in a tooltip  | 🔜 v0.3    |
-| 🥁 BongoCat-style reactive paw animations driven by keystrokes                 | 🔜 v0.3    |
-| 📅 Daily/weekly/monthly activity history & GitHub-style heatmap                | 🔜 v0.3    |
-| 📷 NekoCapture — screenshots with username/date/app/comment footer             | 🔜 v0.6    |
-| 🖼️ Customizable screenshot borders (color, thickness, rounded corners, shadow) | 🔜 v0.6    |
-| ✏️ NekoAnnotate — full-screen drawing overlay (pen, shapes, arrows, text)      | 🔜 v0.7    |
-| 🌐 Cross-platform (Windows, macOS, Linux)                                      | 🔜 Planned |
-| 🧩 Plugin system for custom behaviors                                          | 🔜 Planned |
-| 🗣️ Voice interaction (TTS/STT)                                                 | 🔜 Planned |
+| Feature                                                                          | Status     |
+| -------------------------------------------------------------------------------- | ---------- |
+| 🐱 Animated sprite pets that roam your desktop                                   | ✅         |
+| 🖱️ 8-direction cursor following & movement                                       | ✅         |
+| 💬 AI chat via animated speech bubble                                            | ✅         |
+| 🧠 Persistent memory — remembers your name, projects, preferences                | ✅         |
+| 🔌 Multi-provider AI (Claude, OpenAI, Gemini, NVIDIA NIM, Ollama local)          | ✅         |
+| 😴 Dynamic mood — energy changes with time of day & idle time                    | ✅         |
+| 🎭 Multiple pets — Classic Neko, Ghost, Ember, Pingu, Shiba                      | ✅         |
+| 🏠 Pet house — spawn point at bottom-right corner, click to bring pet home       | ✅         |
+| 🔔 Proactive nudges ("coding 90 min — take a break!")                            | ✅         |
+| 🖥️ System tray — hide/show, switch pets, settings                                | ✅         |
+| 📏 Adjustable pet size (S/M/L/XL) with pixel-perfect scaling                     | ✅         |
+| 🖱️ Right-click context menu — quick settings & pet size adjustment               | ✅         |
+| 🪄 Zero-config onboarding — auto-detects Ollama; walks pet out from house corner | ✅         |
+| 📊 NekoMetrics — anonymous keystroke / mouse / pet-step counters in a tooltip    | 🔜 v0.3    |
+| 🥁 BongoCat-style reactive paw animations driven by keystrokes                   | 🔜 v0.3    |
+| 📅 Daily/weekly/monthly activity history & GitHub-style heatmap                  | 🔜 v0.3    |
+| 📷 NekoCapture — screenshots with username/date/app/comment footer               | 🔜 v0.6    |
+| 🖼️ Customizable screenshot borders (color, thickness, rounded corners, shadow)   | 🔜 v0.6    |
+| ✏️ NekoAnnotate — full-screen drawing overlay (pen, shapes, arrows, text)        | 🔜 v0.7    |
+| 🌐 Cross-platform (Windows, macOS, Linux)                                        | 🔜 Planned |
+| 🧩 Plugin system for custom behaviors                                            | 🔜 Planned |
+| 🗣️ Voice interaction (TTS/STT)                                                   | 🔜 Planned |
 
 ---
 
@@ -137,11 +138,13 @@ Configuration is auto-created on first run:
 ```toml
 # ~/.config/nekoai/config.toml  (auto-created on first run)
 
-provider = "anthropic"           # "anthropic" | "openai" | "gemini" | "nvidia" | "ollama"
-api_key  = "sk-ant-..."          # Stored locally, never sent anywhere
-model    = "claude-haiku-4-5-20251001"
+provider = "gemini"              # "anthropic" | "openai" | "gemini" | "nvidia" | "ollama"
+api_key  = "AIza..."             # Stored locally, never sent anywhere
+model    = "gemini-2.5-flash"
 pet_size = 64                    # pixels (32, 64, 96, or 128)
 ```
+
+> 🪄 **New user?** NekoAI auto-detects a running Ollama instance and configures itself on first launch — no settings required. Otherwise it guides you to set up your preferred provider.
 
 > 🔒 **Privacy first**: NekoAI has no backend server. All data stays on your machine. The only outbound calls are the AI API calls _you_ configure.
 
@@ -170,13 +173,13 @@ sqlite3 ~/.local/share/nekoai/memory.db "SELECT * FROM user_facts;"
 
 ### Supported AI providers
 
-| Provider       | Models                                   | Requires                                                                     |
-| -------------- | ---------------------------------------- | ---------------------------------------------------------------------------- |
-| **Anthropic**  | Claude Haiku, Sonnet                     | API Key                                                                      |
-| **OpenAI**     | GPT-4o mini, GPT-4o                      | API Key                                                                      |
-| **Google**     | Gemini 1.5 Flash, Gemini 2.0 Flash...    | API Key ([Google AI Studio](https://aistudio.google.com))                    |
-| **NVIDIA NIM** | Llama 3.1, Mistral, Nemotron, MiniMax... | API Key ([build.nvidia.com](https://build.nvidia.com)) — free tier available |
-| **Ollama**     | Llama 3, Mistral, Phi-3...               | [Ollama](https://ollama.ai) running locally                                  |
+| Provider       | Models                                     | Requires                                                                        |
+| -------------- | ------------------------------------------ | ------------------------------------------------------------------------------- |
+| **Anthropic**  | Claude Haiku, Sonnet                       | API Key                                                                         |
+| **OpenAI**     | GPT-4o mini, GPT-4o                        | API Key                                                                         |
+| **Google**     | Gemini 2.5 Flash _(default)_, 2.0 Flash... | Free API Key ([Google AI Studio](https://aistudio.google.com)) — no credit card |
+| **NVIDIA NIM** | Llama 3.1, Mistral, Nemotron, MiniMax...   | API Key ([build.nvidia.com](https://build.nvidia.com)) — free tier available    |
+| **Ollama**     | Llama 3, Mistral, Phi-3...                 | [Ollama](https://ollama.ai) running locally                                     |
 
 > 💡 **For full privacy**: Use Ollama — 100% local, no API costs, no data leaves your machine.
 > 🟢 **Free models**: NVIDIA NIM offers a generous free tier with 40+ open-source models at [build.nvidia.com](https://build.nvidia.com).
@@ -247,7 +250,8 @@ NekoAI/
 │   │   ├── usePetMovement.ts    # 8-direction movement, overridePosition, EdgePhase state machine
 │   │   ├── useIdleSequencer.ts  # Classic Neko stop→wash→scratch→yawn→sleep idle sequence
 │   │   ├── useMoodEngine.ts     # Energy/happiness/curiosity + animation overrides
-│   │   └── useDesktopContext.ts # Active window detection & app categorization
+│   │   ├── useDesktopContext.ts # Active window detection & app categorization
+│   │   └── useOnboarding.ts    # First-launch state machine (Ollama auto-detect → done)
 │   └── store/
 │       ├── index.ts             # Zustand store (mood, active pet, animation)
 │       └── configStore.ts       # AI config & pet size persisted via Tauri commands
@@ -308,7 +312,7 @@ Read [CONTRIBUTING.md](CONTRIBUTING.md) before submitting.
 | Version     | Focus                                                                                                                                                                                                                       |
 | ----------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **v0.1** ✅ | Core: transparent window, Neko sprite, cursor tracking, AI chat                                                                                                                                                             |
-| **v0.2** 🚧 | Persistent memory, dynamic mood engine, pet house window, new pets (Ghost, Ember, Pingu), 8-direction movement                                                                                                              |
+| **v0.2** 🚧 | Persistent memory, dynamic mood engine, pet house window, new pets (Ghost, Ember, Pingu), 8-direction movement, zero-config onboarding (Ollama auto-detect), Gemini as default provider                                     |
 | **v0.3** 🔜 | **NekoMetrics** — anonymous keystroke / mouse / pet-step counters with house right-click menu, animated tooltip above the house, daily/weekly/monthly history, GitHub-style heatmap, BongoCat-style reactive paw animations |
 | **v0.4** 🔜 | Accessories/skins system, sound effects, sprite scale slider                                                                                                                                                                |
 | **v0.5** 🔜 | Community pet gallery in-app, mini-games                                                                                                                                                                                    |

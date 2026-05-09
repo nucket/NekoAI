@@ -32,17 +32,28 @@ pub struct AIConfig {
     pub pet_mode: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub active_pet_id: Option<String>,
+    // Onboarding flags. `None` means "not decided yet" so the first launch
+    // after upgrading from a pre-onboarding TOML still triggers the flow.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub onboarding_completed: Option<bool>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub ollama_auto_detected: Option<bool>,
 }
 
 impl Default for AIConfig {
     fn default() -> Self {
+        // Gemini is the default provider because aistudio.google.com offers a
+        // free tier with no credit card — minimal onboarding friction. The TS
+        // default in src/store/configStore.ts must mirror this.
         AIConfig {
-            provider: "anthropic".to_string(),
+            provider: "gemini".to_string(),
             api_key: None,
-            model: "claude-haiku-4-5-20251001".to_string(),
+            model: "gemini-2.5-flash".to_string(),
             base_url: None,
             pet_mode: None,
             active_pet_id: Some("classic-neko".to_string()),
+            onboarding_completed: None,
+            ollama_auto_detected: None,
         }
     }
 }

@@ -14,12 +14,25 @@ const SPRITE_SIZE = 32
 
 // ─── Provider defaults ────────────────────────────────────────────────────────
 
+// Gemini is listed first because aistudio.google.com offers a free API tier
+// with no credit card — the lowest-friction onboarding path for new users.
 const PROVIDER_DEFAULTS: Record<string, { model: string; placeholder: string }> = {
+  gemini: { model: 'gemini-2.5-flash', placeholder: 'AIza…' },
   anthropic: { model: 'claude-haiku-4-5-20251001', placeholder: 'sk-ant-…' },
   openai: { model: 'gpt-4o-mini', placeholder: 'sk-…' },
   ollama: { model: 'llama3', placeholder: '(not required)' },
-  gemini: { model: 'gemini-1.5-flash', placeholder: 'AIza…' },
   nvidia: { model: 'meta/llama-3.1-8b-instruct', placeholder: 'nvapi-…' },
+}
+
+// External help links — surfaced when the panel opens without working
+// credentials. Gemini gets a "free" tag because aistudio offers a free tier
+// that's the lowest-friction onboarding path for non-technical users.
+const PROVIDER_HELP: Record<string, { url: string; label: string }> = {
+  anthropic: { url: 'https://console.anthropic.com/settings/keys', label: 'Obtener API key' },
+  openai: { url: 'https://platform.openai.com/api-keys', label: 'Obtener API key' },
+  gemini: { url: 'https://aistudio.google.com/apikey', label: 'Obtener API key gratis' },
+  nvidia: { url: 'https://build.nvidia.com/', label: 'Obtener API key' },
+  ollama: { url: 'https://ollama.com/download', label: 'Descargar Ollama' },
 }
 
 // ─── Component ────────────────────────────────────────────────────────────────
@@ -162,6 +175,13 @@ export function SettingsPanel({ isOpen, onClose }: Props) {
   if (!isOpen) return null
 
   const isOllama = config.provider === 'ollama'
+  const hasCredentials = isOllama || !!config.apiKey
+  const status: 'connected' | 'untested' | 'disconnected' = !hasCredentials
+    ? 'disconnected'
+    : testStatus === 'ok'
+      ? 'connected'
+      : 'untested'
+  const help = PROVIDER_HELP[config.provider]
 
   return (
     <div style={styles.overlay} onClick={onClose}>
@@ -174,6 +194,20 @@ export function SettingsPanel({ isOpen, onClose }: Props) {
           </button>
         </div>
 
+        {/* ── Status badge ────────────────────────────────────────────────── */}
+        <div
+          style={{
+            ...styles.statusBadge,
+            ...(status === 'connected' ? styles.statusOk : {}),
+            ...(status === 'untested' ? styles.statusWarn : {}),
+            ...(status === 'disconnected' ? styles.statusError : {}),
+          }}
+        >
+          {status === 'connected' && '🟢 IA Conectada'}
+          {status === 'untested' && '🟡 Sin verificar'}
+          {status === 'disconnected' && '🔴 IA Desconectada'}
+        </div>
+
         {/* ── Provider ────────────────────────────────────────────────────── */}
         <label style={styles.label}>AI Provider</label>
         <select
@@ -181,9 +215,9 @@ export function SettingsPanel({ isOpen, onClose }: Props) {
           value={config.provider}
           onChange={(e) => handleProviderChange(e.target.value)}
         >
+          <option value="gemini">Google (Gemini)</option>
           <option value="anthropic">Anthropic (Claude)</option>
           <option value="openai">OpenAI (GPT)</option>
-          <option value="gemini">Google (Gemini)</option>
           <option value="ollama">Ollama (local)</option>
           <option value="nvidia">NVIDIA NIM</option>
         </select>
@@ -234,6 +268,17 @@ export function SettingsPanel({ isOpen, onClose }: Props) {
               placeholder="http://localhost:11434"
             />
           </>
+        )}
+
+        {/* ── Helper link (only when credentials missing) ─────────────────── */}
+        {!hasCredentials && help && (
+          <button
+            style={styles.helperLink}
+            onClick={() => invoke('open_url', { url: help.url })}
+            title={help.url}
+          >
+            ↗ {help.label}
+          </button>
         )}
 
         {/* ── User name ───────────────────────────────────────────────────── */}
@@ -412,6 +457,40 @@ const styles: Record<string, React.CSSProperties> = {
     margin: 0,
     fontSize: 11,
     wordBreak: 'break-word',
+  },
+  statusBadge: {
+    fontSize: 11,
+    fontWeight: 600,
+    padding: '4px 8px',
+    borderRadius: 6,
+    textAlign: 'center',
+    border: '1px solid transparent',
+  },
+  statusOk: {
+    background: '#1b4332',
+    borderColor: '#4caf50',
+    color: '#a5d6a7',
+  },
+  statusWarn: {
+    background: '#3a3520',
+    borderColor: '#caa64c',
+    color: '#e6cf80',
+  },
+  statusError: {
+    background: '#4a1414',
+    borderColor: '#f44336',
+    color: '#ef9a9a',
+  },
+  helperLink: {
+    background: 'transparent',
+    color: '#7dd3fc',
+    border: '1px dashed #3a4a5e',
+    borderRadius: 6,
+    padding: '5px 8px',
+    fontSize: 11,
+    cursor: 'pointer',
+    textAlign: 'left',
+    marginTop: 2,
   },
   divider: {
     borderTop: '1px solid #333',
