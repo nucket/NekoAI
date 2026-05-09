@@ -21,7 +21,9 @@
       "eslint --max-warnings 0",
       "prettier --write"
     ],
-    "*.{json,css,md}": "prettier --write"
+    "*.{json,css,md}": "prettier --write",
+    "*.{js,mjs,cjs}": "prettier --write",
+    "*.yml": "prettier --write"
   },
   "dependencies": {
     "@tauri-apps/api": "^2.11.0",

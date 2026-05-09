@@ -8,7 +8,12 @@
 
 const PATTERNS = [
   // Windows
-  { re: /^nekoai-v[\d.]+-portable-windows-x64\.zip$/, os: 'windows', arch: 'x86_64', format: 'portable' },
+  {
+    re: /^nekoai-v[\d.]+-portable-windows-x64\.zip$/,
+    os: 'windows',
+    arch: 'x86_64',
+    format: 'portable',
+  },
   { re: /^nekoai_[\d.]+_x64-setup\.exe$/, os: 'windows', arch: 'x86_64', format: 'nsis' },
   { re: /^nekoai_[\d.]+_x64_en-US\.msi$/, os: 'windows', arch: 'x86_64', format: 'msi' },
 
