@@ -7,7 +7,34 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
-## [0.2.0] — Unreleased
+## [0.3.0] — 2026-05-09
+
+> Note on versioning: `v0.2.0` was published on 2026-04-24 with multi-OS installers. The CHANGELOG header at the time was left as `Unreleased` and entries for the work that landed _after_ the tag were written under that same block. Rather than rewrite history retroactively, this entry consumes everything between `v0.2.0` and `v0.3.0` and treats it as the v0.3.0 release. The `v0.2.0` GitHub release and its installers remain valid.
+
+### Added — Install metrics pipeline (May 2026)
+
+Passive, zero-telemetry pipeline that surfaces install counts without adding any network calls to the app. All data is pulled from the public GitHub Releases API; nothing runs on user machines.
+
+**`scripts/metrics/parse-asset.mjs`** — pure regex parser
+
+- Maps each Tauri-generated asset name (`nekoai_X.Y.Z_x64-setup.exe`, `nekoai_X.Y.Z_aarch64.dmg`, `nekoai-X.Y.Z-1.x86_64.rpm`, etc.) to `{ os, arch, format }`.
+- Skips signatures (`*.sig`), `latest.json`, and Tauri updater bundles (`nekoai_*.app.tar.gz`).
+- The release tag is the source of truth for version; the version embedded in the filename is ignored because past releases shipped assets whose embedded version did not match the tag.
+
+**`scripts/metrics/collect.mjs`** — aggregator
+
+- Calls `GET /repos/nucket/NekoAI/releases?per_page=100` (5000 req/h with the built-in `GITHUB_TOKEN`, 60 req/h unauthenticated for ad-hoc runs).
+- Aggregates `download_count` per OS / arch / format / version.
+- Writes `docs/metrics/snapshots/YYYY-MM-DD.json` (durable history), `docs/metrics/latest.json` (rolling), and regenerates `docs/metrics/README.md` (human-browsable table).
+- Idempotent: rerunning the same day overwrites the snapshot without producing a Git change if nothing differs.
+
+**`.github/workflows/metrics.yml`**
+
+- Schedule `17 6 * * *` UTC plus `workflow_dispatch` and `release: published`.
+- Runs the parser tests before each collection so a regex regression fails the run.
+- Commits with the `github-actions[bot]` identity only when the diff is non-empty.
+
+**`docs/metrics/SCHEMA.md`** — reference for the snapshot JSON. Documents the `source` field as the extension point for future install sources (winget, Homebrew, Flathub, Snap), each writing parallel snapshot files with the same schema.
 
 ### Added — Zero-config onboarding (May 2026)
 
@@ -377,7 +404,7 @@ Major version bumps across the frontend toolchain. No user-visible behavior chan
 
 ---
 
-## [0.1.0] — Unreleased
+## [0.1.0] — 2026-04-24
 
 ### Added
 
@@ -398,4 +425,6 @@ Major version bumps across the frontend toolchain. No user-visible behavior chan
 
 ---
 
-[Unreleased]: https://github.com/nucket/nekoai/compare/HEAD
+[0.3.0]: https://github.com/nucket/NekoAI/compare/v0.2.0...v0.3.0
+[0.2.0]: https://github.com/nucket/NekoAI/compare/v0.1.0...v0.2.0
+[0.1.0]: https://github.com/nucket/NekoAI/releases/tag/v0.1.0

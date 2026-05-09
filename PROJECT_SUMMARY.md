@@ -3,7 +3,7 @@
 > **Author:** Naudy Castellanos ([@nucket](https://github.com/nucket))  
 > **Repository:** https://github.com/nucket/nekoai  
 > **License:** MIT  
-> **Status:** Active development — v0.2.0 shipped — v0.3 (NekoMetrics) in planning
+> **Status:** Active development — v0.3.0 release branch open — v0.2.0 shipped (2026-04-24) — v0.4 (NekoMetrics) in planning
 
 ---
 
@@ -109,9 +109,9 @@ The pet wanders freely across your desktop, reacts to cursor movement and window
 - [x] Notification monitor thread shutdown — `mpsc::recv_timeout` + `RunEvent::Exit` handler for clean process exit (was a bare infinite loop)
 - [x] CI cross-platform matrix — `rust-check` and `test` jobs run on Linux + Windows + macOS; `cargo fmt --check` enforced; `npm run build` added to typecheck job
 
-### Planned (v0.3+)
+### Planned (v0.4+)
 
-- [ ] NekoMetrics — anonymous keystroke / mouse / pet-step counters (spec: `docs/feature-nekometrics-v0.3.md`)
+- [ ] NekoMetrics — anonymous keystroke / mouse / pet-step counters (spec: `docs/feature-nekometrics-v0.4.md`)
 - [ ] BongoCat-style reactive paw animations driven by keystrokes
 - [ ] Daily/weekly/monthly activity history + GitHub-style heatmap
 - [ ] macOS testing and stable cross-platform release

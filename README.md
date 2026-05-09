@@ -58,9 +58,9 @@ Neko:   *walks over, pops a bubble*
 | 📏 Adjustable pet size (S/M/L/XL) with pixel-perfect scaling                     | ✅         |
 | 🖱️ Right-click context menu — quick settings & pet size adjustment               | ✅         |
 | 🪄 Zero-config onboarding — auto-detects Ollama; walks pet out from house corner | ✅         |
-| 📊 NekoMetrics — anonymous keystroke / mouse / pet-step counters in a tooltip    | 🔜 v0.3    |
-| 🥁 BongoCat-style reactive paw animations driven by keystrokes                   | 🔜 v0.3    |
-| 📅 Daily/weekly/monthly activity history & GitHub-style heatmap                  | 🔜 v0.3    |
+| 📊 NekoMetrics — anonymous keystroke / mouse / pet-step counters in a tooltip    | 🔜 v0.4    |
+| 🥁 BongoCat-style reactive paw animations driven by keystrokes                   | 🔜 v0.4    |
+| 📅 Daily/weekly/monthly activity history & GitHub-style heatmap                  | 🔜 v0.4    |
 | 📷 NekoCapture — screenshots with username/date/app/comment footer               | 🔜 v0.6    |
 | 🖼️ Customizable screenshot borders (color, thickness, rounded corners, shadow)   | 🔜 v0.6    |
 | ✏️ NekoAnnotate — full-screen drawing overlay (pen, shapes, arrows, text)        | 🔜 v0.7    |
@@ -312,10 +312,10 @@ Read [CONTRIBUTING.md](CONTRIBUTING.md) before submitting.
 | Version     | Focus                                                                                                                                                                                                                       |
 | ----------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **v0.1** ✅ | Core: transparent window, Neko sprite, cursor tracking, AI chat                                                                                                                                                             |
-| **v0.2** 🚧 | Persistent memory, dynamic mood engine, pet house window, new pets (Ghost, Ember, Pingu), 8-direction movement, zero-config onboarding (Ollama auto-detect), Gemini as default provider                                     |
-| **v0.3** 🔜 | **NekoMetrics** — anonymous keystroke / mouse / pet-step counters with house right-click menu, animated tooltip above the house, daily/weekly/monthly history, GitHub-style heatmap, BongoCat-style reactive paw animations |
-| **v0.4** 🔜 | Accessories/skins system, sound effects, sprite scale slider                                                                                                                                                                |
-| **v0.5** 🔜 | Community pet gallery in-app, mini-games                                                                                                                                                                                    |
+| **v0.2** ✅ | Persistent memory, dynamic mood engine, pet house window, new pets (Ghost, Ember, Pingu), 8-direction movement                                                                                                              |
+| **v0.3** 🚧 | Zero-config onboarding (Ollama auto-detect), Gemini as default provider, NVIDIA NIM provider, classic Neko idle/edge sequencer, restrictive CSP, multi-OS CI matrix, passive install metrics pipeline                       |
+| **v0.4** 🔜 | **NekoMetrics** — anonymous keystroke / mouse / pet-step counters with house right-click menu, animated tooltip above the house, daily/weekly/monthly history, GitHub-style heatmap, BongoCat-style reactive paw animations |
+| **v0.5** 🔜 | Accessories/skins system, sound effects, sprite scale slider, community pet gallery in-app, mini-games                                                                                                                      |
 | **v0.6** 🔜 | **NekoCapture** — native screenshots with metadata footer (username, timestamp, app name, comments), customizable borders & shadows, clipboard/file export, hotkeys                                                         |
 | **v0.7** 🔜 | **NekoAnnotate** — full-screen drawing overlay (pen, shapes, arrows, text, highlighter) with undo/redo, inspired by ZoomIt Draw; annotate before saving screenshots                                                         |
 | **v1.0** 🔜 | Cross-platform stable release, plugin API, voice support                                                                                                                                                                    |
