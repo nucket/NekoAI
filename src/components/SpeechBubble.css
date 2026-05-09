@@ -268,3 +268,44 @@
   opacity: 0.35;
   cursor: default;
 }
+
+/* ─── Announcement mode (CTA buttons) ────────────────────────────────────────── */
+
+.speech-bubble__cta-row {
+  display: flex;
+  gap: 6px;
+  margin-top: 4px;
+}
+
+.speech-bubble__cta {
+  flex: 1;
+  padding: 7px 10px;
+  border-radius: 9px;
+  border: 1px solid #e2e2e2;
+  background: #fafafa;
+  color: #333;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition:
+    background 0.12s,
+    border-color 0.12s,
+    color 0.12s;
+}
+
+.speech-bubble__cta:hover {
+  background: #f0f0f0;
+  border-color: #c8c8c8;
+}
+
+.speech-bubble__cta--primary {
+  background: #4a6fa5;
+  border-color: #3d5e8c;
+  color: #ffffff;
+}
+
+.speech-bubble__cta--primary:hover {
+  background: #3d5e8c;
+  border-color: #2f4a73;
+}

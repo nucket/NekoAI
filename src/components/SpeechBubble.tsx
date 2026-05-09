@@ -8,6 +8,17 @@ export interface Message {
   content: string
 }
 
+export interface AnnouncementAction {
+  label: string
+  onClick: () => void
+  primary?: boolean
+}
+
+export interface AnnouncementContent {
+  text: string
+  actions: AnnouncementAction[]
+}
+
 export interface SpeechBubbleProps {
   /** Controlled by parent (parent also handles window resize). */
   isOpen: boolean
@@ -15,8 +26,13 @@ export interface SpeechBubbleProps {
   position: 'above' | 'below'
   /** Called when the user closes the bubble or the inactivity timer fires. */
   onClose: () => void
-  /** Async function that takes the user's message and returns the AI reply. */
+  /** Async function that takes the user's message and returns the AI reply.
+   *  Ignored when `announcement` is provided. */
   onSendMessage: (message: string) => Promise<string>
+  /** When set, the bubble shows a single message + action buttons instead of
+   *  the chat input. Used for onboarding / system prompts. The inactivity
+   *  timer is also disabled in this mode (CTAs require user attention). */
+  announcement?: AnnouncementContent
 }
 
 // ─── Constants ────────────────────────────────────────────────────────────────
@@ -28,7 +44,13 @@ const SCRAMBLE_LOOKAHEAD = 5 // scrambled chars visible ahead of the locked posi
 
 // ─── Component ───────────────────────────────────────────────────────────────
 
-export function SpeechBubble({ isOpen, position, onClose, onSendMessage }: SpeechBubbleProps) {
+export function SpeechBubble({
+  isOpen,
+  position,
+  onClose,
+  onSendMessage,
+  announcement,
+}: SpeechBubbleProps) {
   // ── Internal state (as requested) ─────────────────────────────────────────
   const [inputValue, setInputValue] = useState('')
   const [messages, setMessages] = useState<Message[]>([])
@@ -46,10 +68,12 @@ export function SpeechBubble({ isOpen, position, onClose, onSendMessage }: Speec
   const typewriterRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
   // ── Reset inactivity timer ─────────────────────────────────────────────────
+  // In announcement mode the bubble must wait for user action — never auto-close.
   const resetTimer = useCallback(() => {
     if (inactivityRef.current) clearTimeout(inactivityRef.current)
+    if (announcement) return
     inactivityRef.current = setTimeout(onClose, INACTIVITY_MS)
-  }, [onClose])
+  }, [onClose, announcement])
 
   // ── Lifecycle: open / close ────────────────────────────────────────────────
   useEffect(() => {
@@ -67,10 +91,19 @@ export function SpeechBubble({ isOpen, position, onClose, onSendMessage }: Speec
       return
     }
 
-    // Focus input as soon as the bubble is mounted (next paint)
-    requestAnimationFrame(() => inputRef.current?.focus())
+    // Focus input as soon as the bubble is mounted (next paint).
+    // Skipped in announcement mode (no input present).
+    if (!announcement) requestAnimationFrame(() => inputRef.current?.focus())
     resetTimer()
-  }, [isOpen, resetTimer])
+  }, [isOpen, resetTimer, announcement])
+
+  // ── Announcement: kick the typewriter on open ─────────────────────────────
+  // Re-uses the same scramble effect as AI replies for visual coherence.
+  useEffect(() => {
+    if (!isOpen || !announcement) return
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setPendingText(announcement.text)
+  }, [isOpen, announcement])
 
   // ── Auto-scroll to latest message ─────────────────────────────────────────
   useEffect(() => {
@@ -214,32 +247,53 @@ export function SpeechBubble({ isOpen, position, onClose, onSendMessage }: Speec
         </div>
       )}
 
-      {/* ── Input row ───────────────────────────────────────────────────── */}
-      <div className="speech-bubble__input-row">
-        <input
-          ref={inputRef}
-          type="text"
-          className="speech-bubble__input"
-          placeholder="Say something…"
-          value={inputValue}
-          autoComplete="off"
-          spellCheck={false}
-          disabled={isLoading || isTyping}
-          onChange={(e) => {
-            setInputValue(e.target.value)
-            resetTimer()
-          }}
-          onKeyDown={handleKeyDown}
-        />
-        <button
-          className="speech-bubble__send"
-          onClick={handleSend}
-          disabled={isLoading || isTyping || !inputValue.trim()}
-          aria-label="Send message"
-        >
-          ↵
-        </button>
-      </div>
+      {/* ── Action buttons (announcement mode) ──────────────────────────── */}
+      {announcement && !isTyping && (
+        <div className="speech-bubble__cta-row">
+          {announcement.actions.map((action, i) => (
+            <button
+              key={i}
+              className={
+                action.primary
+                  ? 'speech-bubble__cta speech-bubble__cta--primary'
+                  : 'speech-bubble__cta'
+              }
+              onClick={action.onClick}
+            >
+              {action.label}
+            </button>
+          ))}
+        </div>
+      )}
+
+      {/* ── Input row (chat mode only) ──────────────────────────────────── */}
+      {!announcement && (
+        <div className="speech-bubble__input-row">
+          <input
+            ref={inputRef}
+            type="text"
+            className="speech-bubble__input"
+            placeholder="Say something…"
+            value={inputValue}
+            autoComplete="off"
+            spellCheck={false}
+            disabled={isLoading || isTyping}
+            onChange={(e) => {
+              setInputValue(e.target.value)
+              resetTimer()
+            }}
+            onKeyDown={handleKeyDown}
+          />
+          <button
+            className="speech-bubble__send"
+            onClick={handleSend}
+            disabled={isLoading || isTyping || !inputValue.trim()}
+            aria-label="Send message"
+          >
+            ↵
+          </button>
+        </div>
+      )}
 
       {/* ── Triangle tail (points toward sprite) ────────────────────────── */}
       <div className={`speech-bubble__tail speech-bubble__tail--${position}`} aria-hidden="true" />

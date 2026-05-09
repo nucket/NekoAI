@@ -13,11 +13,20 @@ interface ConfigStore {
   setPetSize: (petSize: number) => Promise<void>
   setPetMode: (petMode: AIConfig['petMode']) => Promise<void>
   setActivePetId: (activePetId: string) => Promise<void>
+  setOnboardingCompleted: (completed: boolean) => Promise<void>
+  setOllamaAutoDetected: (detected: boolean) => Promise<void>
+  applyOllamaAutoConfig: (model: string, baseUrl?: string) => Promise<void>
 }
 
+export function isConfigured(config: AIConfig): boolean {
+  return config.provider === 'ollama' ? true : !!config.apiKey
+}
+
+// Mirror of `AIConfig::default()` in src-tauri/src/storage.rs — keep in sync.
+// Gemini is the default for free-tier onboarding friction reasons.
 const DEFAULT_CONFIG: AIConfig = {
-  provider: 'anthropic',
-  model: 'claude-haiku-4-5-20251001',
+  provider: 'gemini',
+  model: 'gemini-2.5-flash',
   petSize: 32,
   activePetId: 'classic-neko',
 }
@@ -73,6 +82,33 @@ export const useConfigStore = create<ConfigStore>((set, get) => ({
 
   setActivePetId: async (activePetId) => {
     const config = { ...get().config, activePetId }
+    set({ config })
+    await persist(config)
+  },
+
+  setOnboardingCompleted: async (onboardingCompleted) => {
+    const config = { ...get().config, onboardingCompleted }
+    set({ config })
+    await persist(config)
+  },
+
+  setOllamaAutoDetected: async (ollamaAutoDetected) => {
+    const config = { ...get().config, ollamaAutoDetected }
+    set({ config })
+    await persist(config)
+  },
+
+  // Atomic write of provider + model + baseUrl + flags. Used by the onboarding
+  // detection so we don't race three separate `save_config` round-trips.
+  applyOllamaAutoConfig: async (model, baseUrl = 'http://localhost:11434') => {
+    const config: AIConfig = {
+      ...get().config,
+      provider: 'ollama',
+      model,
+      baseUrl,
+      ollamaAutoDetected: true,
+      onboardingCompleted: true,
+    }
     set({ config })
     await persist(config)
   },

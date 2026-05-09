@@ -62,12 +62,12 @@ Sources of each layer:
 - `moodOverride` — `useMoodEngine` (yawn when OS idle; only fires in `IDLE` state)
 - `idleAnim` — `useIdleSequencer` (wash / scratch_wall / yawn / falling_asleep / sleep; only in `NEAR_CURSOR`)
 - `clickWakeAnim` — brief `awaken` flash on sprite click (only in stationary states)
-- `edgeAnimOverride` — scratch / yawn / idle during monitor-edge crossing
+- `edgeAnimOverride` — scratch / yawn / idle during monitor-edge crossing; also used during the onboarding slide (`walk_left`)
 - `notificationAlert` — overrides everything when the pet was teleported to a notification
 
 ### Movement
 
-`usePetMovement` runs a 50ms cursor poll via `invoke('get_cursor_pos')` and a rAF loop that moves the window. States: `IDLE → WALKING → NEAR_CURSOR → SLEEPING`.
+`usePetMovement` runs a 50ms cursor poll via `invoke('get_cursor_pos')` and a rAF loop that moves the window. States: `IDLE → WALKING → NEAR_CURSOR → SLEEPING`. The `enabled` flag pauses cursor following — set to `false` during the onboarding slide sequence.
 
 ### Mood engine
 
@@ -202,10 +202,12 @@ CREATE TABLE user_facts (
 Config file at `~/.config/nekoai/config.toml`:
 
 ```toml
-provider = "anthropic"
-api_key  = "sk-ant-..."
-model    = "claude-haiku-4-5-20251001"
+provider = "gemini"
+api_key  = "AIza..."
+model    = "gemini-2.5-flash"
 ```
+
+Default is Gemini because Google AI Studio offers a free tier with no credit card. `configStore.ts` `DEFAULT_CONFIG` and `storage.rs` `AIConfig::default()` must always stay in sync.
 
 ---
 
@@ -228,6 +230,32 @@ model    = "claude-haiku-4-5-20251001"
 `App.tsx` fetches `/pets/<activePetId>/pet.json` via HTTP (Vite serves `pets/` as static assets in dev; the build hook copies them to `dist/pets/`). When `activePetId` changes, the effect re-runs and the new pet loads immediately.
 
 ---
+
+## Onboarding flow
+
+`useOnboarding` runs once per session after the Zustand config store finishes loading from disk.
+
+```
+config loaded
+     │
+     ├─ onboardingCompleted=true OR isConfigured(config)=true → done (silent stamp if needed)
+     │
+     └─ detecting: OllamaProvider.detect() (800ms timeout, GET /api/tags)
+              │
+              ├─ ok + models ≥ 1 → applyOllamaAutoConfig(models[0])
+              │                     setState('ollama_found')
+              │
+              └─ not ok          → setState('needs_setup')
+
+After ollama_found | needs_setup:
+  App.tsx disables usePetMovement (onboardingActive gate)
+  → overridePosition to start (house corner)
+  → rAF slide to center-bottom (5500ms)
+  → SpeechBubble shown in announcement mode (10s autoclose)
+  → user clicks CTA → dismiss() → setState('done') → cursor following re-enables
+```
+
+`isConfigured(config)` helper: Ollama is always ready; every other provider needs a non-empty `apiKey`.
 
 ## Data flow diagram (chat turn)
 
