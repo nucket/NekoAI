@@ -1,4 +1,4 @@
-# NekoMetrics — v0.3 Implementation Spec
+# NekoMetrics — v0.4 Implementation Spec
 
 > Self-contained specification for an AI agent (e.g. Claude Sonnet) to implement the NekoMetrics feature without prior context. Read this file end-to-end before starting. All file paths in this document are relative to the repo root unless otherwise noted.
 
@@ -47,7 +47,7 @@ Treat these as **flag-and-pause** points. Do not silently invent answers.
    - **A** — every 32 logical px traversed = 1 step (simplest).
    - **B** — every full walk-cycle (4-frame loop of `walk_*` animation) = 1 step (most natural, matches the leg animation).
    - **C** — 1 step per second of `walk_*` animation playback (decoupled from movement speed).
-3. **Reactive paw animation scope** — only `classic-neko` for v0.3, or all bundled pets? Recommended: classic-neko only; document the new optional `pet.json` field so the rest can opt in over time.
+3. **Reactive paw animation scope** — only `classic-neko` for v0.4, or all bundled pets? Recommended: classic-neko only; document the new optional `pet.json` field so the rest can opt in over time.
 4. **About panel content** — link to GitHub + version, or also include credits/donations? Default: GitHub + version + license + author handle.
 5. **History retention** — keep all rows, or auto-prune after N months? Recommended: keep all (rows are tiny: < 100 bytes/day).
 
@@ -298,7 +298,7 @@ cd src-tauri && cargo clippy -- -D warnings && cd ..
 
 ---
 
-## 11. Stretch / nice-to-have (not required for v0.3 ship)
+## 11. Stretch / nice-to-have (not required for v0.4 ship)
 
 - **Streaks** — "🔥 5-day typing streak". Compute from `metrics_daily` on tooltip open.
 - **Achievements** — toast at 1k / 10k / 100k / 1M keystrokes, e.g. "Centurion", "Marathoner".
@@ -313,7 +313,7 @@ Mark each stretch item explicitly as "deferred to v0.4" in the PR description if
 
 ## 12. Branch / commit / PR conventions
 
-- Branch name: `feat/nekometrics-v0.3`.
+- Branch name: `feat/nekometrics-v0.4`.
 - Conventional Commits, e.g.:
   - `feat(metrics): add input_monitor module with global hooks`
   - `feat(metrics): SQLite metrics_daily table + aggregator`
@@ -322,9 +322,9 @@ Mark each stretch item explicitly as "deferred to v0.4" in the PR description if
   - `feat(metrics): activity window with weekly bar chart and heatmap`
   - `feat(pets): on_keystroke / on_click reactive triggers`
   - `docs: document NekoMetrics in README + creating-a-pet.md`
-- PR title: `feat: NekoMetrics — anonymous activity counters and reactive paws (v0.3)`
+- PR title: `feat: NekoMetrics — anonymous activity counters and reactive paws (v0.4)`
 - PR body: copy §1 + the testing checklist; list stretch items deferred.
-- Bump app version: `package.json`, `src-tauri/Cargo.toml`, `src-tauri/tauri.conf.json` → `0.3.0`. Update the tray menu's "About" string in `lib.rs`.
+- Bump app version: `package.json`, `src-tauri/Cargo.toml`, `src-tauri/tauri.conf.json` → `0.4.0`. Update the tray menu's "About" string in `lib.rs`.
 
 ---
 
@@ -332,7 +332,7 @@ Mark each stretch item explicitly as "deferred to v0.4" in the PR description if
 
 ```
 README.md                                         # already updated
-docs/feature-nekometrics-v0.3.md                  # this file
+docs/feature-nekometrics-v0.4.md                  # this file
 docs/creating-a-pet.md                            # add on_keystroke / on_click triggers
 schemas/pet.schema.json                           # add reactive_paws + new triggers
 
