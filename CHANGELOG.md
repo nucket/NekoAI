@@ -7,6 +7,62 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.3.1] — 2026-05-10
+
+> Hotfix release — three platform-specific runtime bugs reported by users after v0.3.0.
+> No API changes, no new features, no behavioural changes on working installations.
+
+### Fixed — macOS Retina displays (M1 / M2 / M3)
+
+**`src-tauri/src/lib.rs` — `get_cursor_pos` now returns physical pixels on macOS.**
+
+The `mouse_position` crate calls `CGEventGetLocation` (CoreGraphics), which returns
+logical points, not physical pixels. Tauri positions windows in physical pixels
+(`PhysicalPosition` / `PhysicalSize`). On a 2× Retina display this caused a 2× coordinate
+mismatch: cursor at the bottom-right corner reported as the centre, so the pet only ever
+roamed the top-left quadrant of the screen.
+
+Fix: multiply raw cursor coordinates by the primary monitor's `scale_factor` inside a
+`#[cfg(target_os = "macos")]` block before returning. Windows and Linux are unaffected.
+
+### Fixed — Linux: EGL crash on launch (`EGL_BAD_ALLOC`)
+
+**`src-tauri/src/main.rs` — `WEBKIT_DISABLE_DMABUF_RENDERER=1` set before GTK init.**
+
+WebKitGTK's DMA-BUF renderer calls `abort()` with `EGL_BAD_ALLOC` on systems that
+lack full GPU/EGL support — virtual machines, missing Mesa/NVIDIA drivers, or root
+sessions where DRM access is restricted. This was observed on Fedora 42 and
+Ubuntu 26.04 LTS.
+
+Fix: set `WEBKIT_DISABLE_DMABUF_RENDERER=1` in `main()` before `lib::run()` (and
+therefore before GTK initialises), only when the variable is not already set by the user.
+WebKit falls back to software rendering; for a 32×32 px transparent overlay the
+performance difference is imperceptible.
+
+### Fixed — Linux Wayland: pet and house frozen at centre of screen
+
+**`src-tauri/src/main.rs` — `GDK_BACKEND=x11` set before GTK init on Wayland sessions.**
+
+Under the Wayland protocol, applications cannot position their own windows — the
+compositor (GNOME Shell) places them, typically at the centre. Additionally, the
+`mouse_position` crate uses `XQueryPointer` (X11) which returns `(0, 0)` when no
+X display is active, so the cursor polling loop never triggers movement.
+
+Fix: when `GDK_BACKEND` is not set by the user and an X display is available
+(`DISPLAY` env var present), force `GDK_BACKEND=x11` so GTK uses XWayland. Under
+XWayland, `setPosition()` and `XQueryPointer` both work correctly. Systems without
+XWayland (`DISPLAY` unset) are left untouched so the app at least starts.
+
+### Changed — tray "About" label reads version from binary
+
+**`src-tauri/src/lib.rs` — About menu item uses `env!("CARGO_PKG_VERSION")`.**
+
+The label was hardcoded to `"About NekoAI v0.2.0"` and had not been updated since.
+It now reads the version at compile time from `Cargo.toml`, so it can never fall out
+of sync again.
+
+---
+
 ## [0.3.0] — 2026-05-09
 
 > Note on versioning: `v0.2.0` was published on 2026-04-24 with multi-OS installers. The CHANGELOG header at the time was left as `Unreleased` and entries for the work that landed _after_ the tag were written under that same block. Rather than rewrite history retroactively, this entry consumes everything between `v0.2.0` and `v0.3.0` and treats it as the v0.3.0 release. The `v0.2.0` GitHub release and its installers remain valid.

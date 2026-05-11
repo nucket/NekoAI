@@ -27,16 +27,32 @@ struct Vec2 {
 // ─── Cursor position ──────────────────────────────────────────────────────────
 
 #[tauri::command]
-fn get_cursor_pos() -> Vec2 {
+fn get_cursor_pos(app: tauri::AppHandle) -> Vec2 {
     use mouse_position::mouse_position::Mouse;
+    let _ = &app; // used only on macOS; suppress unused-variable warning on other targets
 
-    match Mouse::get_mouse_position() {
-        Mouse::Position { x, y } => Vec2 {
-            x: x as f64,
-            y: y as f64,
-        },
-        Mouse::Error => Vec2 { x: 0.0, y: 0.0 },
+    let (x, y) = match Mouse::get_mouse_position() {
+        Mouse::Position { x, y } => (x as f64, y as f64),
+        Mouse::Error => return Vec2 { x: 0.0, y: 0.0 },
+    };
+
+    // On macOS, CGEventGetLocation returns logical points, not physical pixels.
+    // Tauri positions windows in physical pixels (PhysicalPosition/PhysicalSize).
+    // Multiply by the display scale factor so both coordinate spaces match.
+    // Without this, on a 2x Retina display the pet tracks only the top-left
+    // quadrant — cursor at the bottom-right corner appears to be at the centre.
+    #[cfg(target_os = "macos")]
+    if let Some(win) = app.get_webview_window("main") {
+        if let Ok(Some(monitor)) = win.primary_monitor() {
+            let scale = monitor.scale_factor();
+            return Vec2 {
+                x: x * scale,
+                y: y * scale,
+            };
+        }
     }
+
+    Vec2 { x, y }
 }
 
 // ─── Window positioning & sizing ─────────────────────────────────────────────
@@ -443,7 +459,13 @@ pub fn run() {
                 ],
             )?;
             let sep = PredefinedMenuItem::separator(app)?;
-            let about = MenuItem::with_id(app, "about", "About NekoAI v0.2.0", true, None::<&str>)?;
+            let about = MenuItem::with_id(
+                app,
+                "about",
+                &format!("About NekoAI v{}", env!("CARGO_PKG_VERSION")),
+                true,
+                None::<&str>,
+            )?;
             let quit = MenuItem::with_id(app, "quit", "Quit", true, None::<&str>)?;
 
             let menu = Menu::with_items(
