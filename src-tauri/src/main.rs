@@ -27,6 +27,16 @@ fn main() {
         if std::env::var_os("WEBKIT_DISABLE_DMABUF_RENDERER").is_none() {
             unsafe { std::env::set_var("WEBKIT_DISABLE_DMABUF_RENDERER", "1") };
         }
+
+        // WebKitGTK's multi-threaded compositing layer calls into Xlib from
+        // worker threads without XInitThreads(), triggering the
+        // `xcb_xlib_threads_sequence_lost` assertion crash on Ubuntu/Fedora.
+        // Disabling compositing mode forces single-threaded rendering and also
+        // prevents ghost-frame artifacts on transparent windows.
+        #[allow(unused_unsafe)]
+        if std::env::var_os("WEBKIT_DISABLE_COMPOSITING_MODE").is_none() {
+            unsafe { std::env::set_var("WEBKIT_DISABLE_COMPOSITING_MODE", "1") };
+        }
     }
 
     nekoai_lib::run()
