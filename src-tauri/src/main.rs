@@ -14,9 +14,7 @@ fn main() {
         // (no XWayland) are left untouched so the app at least starts.
         // Users can override by setting GDK_BACKEND themselves.
         #[allow(unused_unsafe)]
-        if std::env::var_os("GDK_BACKEND").is_none()
-            && std::env::var_os("DISPLAY").is_some()
-        {
+        if std::env::var_os("GDK_BACKEND").is_none() && std::env::var_os("DISPLAY").is_some() {
             unsafe { std::env::set_var("GDK_BACKEND", "x11") };
         }
 
