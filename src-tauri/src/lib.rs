@@ -1,3 +1,8 @@
+// Tauri v2's menu/tray API passes &T where T is a dyn trait object in slice
+// literals (e.g. &[&show_hide, ...]). A newer Clippy version flags these as
+// needless borrows; suppressed here until Tauri's API removes the double-ref.
+#![allow(clippy::needless_borrows_for_generic_args)]
+
 use serde::Serialize;
 use std::sync::mpsc;
 use std::sync::Mutex;
