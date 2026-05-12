@@ -7,6 +7,46 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.3.2] — 2026-05-12
+
+> Hotfix release — Linux-only crash and rendering regression reported after v0.3.1.
+> No API changes, no new features, no behavioural changes on Windows or macOS.
+
+### Fixed — Linux: XCB threading crash on Ubuntu and Fedora
+
+**`src-tauri/src/main.rs` — `WEBKIT_DISABLE_COMPOSITING_MODE=1` set before GTK init.**
+
+WebKitGTK's hardware compositing layer spawns worker threads that call into Xlib
+without `XInitThreads()` having been called first. Under X11 this triggers a fatal
+assertion in `xcb_io.c`:
+
+```
+[xcb] Most likely this is a multi-threaded client and XInitThreads has not been called
+nekoai: poll_for_event: Assertion `!xcb_xlib_threads_sequence_lost' failed.
+Aborted (core dumped)
+```
+
+The crash was reproducible with both the `.AppImage` and the `.deb` installer on
+Ubuntu 22.04. Setting `WEBKIT_DISABLE_COMPOSITING_MODE=1` forces WebKit into
+single-threaded software rendering, which avoids the Xlib re-entrance entirely.
+
+The variable is set with the same "only if not already set by the user" guard as the
+existing `WEBKIT_DISABLE_DMABUF_RENDERER` and `GDK_BACKEND` overrides, so users who
+need the default behaviour can still override it in their environment.
+
+### Fixed — Linux/Fedora: sprite ghost-frame artifacts on transparent window
+
+**Same change as above** — secondary effect of disabling the compositing layer tree.
+
+On Fedora (and likely other distros where the compositor interacts differently with
+XWayland), WebKitGTK's compositing layer did not flush the previous frame's paint
+before blending the next one onto the transparent window surface, causing earlier
+sprite frames to visually "stack up" behind the current frame during any animation
+or movement. Disabling compositing forces sequential software blits which clear the
+surface correctly.
+
+---
+
 ## [0.3.1] — 2026-05-10
 
 > Hotfix release — three platform-specific runtime bugs reported by users after v0.3.0.

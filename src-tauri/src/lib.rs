@@ -1,3 +1,8 @@
+// Tauri v2's menu/tray API passes &T where T is a dyn trait object in slice
+// literals (e.g. &[&show_hide, ...]). A newer Clippy version flags these as
+// needless borrows; suppressed here until Tauri's API removes the double-ref.
+#![allow(clippy::needless_borrows_for_generic_args)]
+
 use serde::Serialize;
 use std::sync::mpsc;
 use std::sync::Mutex;
@@ -176,7 +181,7 @@ async fn open_url(app: tauri::AppHandle, url: String) -> Result<(), String> {
 /// JS `emit()` may not reach other windows reliably; Rust `app.emit()` is global.
 #[tauri::command]
 async fn panel_action(app: tauri::AppHandle, action: String) -> Result<(), String> {
-    app.emit("panel-action", &action)
+    app.emit("panel-action", action.clone())
         .map_err(|e| e.to_string())?;
     // Hide the panel after any action that opens a new view
     if action == "settings" || action == "select-pet" {
@@ -427,7 +432,7 @@ pub fn run() {
                             }
                             if !win.title.is_empty() && win.title != prev_title {
                                 prev_title = win.title.clone();
-                                app_handle.emit("neko-notification", &win).ok();
+                                app_handle.emit("neko-notification", win).ok();
                             }
                         }
                     }
