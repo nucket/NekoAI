@@ -111,6 +111,12 @@ Go to [Releases](https://github.com/nucket/nekoai/releases) and grab the latest 
 | macOS    | `NekoAI_x.x.x_aarch64.dmg`    |
 | Linux    | `NekoAI_x.x.x_amd64.AppImage` |
 
+> **Linux note:** The `.AppImage` needs no installation — `chmod +x` it and run it
+> directly. If you prefer the `.deb`, install it from a terminal with
+> `sudo apt install ./nekoai_x.x.x_amd64.deb` — GNOME Software / the Ubuntu
+> Software Center cannot reliably install local `.deb` files and may fail with a
+> generic error.
+
 ### Option B — Build from source
 
 ```bash
