@@ -1,7 +1,25 @@
 // Prevents additional console window on Windows in release, DO NOT REMOVE!!
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
+// WebKitGTK spawns worker threads that call into Xlib's xcb compatibility
+// layer. Xlib is only thread-safe if XInitThreads() runs before any X
+// connection is opened; otherwise the process aborts with
+// `xcb_xlib_threads_sequence_lost` on Ubuntu/Fedora. libX11 is already linked
+// transitively via GTK, so this is just a declaration of the existing symbol.
+#[cfg(target_os = "linux")]
+#[link(name = "X11")]
+extern "C" {
+    fn XInitThreads() -> std::os::raw::c_int;
+}
+
 fn main() {
+    // Must be the very first thing main() does — before GTK, before WebKit,
+    // before any X connection is opened anywhere in the process.
+    #[cfg(target_os = "linux")]
+    unsafe {
+        XInitThreads();
+    }
+
     // Both env vars must be set before GTK/WebKit initialise inside lib::run().
     // Safety for set_var: no threads have been spawned yet at this point.
     #[cfg(target_os = "linux")]
@@ -24,16 +42,6 @@ fn main() {
         #[allow(unused_unsafe)]
         if std::env::var_os("WEBKIT_DISABLE_DMABUF_RENDERER").is_none() {
             unsafe { std::env::set_var("WEBKIT_DISABLE_DMABUF_RENDERER", "1") };
-        }
-
-        // WebKitGTK's multi-threaded compositing layer calls into Xlib from
-        // worker threads without XInitThreads(), triggering the
-        // `xcb_xlib_threads_sequence_lost` assertion crash on Ubuntu/Fedora.
-        // Disabling compositing mode forces single-threaded rendering and also
-        // prevents ghost-frame artifacts on transparent windows.
-        #[allow(unused_unsafe)]
-        if std::env::var_os("WEBKIT_DISABLE_COMPOSITING_MODE").is_none() {
-            unsafe { std::env::set_var("WEBKIT_DISABLE_COMPOSITING_MODE", "1") };
         }
     }
 

@@ -7,6 +7,75 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.3.3] — 2026-05-14
+
+> Hotfix release — supersedes the v0.3.2 Linux workaround, which did not fix the
+> Fedora rendering bug and introduced a new crash on Ubuntu under XWayland.
+> No API changes, no new features, no behavioural changes on Windows or macOS.
+
+### Fixed — Linux: XCB threading crash (proper root-cause fix)
+
+**`src-tauri/src/main.rs` — `XInitThreads()` is now called as the first statement in `main()`.**
+
+The real cause of the `xcb_xlib_threads_sequence_lost` abort on Ubuntu and Fedora
+is that WebKitGTK spawns worker threads that call into Xlib's xcb compatibility
+layer. Xlib is only thread-safe if `XInitThreads()` runs **before any X connection
+is opened** — GTK3 does not call it for us.
+
+```
+[xcb] Most likely this is a multi-threaded client and XInitThreads has not been called
+nekoai: poll_for_event: Assertion `!xcb_xlib_threads_sequence_lost' failed.
+Aborted (core dumped)
+```
+
+`XInitThreads` is declared via a small `extern "C"` block (`#[link(name = "X11")]`);
+libX11 is already linked transitively through GTK, so no new dependency is added.
+The call is gated behind `#[cfg(target_os = "linux")]` and runs before the
+`GDK_BACKEND` / `WEBKIT_DISABLE_DMABUF_RENDERER` environment block.
+
+### Reverted — Linux: `WEBKIT_DISABLE_COMPOSITING_MODE=1` workaround from v0.3.2
+
+**`src-tauri/src/main.rs` — the compositing-disable environment override is removed.**
+
+v0.3.2 disabled WebKit's compositing layer to suppress the threading crash. In
+practice it was the wrong lever:
+
+- It did **not** fix the Fedora sprite ghost-frame artifacts (still reproducible).
+- It introduced a new fatal X error on Ubuntu 22.04 under XWayland — the
+  non-composited path issues a request the server rejects:
+
+  ```
+  Gdk-ERROR: The program 'nekoai' received an X Window System error.
+  The error was 'BadImplementation (server does not implement operation)'.
+  ```
+
+With `XInitThreads()` addressing the threading crash at its root, the compositing
+override is no longer needed and is reverted so transparent-window rendering uses
+its normal accelerated path again.
+
+### Known issue — Fedora sprite ghost-frame artifacts (still open)
+
+The Fedora rendering bug — earlier sprite frames visually "stacking up" behind the
+current frame on the transparent window — is **not** resolved by this release. It
+was not fixed by v0.3.2 either. It appears to be an XWayland/compositor
+damage-tracking issue independent of the threading crash, and is being tracked
+separately.
+
+### Note — installing the `.deb` on Ubuntu
+
+GNOME Software / the Ubuntu Software Center cannot reliably install local `.deb`
+files on Ubuntu 22.04 and may fail with a generic error. Install from a terminal
+instead, which resolves dependencies correctly:
+
+```
+sudo apt install ./nekoai_0.3.3_amd64.deb
+```
+
+The `.AppImage` requires no installation — make it executable (`chmod +x`) and run
+it directly.
+
+---
+
 ## [0.3.2] — 2026-05-12
 
 > Hotfix release — Linux-only crash and rendering regression reported after v0.3.1.
