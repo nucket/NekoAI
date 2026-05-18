@@ -7,6 +7,113 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.3.4] — 2026-05-18
+
+> Closes the long-running Linux ghost-frame sprite-stacking bug that was
+> documented as "still open" in v0.3.3. Reproduces on Ubuntu 22.04, Fedora,
+> and any GNOME-on-XWayland setup with WebKitGTK. No behaviour change on
+> Windows or macOS.
+
+### Fixed — Linux: sprite ghost-frame stacking (root cause + final fix)
+
+The bug: every sprite frame painted to the transparent pet window stacked
+visually on top of the previous frame instead of replacing it. After a few
+seconds of animation, the sprite area became an unreadable pile of
+overlapping poses. Walking made it worse — the trail extended across every
+position the window had occupied.
+
+**Root cause.** WebKitGTK on Linux composites paints into ARGB transparent
+windows additively rather than as buffer replacements. No amount of canvas
+manipulation (`clearRect`, `globalCompositeOperation = 'copy'`,
+`WEBKIT_DISABLE_COMPOSITING_MODE=1`, continuous RAF redraws) overrides this
+— the bug is below WebKit, at the GTK ↔ X11 surface-submission layer.
+
+**Final fix — chroma-key window + per-frame GTK XShape masking.**
+
+On Linux, `transparent: true` is replaced with `transparent: false`
+(opaque window) plus a magenta `#ff00ff` body fill that serves as a
+chroma-key marker. A new `set_window_shape` Tauri command builds a
+`cairo::Region` from the sprite's alpha channel (1 byte per pixel,
+row-wise RLE) and applies it via `gtk_widget_shape_combine_region` and
+`gtk_widget_input_shape_combine_region`. Result: the window stays
+technically opaque so WebKit is happy, but every magenta pixel is
+visually invisible AND click-through — the user sees an actual
+transparent pet sprite.
+
+`PetRenderer.tsx` pushes a fresh shape from the canvas alpha channel each
+time the animation frame index advances (typically ≤ 12 FPS, so ~10 IPC
+calls per second — negligible overhead). `HouseWindow.tsx` does the same
+once on mount from the loaded `house.png`, and synthesizes a fallback
+silhouette on a hidden canvas when the active pet has no custom
+`house.png` (covers the CSS-fallback house's roof triangle + body rect).
+
+**Files touched.**
+
+- `src-tauri/Cargo.toml` — adds `gtk = "0.18"` and `cairo-rs = "0.18"`
+  under the `cfg(target_os = "linux")` target.
+- `src-tauri/src/lib.rs` — new `set_window_shape` / `clear_window_shape`
+  commands; both are no-ops on Windows / macOS.
+- `src-tauri/src/main.rs` — adds `WEBKIT_DISABLE_COMPOSITING_MODE=1` to
+  the existing Linux env block (safe to combine with the DMABUF disable
+  from v0.3.0).
+- `src-tauri/tauri.conf.json` — `transparent: false` on the `main` and
+  `house` windows. (The `panel` window remains `transparent: true`; it
+  stays scoped via `main.tsx` so it never gets the chroma-key body fill.)
+- `src/index.css` — `body.chroma-key { background: #ff00ff }` and
+  `body.panel-bg { background: rgb(28,28,32) }` toggled from React.
+- `src/main.tsx` — adds `chroma-key` body class for `main` and `house`
+  routes; the panel route is opted out.
+- `src/App.tsx` — central useEffect toggles `chroma-key` ↔ `panel-bg` and
+  clears the GTK shape whenever the bubble, settings panel, or pet
+  selector expands the window past sprite size. PetRenderer accepts
+  `applyWindowShape={!bubbleOpen}` so it skips shape pushes when the
+  window is in the 300×300 bubble layout.
+- `src/App.css` — `.app-container--open` gets the dark panel-bg fill and
+  square corners so the magenta is fully covered while the bubble is
+  open.
+- `src/HouseWindow.tsx` — pushes a shape from the loaded `house.png` on
+  mount (and on cached re-mount via `useEffect` fallback for browsers
+  that skip `onLoad`); synthesizes a fallback shape from canvas paths
+  when no PNG exists.
+- `src/PanelWindow.tsx` — updates the hardcoded `v0.1.0` version string
+  in the About panel to track the actual release number.
+- `src/pets/PetRenderer.tsx` — pushes the canvas alpha mask through the
+  new IPC command after each frame advance; gated by the new
+  `applyWindowShape` prop.
+
+### Changed — package manager: npm → pnpm
+
+`package.json` adds `"packageManager": "pnpm@11.1.2"`, `tauri.conf.json`'s
+`beforeDevCommand` / `beforeBuildCommand` switch from `npm run …` to
+`pnpm …`, and the husky hooks call `pnpm exec` instead of `npx`.
+`package-lock.json` is removed and replaced with `pnpm-lock.yaml`
+generated via `pnpm import` to preserve exact resolved versions.
+
+### Known limitations on Linux
+
+- The pet, house, and bubble container all use a magenta chroma-key fill
+  for a few milliseconds during window resize transitions (bubble open /
+  close, settings panel expand / collapse). The fill is visible in those
+  windows of < 16 ms in practice; if you screenshot mid-transition you
+  may catch a pink flash.
+- The CSS-fallback house silhouette is hand-traced on a hidden canvas to
+  match the divs in `HouseWindow.tsx` (roof triangle + body rect). It is
+  pixel-accurate to those rules but if a future change tweaks the CSS
+  fallback geometry, the synthesized shape must be updated in lockstep.
+- Build dependencies: the new shape code requires `libgtk-3-dev` and
+  `libcairo2-dev` available at compile time. Both are pulled in
+  transitively by `libwebkit2gtk-4.1-dev` which Tauri already requires,
+  so existing Linux build environments need no additional setup.
+
+### Note — CLAUDE.md guidance update
+
+The "Transparent always-on-top window — Do not add any opaque
+backgrounds or non-transparent surfaces at the root level" rule no
+longer holds on Linux as of this release. CLAUDE.md is updated to
+document the new chroma-key architecture and the platform split.
+
+---
+
 ## [0.3.3] — 2026-05-14
 
 > Hotfix release — supersedes the v0.3.2 Linux workaround, which did not fix the
