@@ -139,16 +139,15 @@ fn set_window_shape(
                 match (opaque, span_start) {
                     (true, None) => span_start = Some(x),
                     (false, Some(start)) => {
-                        let _ = region
-                            .union_rectangle(&RectangleInt::new(start, y, x - start, 1));
+                        let _ = region.union_rectangle(&RectangleInt::new(start, y, x - start, 1));
                         span_start = None;
                     }
                     _ => {}
                 }
             }
             if let Some(start) = span_start {
-                let _ = region
-                    .union_rectangle(&RectangleInt::new(start, y, width as i32 - start, 1));
+                let _ =
+                    region.union_rectangle(&RectangleInt::new(start, y, width as i32 - start, 1));
             }
         }
 
