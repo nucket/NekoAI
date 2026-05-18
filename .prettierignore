@@ -5,3 +5,10 @@ node_modules/
 docs/metrics/README.md
 docs/metrics/latest.json
 docs/metrics/snapshots/
+
+# Machine-generated lock file: pnpm regenerates it from package.json each
+# install. Reformatting with Prettier would either be reverted on the next
+# `pnpm install` or break `--frozen-lockfile` in CI. The npm-era
+# `package-lock.json` happened to be Prettier-clean by accident; the YAML
+# pnpm lock isn't, so it must be explicitly ignored.
+pnpm-lock.yaml
