@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef } from 'react'
 import type { AnimationConfig } from '../types/pet'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -14,6 +14,21 @@ export interface PetRendererProps {
   displaySize?: number
 }
 
+// ─── Image cache ──────────────────────────────────────────────────────────────
+// Module-level so it survives animation changes without re-fetching.
+
+const imageCache = new Map<string, HTMLImageElement>()
+
+function preloadFrame(url: string): HTMLImageElement {
+  let img = imageCache.get(url)
+  if (!img) {
+    img = new Image()
+    img.src = url
+    imageCache.set(url, img)
+  }
+  return img
+}
+
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export function PetRenderer({
@@ -22,47 +37,57 @@ export function PetRenderer({
   animations,
   displaySize = 64,
 }: PetRendererProps) {
-  const [frameUrl, setFrameUrl] = useState<string>('')
+  const canvasRef = useRef<HTMLCanvasElement>(null)
   const frameIndexRef = useRef(0)
   const rafIdRef = useRef(0)
   const lastFrameTimeRef = useRef(0)
   const currentAnimRef = useRef('')
 
   useEffect(() => {
-    // Cancel previous loop
     cancelAnimationFrame(rafIdRef.current)
 
     const animDef = animations[currentAnimation] ?? animations['idle']
     if (!animDef || animDef.files.length === 0) return
 
-    // Reset frame index when animation changes
+    const canvas = canvasRef.current
+    if (!canvas) return
+    const ctx = canvas.getContext('2d')
+    if (!ctx) return
+
+    // Pixel-art sprites must never be smoothed.
+    ctx.imageSmoothingEnabled = false
+
     if (currentAnimRef.current !== currentAnimation) {
       frameIndexRef.current = 0
       lastFrameTimeRef.current = 0
       currentAnimRef.current = currentAnimation
     }
 
+    // Pre-load every frame for this animation before the loop starts.
+    const frameUrls = animDef.files.map((f) => `${spritesDir}/${f}`)
+    frameUrls.forEach(preloadFrame)
+
     const intervalMs = 1000 / animDef.fps
 
     const loop = (timestamp: number) => {
-      const elapsed = timestamp - lastFrameTimeRef.current
-
-      if (elapsed >= intervalMs) {
+      if (timestamp - lastFrameTimeRef.current >= intervalMs) {
         lastFrameTimeRef.current = timestamp
 
-        const idx = frameIndexRef.current
-        const fileName = animDef.files[idx]
+        const img = preloadFrame(frameUrls[frameIndexRef.current])
 
-        // spritesDir is already an HTTP-relative path, e.g. /pets/classic-neko/sprites
-        setFrameUrl(`${spritesDir}/${fileName}`)
-
-        // Advance frame
-        const nextIdx = idx + 1
-        if (nextIdx >= animDef.files.length) {
-          frameIndexRef.current = animDef.loop ? 0 : animDef.files.length - 1
-        } else {
-          frameIndexRef.current = nextIdx
+        if (img.complete && img.naturalWidth > 0) {
+          // clearRect writes RGBA(0,0,0,0) to the full canvas buffer before
+          // drawing the new frame. This forces WebKitGTK to report damage for
+          // the entire canvas area to the XWayland compositor, preventing old
+          // frame pixels from persisting on the transparent window surface
+          // (the "ghost-frame stacking" bug on Linux/XWayland).
+          ctx.clearRect(0, 0, canvas.width, canvas.height)
+          ctx.drawImage(img, 0, 0, canvas.width, canvas.height)
         }
+
+        const next = frameIndexRef.current + 1
+        frameIndexRef.current =
+          next >= animDef.files.length ? (animDef.loop ? 0 : animDef.files.length - 1) : next
       }
 
       rafIdRef.current = requestAnimationFrame(loop)
@@ -72,23 +97,11 @@ export function PetRenderer({
     return () => cancelAnimationFrame(rafIdRef.current)
   }, [currentAnimation, animations, spritesDir])
 
-  if (!frameUrl) {
-    // Show a transparent placeholder while the first frame loads
-    return (
-      <div
-        style={{
-          width: displaySize,
-          height: displaySize,
-        }}
-      />
-    )
-  }
-
   return (
-    <img
-      src={frameUrl}
-      alt="neko"
-      draggable={false}
+    <canvas
+      ref={canvasRef}
+      width={displaySize}
+      height={displaySize}
       style={{
         display: 'block',
         width: displaySize,
