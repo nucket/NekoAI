@@ -47,6 +47,7 @@ This project follows the [Contributor Covenant v2.1](CODE_OF_CONDUCT.md). By par
 | Tool      | Version | Install                                    |
 | --------- | ------- | ------------------------------------------ |
 | Node.js   | 20+     | https://nodejs.org                         |
+| pnpm      | 11+     | `npm install -g pnpm` or via Corepack      |
 | Rust      | 1.75+   | https://rustup.rs                          |
 | Tauri CLI | 2.x     | `cargo install tauri-cli --version "^2.0"` |
 | Python    | 3.8+    | https://python.org (for sprite scripts)    |
@@ -56,21 +57,21 @@ This project follows the [Contributor Covenant v2.1](CODE_OF_CONDUCT.md). By par
 ```bash
 git clone https://github.com/YOUR_USERNAME/nekoai.git
 cd nekoai
-npm install
+pnpm install
 pip install Pillow
-npm run tauri dev
+pnpm tauri dev
 ```
 
 ### Useful commands
 
 ```bash
-npm run tauri dev          # Dev server with hot reload
-npm run tauri build        # Production installer
-npm run lint               # ESLint (zero warnings allowed)
-npm run typecheck          # TypeScript type check (tsc --noEmit)
-npm run format             # Prettier write
-npm run format:check       # Prettier check
-npm run sprites:convert    # Convert .ico sprites to .png
+pnpm tauri dev             # Dev server with hot reload
+pnpm tauri build           # Production installer
+pnpm lint                  # ESLint (zero warnings allowed)
+pnpm typecheck             # TypeScript type check (tsc --noEmit)
+pnpm format                # Prettier write
+pnpm format:check          # Prettier check
+pnpm sprites:convert       # Convert .ico sprites to .png
 cargo clippy               # Lint Rust code (from src-tauri/)
 ```
 
@@ -204,14 +205,14 @@ sleep1.png       sleep2.png
 
 1. Fork the repo and create a branch: `git checkout -b feat/my-dragon-pet`
 2. Make your changes
-3. Run `npm run lint` and `npm run typecheck` — both must pass
+3. Run `pnpm lint` and `pnpm typecheck` — both must pass
 4. Commit with [conventional commits](#commit-convention)
 5. Open a PR against `main` and fill in the PR template
 
 ### PR checklist
 
-- [ ] `npm run lint` passes
-- [ ] `npm run typecheck` passes
+- [ ] `pnpm lint` passes
+- [ ] `pnpm typecheck` passes
 - [ ] App runs without console errors
 - [ ] New pet: `pet.json` includes all required animations
 - [ ] New pet: sprites are PNG with transparent background
@@ -261,7 +262,7 @@ The project uses ESLint (`eslint.config.js`) with `@eslint/js`, `typescript-esli
 | Unused vars      | Error — prefix intentionally unused params with `_`                      |
 | `any`            | Forbidden — use proper types or `unknown`                                |
 
-Run `npm run lint` (zero warnings allowed) and `npm run format:check` before submitting.
+Run `pnpm lint` (zero warnings allowed) and `pnpm format:check` before submitting.
 
 ### Rust
 

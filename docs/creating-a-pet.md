@@ -144,7 +144,7 @@ After these two steps the pet appears in both the in-app selector (PetSelector r
 
 ```bash
 cd NekoAI
-npm run tauri dev
+pnpm tauri dev
 ```
 
 1. Right-click the pet → open the selector

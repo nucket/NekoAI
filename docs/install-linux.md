@@ -188,33 +188,38 @@ curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
 source ~/.cargo/env
 ```
 
-### Node.js (18+)
+### Node.js (20+) and pnpm (11+)
 
 **Ubuntu / Debian:**
 
 ```bash
 sudo apt install nodejs npm
+sudo npm install -g pnpm
 ```
 
 **Fedora:**
 
 ```bash
 sudo dnf install nodejs npm
+sudo npm install -g pnpm
 ```
 
 **Arch:**
 
 ```bash
-sudo pacman -S nodejs npm
+sudo pacman -S nodejs npm pnpm
 ```
+
+> If you prefer not to use `npm install -g`, enable Corepack instead:
+> `corepack enable && corepack prepare pnpm@latest --activate`.
 
 ### Clone and build
 
 ```bash
 git clone https://github.com/nucket/nekoai.git
-cd nekoai
-npm install
-npm run tauri build
+cd nekoai/NekoAI
+pnpm install
+pnpm tauri build
 ```
 
 Artifacts are placed in `src-tauri/target/release/bundle/`.
