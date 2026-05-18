@@ -188,7 +188,7 @@ curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
 source ~/.cargo/env
 ```
 
-### Node.js (20+) and pnpm (11+)
+### Node.js (22+) and pnpm (11+)
 
 **Ubuntu / Debian:**
 

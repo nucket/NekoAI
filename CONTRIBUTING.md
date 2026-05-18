@@ -44,13 +44,13 @@ This project follows the [Contributor Covenant v2.1](CODE_OF_CONDUCT.md). By par
 
 ### Prerequisites
 
-| Tool      | Version | Install                                    |
-| --------- | ------- | ------------------------------------------ |
-| Node.js   | 20+     | https://nodejs.org                         |
-| pnpm      | 11+     | `npm install -g pnpm` or via Corepack      |
-| Rust      | 1.75+   | https://rustup.rs                          |
-| Tauri CLI | 2.x     | `cargo install tauri-cli --version "^2.0"` |
-| Python    | 3.8+    | https://python.org (for sprite scripts)    |
+| Tool      | Version | Install                                        |
+| --------- | ------- | ---------------------------------------------- |
+| Node.js   | 22+     | https://nodejs.org (pnpm 11 requires ≥ v22.13) |
+| pnpm      | 11+     | `npm install -g pnpm` or via Corepack          |
+| Rust      | 1.75+   | https://rustup.rs                              |
+| Tauri CLI | 2.x     | `cargo install tauri-cli --version "^2.0"`     |
+| Python    | 3.8+    | https://python.org (for sprite scripts)        |
 
 ### First-time setup
 
