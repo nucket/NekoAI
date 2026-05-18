@@ -268,6 +268,23 @@ export default function App() {
     invoke('resize_window', { width: spriteSize, height: spriteSize }).catch(console.error)
   }, [spriteSize, isLoaded]) // eslint-disable-line react-hooks/exhaustive-deps
 
+  // ── Expanded-state lifecycle (bubble, settings, pet selector) ──────────────
+  // Any of these grow the window past sprite size, so:
+  //   1. The sprite-sized GTK shape mask must be cleared — otherwise the
+  //      panel UI is clipped to a tiny rectangle in the window's top-left.
+  //   2. The body's chroma-key magenta fill must be swapped for a dark fill
+  //      so we don't see magenta peek through the panel's edges/corners.
+  // On collapse, the sprite remounts and PetRenderer re-pushes the shape on
+  // the next animation frame, and the chroma-key class comes back.
+  useEffect(() => {
+    const isExpanded = bubbleOpen || anyPanelOpen
+    document.body.classList.toggle('chroma-key', !isExpanded)
+    document.body.classList.toggle('panel-bg', isExpanded)
+    if (isExpanded) {
+      invoke('clear_window_shape').catch(() => {})
+    }
+  }, [bubbleOpen, anyPanelOpen])
+
   // ── Animations from pet.json, fallback to empty while loading ─────────────
   const animations = useMemo<PetDefinition['animations']>(() => petDef?.animations ?? {}, [petDef])
 
@@ -353,6 +370,9 @@ export default function App() {
 
     await win.setPosition(new PhysicalPosition(Math.round(newX), Math.round(newY)))
     await invoke('resize_window', { width: WIN_OPEN_W, height: WIN_OPEN_H })
+    // Note: clearing the GTK shape mask is centralised in the expanded-state
+    // useEffect above so all three expand paths (bubble, settings, pet
+    // selector) share the same lifecycle.
   }, [])
 
   // ── Close bubble ───────────────────────────────────────────────────────────
@@ -649,6 +669,7 @@ export default function App() {
               })}
               animations={animations}
               displaySize={spriteSize}
+              applyWindowShape={!bubbleOpen}
             />
           ) : (
             // Loading indicator while pet.json is being read

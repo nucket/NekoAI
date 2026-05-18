@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useRef, useState, useCallback } from 'react'
 import { invoke } from '@tauri-apps/api/core'
 import { getCurrentWindow, primaryMonitor } from '@tauri-apps/api/window'
 import { PhysicalPosition } from '@tauri-apps/api/dpi'
@@ -11,6 +11,7 @@ export function HouseWindow() {
   const [placed, setPlaced] = useState(false)
   const [imgFailed, setImgFailed] = useState(false)
   const [housePos, setHousePos] = useState<{ x: number; y: number } | null>(null)
+  const imgRef = useRef<HTMLImageElement>(null)
 
   // This is a separate WebView — load config independently from the main window
   const { config, isLoaded, loadConfig } = useConfigStore()
@@ -77,6 +78,90 @@ export function HouseWindow() {
     }).catch(console.error)
   }, [housePos])
 
+  // Extract the alpha channel of the house PNG and push it as a GTK shape
+  // mask so the magenta chroma-key fill becomes invisible. Runs whenever the
+  // pet changes (src reload → new <img> load event).
+  const applyHouseShape = useCallback((img: HTMLImageElement) => {
+    if (!img.complete || img.naturalWidth === 0) return
+    const tempCanvas = document.createElement('canvas')
+    tempCanvas.width = HOUSE_SIZE
+    tempCanvas.height = HOUSE_SIZE
+    const ctx = tempCanvas.getContext('2d')
+    if (!ctx) return
+    ctx.imageSmoothingEnabled = false
+    ctx.drawImage(img, 0, 0, HOUSE_SIZE, HOUSE_SIZE)
+    try {
+      const data = ctx.getImageData(0, 0, HOUSE_SIZE, HOUSE_SIZE).data
+      const mask = new Uint8Array(HOUSE_SIZE * HOUSE_SIZE)
+      for (let i = 0; i < mask.length; i++) {
+        mask[i] = data[i * 4 + 3]
+      }
+      invoke('set_window_shape', {
+        mask: Array.from(mask),
+        width: HOUSE_SIZE,
+        height: HOUSE_SIZE,
+      }).catch(() => {})
+    } catch {
+      // canvas tainted (shouldn't happen for same-origin) — skip
+    }
+  }, [])
+
+  // Build the CSS-fallback house silhouette on a hidden canvas and push that
+  // as the shape mask. Mirrors the divs rendered below (roof triangle + body
+  // rect, bottom-aligned, horizontally centered in the 64×64 window). Used
+  // when the active pet has no custom house.png — most bundled pets fall
+  // through here, so making this path mask-clean is important.
+  const applyCssFallbackShape = useCallback(() => {
+    const canvas = document.createElement('canvas')
+    canvas.width = HOUSE_SIZE
+    canvas.height = HOUSE_SIZE
+    const ctx = canvas.getContext('2d')
+    if (!ctx) return
+    // Colour irrelevant; only alpha contributes to the mask.
+    ctx.fillStyle = '#fff'
+    // Roof: triangle 56w × 24h, apex at top, anchored 4px from top margin to
+    // match the bottom-aligned flex layout below (justifyContent: flex-end).
+    ctx.beginPath()
+    ctx.moveTo(32, 4)
+    ctx.lineTo(60, 28)
+    ctx.lineTo(4, 28)
+    ctx.closePath()
+    ctx.fill()
+    // Body: 48w × 36h, 2px overlap with the roof base.
+    ctx.fillRect(8, 26, 48, 36)
+    try {
+      const data = ctx.getImageData(0, 0, HOUSE_SIZE, HOUSE_SIZE).data
+      const mask = new Uint8Array(HOUSE_SIZE * HOUSE_SIZE)
+      for (let i = 0; i < mask.length; i++) {
+        mask[i] = data[i * 4 + 3]
+      }
+      invoke('set_window_shape', {
+        mask: Array.from(mask),
+        width: HOUSE_SIZE,
+        height: HOUSE_SIZE,
+      }).catch(() => {})
+    } catch {
+      // unreachable for same-origin canvas — skip
+    }
+  }, [])
+
+  useEffect(() => {
+    if (imgFailed) {
+      applyCssFallbackShape()
+    }
+  }, [imgFailed, applyCssFallbackShape])
+
+  // The <img> onLoad event doesn't fire for cached images on remount, so the
+  // shape would never be applied after a pet switch (the browser already has
+  // the new house.png cached). Run this after each render and check complete.
+  useEffect(() => {
+    if (imgFailed || !placed) return
+    const img = imgRef.current
+    if (img && img.complete && img.naturalWidth > 0) {
+      applyHouseShape(img)
+    }
+  }, [activePetId, imgFailed, placed, applyHouseShape])
+
   if (!placed) return null
 
   return (
@@ -91,11 +176,13 @@ export function HouseWindow() {
         </>
       ) : (
         <img
+          ref={imgRef}
           src={`/pets/${activePetId}/house.png`}
           width={HOUSE_SIZE}
           height={HOUSE_SIZE}
           style={styles.img}
           onError={() => setImgFailed(true)}
+          onLoad={(e) => applyHouseShape(e.currentTarget)}
           alt="Pet house"
         />
       )}

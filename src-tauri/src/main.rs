@@ -43,6 +43,20 @@ fn main() {
         if std::env::var_os("WEBKIT_DISABLE_DMABUF_RENDERER").is_none() {
             unsafe { std::env::set_var("WEBKIT_DISABLE_DMABUF_RENDERER", "1") };
         }
+
+        // WebKitGTK's accelerated 2D compositor blends transparent-window
+        // canvas frames additively under XWayland (Ubuntu 22.04, Fedora,
+        // many GNOME/Mutter setups). Each sprite frame stacks visually on
+        // top of the previous one instead of replacing it — the "ghost
+        // frame" pile-up bug. Disabling compositing mode routes canvas
+        // paints through GTK's regular software paint pipeline where each
+        // frame is a true buffer replacement. Safe to combine with the
+        // DMABUF disable above (which already pinned us to software
+        // rendering, so there is no EGL path left that could crash).
+        #[allow(unused_unsafe)]
+        if std::env::var_os("WEBKIT_DISABLE_COMPOSITING_MODE").is_none() {
+            unsafe { std::env::set_var("WEBKIT_DISABLE_COMPOSITING_MODE", "1") };
+        }
     }
 
     nekoai_lib::run()

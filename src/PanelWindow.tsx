@@ -97,7 +97,7 @@ function ContextMenuPanel() {
 
           <div style={aboutStyles.appBlock}>
             <div style={aboutStyles.appName}>NekoAI</div>
-            <div style={aboutStyles.appDesc}>Desktop AI Companion • v0.1.0</div>
+            <div style={aboutStyles.appDesc}>Desktop AI Companion • v0.3.4</div>
           </div>
 
           <div style={styles.divider} />
