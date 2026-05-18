@@ -1,108 +1,37 @@
 {
   "schema_version": 1,
-  "captured_at": "2026-05-18T07:44:53.948Z",
+  "captured_at": "2026-05-13T07:22:59.187Z",
   "source": "github-releases",
   "repo": "nucket/NekoAI",
   "totals": {
-    "all": 43,
+    "all": 32,
     "by_os": {
-      "linux": 24,
-      "windows": 11,
-      "macos": 8
+      "linux": 18,
+      "windows": 8,
+      "macos": 6
     },
     "by_arch": {
-      "x86_64": 38,
-      "aarch64": 5
+      "x86_64": 28,
+      "aarch64": 4
     },
     "by_version": {
-      "v0.3.3": 8,
-      "v0.3.2": 7,
+      "v0.3.2": 4,
       "v0.3.1": 13,
       "v0.3.0": 6,
       "v0.2.0": 8,
       "v0.1.0": 1
     },
     "by_format": {
-      "rpm": 8,
+      "rpm": 6,
       "portable": 2,
-      "dmg": 8,
-      "appimage": 10,
-      "deb": 6,
-      "nsis": 8,
-      "msi": 1
+      "dmg": 6,
+      "appimage": 7,
+      "deb": 5,
+      "nsis": 6,
+      "msi": 0
     }
   },
   "releases": [
-    {
-      "tag": "v0.3.3",
-      "published_at": "2026-05-15T09:05:16Z",
-      "assets": [
-        {
-          "name": "nekoai-0.3.3-1.x86_64.rpm",
-          "os": "linux",
-          "arch": "x86_64",
-          "format": "rpm",
-          "download_count": 2,
-          "size": 4788871
-        },
-        {
-          "name": "nekoai-v0.3.3-portable-windows-x64.zip",
-          "os": "windows",
-          "arch": "x86_64",
-          "format": "portable",
-          "download_count": 0,
-          "size": 4076046
-        },
-        {
-          "name": "nekoai_0.3.3_aarch64.dmg",
-          "os": "macos",
-          "arch": "aarch64",
-          "format": "dmg",
-          "download_count": 0,
-          "size": 4023344
-        },
-        {
-          "name": "nekoai_0.3.3_amd64.AppImage",
-          "os": "linux",
-          "arch": "x86_64",
-          "format": "appimage",
-          "download_count": 3,
-          "size": 84433400
-        },
-        {
-          "name": "nekoai_0.3.3_amd64.deb",
-          "os": "linux",
-          "arch": "x86_64",
-          "format": "deb",
-          "download_count": 1,
-          "size": 4785620
-        },
-        {
-          "name": "nekoai_0.3.3_x64-setup.exe",
-          "os": "windows",
-          "arch": "x86_64",
-          "format": "nsis",
-          "download_count": 1,
-          "size": 3429491
-        },
-        {
-          "name": "nekoai_0.3.3_x64.dmg",
-          "os": "macos",
-          "arch": "x86_64",
-          "format": "dmg",
-          "download_count": 0,
-          "size": 4227435
-        },
-        {
-          "name": "nekoai_0.3.3_x64_en-US.msi",
-          "os": "windows",
-          "arch": "x86_64",
-          "format": "msi",
-          "download_count": 1,
-          "size": 4362240
-        }
-      ]
-    },
     {
       "tag": "v0.3.2",
       "published_at": "2026-05-12T13:42:16Z",
@@ -128,7 +57,7 @@
           "os": "macos",
           "arch": "aarch64",
           "format": "dmg",
-          "download_count": 1,
+          "download_count": 0,
           "size": 4024838
         },
         {
@@ -152,7 +81,7 @@
           "os": "windows",
           "arch": "x86_64",
           "format": "nsis",
-          "download_count": 1,
+          "download_count": 0,
           "size": 3430858
         },
         {
@@ -160,7 +89,7 @@
           "os": "macos",
           "arch": "x86_64",
           "format": "dmg",
-          "download_count": 1,
+          "download_count": 0,
           "size": 4228015
         },
         {

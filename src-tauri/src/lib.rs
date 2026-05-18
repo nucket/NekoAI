@@ -1,3 +1,8 @@
+// Tauri v2's menu/tray API passes &T where T is a dyn trait object in slice
+// literals (e.g. &[&show_hide, ...]). A newer Clippy version flags these as
+// needless borrows; suppressed here until Tauri's API removes the double-ref.
+#![allow(clippy::needless_borrows_for_generic_args)]
+
 use serde::Serialize;
 use std::sync::mpsc;
 use std::sync::Mutex;
@@ -27,16 +32,32 @@ struct Vec2 {
 // ─── Cursor position ──────────────────────────────────────────────────────────
 
 #[tauri::command]
-fn get_cursor_pos() -> Vec2 {
+fn get_cursor_pos(app: tauri::AppHandle) -> Vec2 {
     use mouse_position::mouse_position::Mouse;
+    let _ = &app; // used only on macOS; suppress unused-variable warning on other targets
 
-    match Mouse::get_mouse_position() {
-        Mouse::Position { x, y } => Vec2 {
-            x: x as f64,
-            y: y as f64,
-        },
-        Mouse::Error => Vec2 { x: 0.0, y: 0.0 },
+    let (x, y) = match Mouse::get_mouse_position() {
+        Mouse::Position { x, y } => (x as f64, y as f64),
+        Mouse::Error => return Vec2 { x: 0.0, y: 0.0 },
+    };
+
+    // On macOS, CGEventGetLocation returns logical points, not physical pixels.
+    // Tauri positions windows in physical pixels (PhysicalPosition/PhysicalSize).
+    // Multiply by the display scale factor so both coordinate spaces match.
+    // Without this, on a 2x Retina display the pet tracks only the top-left
+    // quadrant — cursor at the bottom-right corner appears to be at the centre.
+    #[cfg(target_os = "macos")]
+    if let Some(win) = app.get_webview_window("main") {
+        if let Ok(Some(monitor)) = win.primary_monitor() {
+            let scale = monitor.scale_factor();
+            return Vec2 {
+                x: x * scale,
+                y: y * scale,
+            };
+        }
     }
+
+    Vec2 { x, y }
 }
 
 // ─── Window positioning & sizing ─────────────────────────────────────────────
@@ -160,7 +181,7 @@ async fn open_url(app: tauri::AppHandle, url: String) -> Result<(), String> {
 /// JS `emit()` may not reach other windows reliably; Rust `app.emit()` is global.
 #[tauri::command]
 async fn panel_action(app: tauri::AppHandle, action: String) -> Result<(), String> {
-    app.emit("panel-action", &action)
+    app.emit("panel-action", action.clone())
         .map_err(|e| e.to_string())?;
     // Hide the panel after any action that opens a new view
     if action == "settings" || action == "select-pet" {
@@ -411,7 +432,7 @@ pub fn run() {
                             }
                             if !win.title.is_empty() && win.title != prev_title {
                                 prev_title = win.title.clone();
-                                app_handle.emit("neko-notification", &win).ok();
+                                app_handle.emit("neko-notification", win).ok();
                             }
                         }
                     }
@@ -443,7 +464,13 @@ pub fn run() {
                 ],
             )?;
             let sep = PredefinedMenuItem::separator(app)?;
-            let about = MenuItem::with_id(app, "about", "About NekoAI v0.2.0", true, None::<&str>)?;
+            let about = MenuItem::with_id(
+                app,
+                "about",
+                &format!("About NekoAI v{}", env!("CARGO_PKG_VERSION")),
+                true,
+                None::<&str>,
+            )?;
             let quit = MenuItem::with_id(app, "quit", "Quit", true, None::<&str>)?;
 
             let menu = Menu::with_items(

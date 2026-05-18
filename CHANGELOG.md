@@ -7,6 +7,171 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.3.3] — 2026-05-14
+
+> Hotfix release — supersedes the v0.3.2 Linux workaround, which did not fix the
+> Fedora rendering bug and introduced a new crash on Ubuntu under XWayland.
+> No API changes, no new features, no behavioural changes on Windows or macOS.
+
+### Fixed — Linux: XCB threading crash (proper root-cause fix)
+
+**`src-tauri/src/main.rs` — `XInitThreads()` is now called as the first statement in `main()`.**
+
+The real cause of the `xcb_xlib_threads_sequence_lost` abort on Ubuntu and Fedora
+is that WebKitGTK spawns worker threads that call into Xlib's xcb compatibility
+layer. Xlib is only thread-safe if `XInitThreads()` runs **before any X connection
+is opened** — GTK3 does not call it for us.
+
+```
+[xcb] Most likely this is a multi-threaded client and XInitThreads has not been called
+nekoai: poll_for_event: Assertion `!xcb_xlib_threads_sequence_lost' failed.
+Aborted (core dumped)
+```
+
+`XInitThreads` is declared via a small `extern "C"` block (`#[link(name = "X11")]`);
+libX11 is already linked transitively through GTK, so no new dependency is added.
+The call is gated behind `#[cfg(target_os = "linux")]` and runs before the
+`GDK_BACKEND` / `WEBKIT_DISABLE_DMABUF_RENDERER` environment block.
+
+### Reverted — Linux: `WEBKIT_DISABLE_COMPOSITING_MODE=1` workaround from v0.3.2
+
+**`src-tauri/src/main.rs` — the compositing-disable environment override is removed.**
+
+v0.3.2 disabled WebKit's compositing layer to suppress the threading crash. In
+practice it was the wrong lever:
+
+- It did **not** fix the Fedora sprite ghost-frame artifacts (still reproducible).
+- It introduced a new fatal X error on Ubuntu 22.04 under XWayland — the
+  non-composited path issues a request the server rejects:
+
+  ```
+  Gdk-ERROR: The program 'nekoai' received an X Window System error.
+  The error was 'BadImplementation (server does not implement operation)'.
+  ```
+
+With `XInitThreads()` addressing the threading crash at its root, the compositing
+override is no longer needed and is reverted so transparent-window rendering uses
+its normal accelerated path again.
+
+### Known issue — Fedora sprite ghost-frame artifacts (still open)
+
+The Fedora rendering bug — earlier sprite frames visually "stacking up" behind the
+current frame on the transparent window — is **not** resolved by this release. It
+was not fixed by v0.3.2 either. It appears to be an XWayland/compositor
+damage-tracking issue independent of the threading crash, and is being tracked
+separately.
+
+### Note — installing the `.deb` on Ubuntu
+
+GNOME Software / the Ubuntu Software Center cannot reliably install local `.deb`
+files on Ubuntu 22.04 and may fail with a generic error. Install from a terminal
+instead, which resolves dependencies correctly:
+
+```
+sudo apt install ./nekoai_0.3.3_amd64.deb
+```
+
+The `.AppImage` requires no installation — make it executable (`chmod +x`) and run
+it directly.
+
+---
+
+## [0.3.2] — 2026-05-12
+
+> Hotfix release — Linux-only crash and rendering regression reported after v0.3.1.
+> No API changes, no new features, no behavioural changes on Windows or macOS.
+
+### Fixed — Linux: XCB threading crash on Ubuntu and Fedora
+
+**`src-tauri/src/main.rs` — `WEBKIT_DISABLE_COMPOSITING_MODE=1` set before GTK init.**
+
+WebKitGTK's hardware compositing layer spawns worker threads that call into Xlib
+without `XInitThreads()` having been called first. Under X11 this triggers a fatal
+assertion in `xcb_io.c`:
+
+```
+[xcb] Most likely this is a multi-threaded client and XInitThreads has not been called
+nekoai: poll_for_event: Assertion `!xcb_xlib_threads_sequence_lost' failed.
+Aborted (core dumped)
+```
+
+The crash was reproducible with both the `.AppImage` and the `.deb` installer on
+Ubuntu 22.04. Setting `WEBKIT_DISABLE_COMPOSITING_MODE=1` forces WebKit into
+single-threaded software rendering, which avoids the Xlib re-entrance entirely.
+
+The variable is set with the same "only if not already set by the user" guard as the
+existing `WEBKIT_DISABLE_DMABUF_RENDERER` and `GDK_BACKEND` overrides, so users who
+need the default behaviour can still override it in their environment.
+
+### Fixed — Linux/Fedora: sprite ghost-frame artifacts on transparent window
+
+**Same change as above** — secondary effect of disabling the compositing layer tree.
+
+On Fedora (and likely other distros where the compositor interacts differently with
+XWayland), WebKitGTK's compositing layer did not flush the previous frame's paint
+before blending the next one onto the transparent window surface, causing earlier
+sprite frames to visually "stack up" behind the current frame during any animation
+or movement. Disabling compositing forces sequential software blits which clear the
+surface correctly.
+
+---
+
+## [0.3.1] — 2026-05-10
+
+> Hotfix release — three platform-specific runtime bugs reported by users after v0.3.0.
+> No API changes, no new features, no behavioural changes on working installations.
+
+### Fixed — macOS Retina displays (M1 / M2 / M3)
+
+**`src-tauri/src/lib.rs` — `get_cursor_pos` now returns physical pixels on macOS.**
+
+The `mouse_position` crate calls `CGEventGetLocation` (CoreGraphics), which returns
+logical points, not physical pixels. Tauri positions windows in physical pixels
+(`PhysicalPosition` / `PhysicalSize`). On a 2× Retina display this caused a 2× coordinate
+mismatch: cursor at the bottom-right corner reported as the centre, so the pet only ever
+roamed the top-left quadrant of the screen.
+
+Fix: multiply raw cursor coordinates by the primary monitor's `scale_factor` inside a
+`#[cfg(target_os = "macos")]` block before returning. Windows and Linux are unaffected.
+
+### Fixed — Linux: EGL crash on launch (`EGL_BAD_ALLOC`)
+
+**`src-tauri/src/main.rs` — `WEBKIT_DISABLE_DMABUF_RENDERER=1` set before GTK init.**
+
+WebKitGTK's DMA-BUF renderer calls `abort()` with `EGL_BAD_ALLOC` on systems that
+lack full GPU/EGL support — virtual machines, missing Mesa/NVIDIA drivers, or root
+sessions where DRM access is restricted. This was observed on Fedora 42 and
+Ubuntu 26.04 LTS.
+
+Fix: set `WEBKIT_DISABLE_DMABUF_RENDERER=1` in `main()` before `lib::run()` (and
+therefore before GTK initialises), only when the variable is not already set by the user.
+WebKit falls back to software rendering; for a 32×32 px transparent overlay the
+performance difference is imperceptible.
+
+### Fixed — Linux Wayland: pet and house frozen at centre of screen
+
+**`src-tauri/src/main.rs` — `GDK_BACKEND=x11` set before GTK init on Wayland sessions.**
+
+Under the Wayland protocol, applications cannot position their own windows — the
+compositor (GNOME Shell) places them, typically at the centre. Additionally, the
+`mouse_position` crate uses `XQueryPointer` (X11) which returns `(0, 0)` when no
+X display is active, so the cursor polling loop never triggers movement.
+
+Fix: when `GDK_BACKEND` is not set by the user and an X display is available
+(`DISPLAY` env var present), force `GDK_BACKEND=x11` so GTK uses XWayland. Under
+XWayland, `setPosition()` and `XQueryPointer` both work correctly. Systems without
+XWayland (`DISPLAY` unset) are left untouched so the app at least starts.
+
+### Changed — tray "About" label reads version from binary
+
+**`src-tauri/src/lib.rs` — About menu item uses `env!("CARGO_PKG_VERSION")`.**
+
+The label was hardcoded to `"About NekoAI v0.2.0"` and had not been updated since.
+It now reads the version at compile time from `Cargo.toml`, so it can never fall out
+of sync again.
+
+---
+
 ## [0.3.0] — 2026-05-09
 
 > Note on versioning: `v0.2.0` was published on 2026-04-24 with multi-OS installers. The CHANGELOG header at the time was left as `Unreleased` and entries for the work that landed _after_ the tag were written under that same block. Rather than rewrite history retroactively, this entry consumes everything between `v0.2.0` and `v0.3.0` and treats it as the v0.3.0 release. The `v0.2.0` GitHub release and its installers remain valid.
