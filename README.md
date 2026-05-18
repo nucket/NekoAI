@@ -120,13 +120,13 @@ Go to [Releases](https://github.com/nucket/nekoai/releases) and grab the latest 
 ### Option B — Build from source
 
 ```bash
-# Prerequisites: Node.js 20+, Rust 1.75+, Tauri CLI
+# Prerequisites: Node.js 22+, pnpm 11+, Rust 1.75+, Tauri CLI
 git clone https://github.com/nucket/nekoai.git
 cd nekoai/NekoAI
 
-npm install
-npm run tauri dev        # Development with hot reload
-npm run tauri build      # Production build
+pnpm install
+pnpm tauri dev           # Development with hot reload
+pnpm tauri build         # Production build
 ```
 
 ---

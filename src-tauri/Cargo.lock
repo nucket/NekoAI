@@ -2305,8 +2305,10 @@ dependencies = [
 
 [[package]]
 name = "nekoai"
-version = "0.3.3"
+version = "0.3.4"
 dependencies = [
+ "cairo-rs",
+ "gtk",
  "image",
  "mouse_position",
  "reqwest 0.12.28",

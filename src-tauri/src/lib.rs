@@ -96,6 +96,93 @@ fn set_ignore_cursor_events(window: tauri::WebviewWindow, ignore: bool) -> Resul
         .map_err(|e| e.to_string())
 }
 
+// ─── Window shape mask (Linux only) ───────────────────────────────────────────
+// WebKitGTK has a compositor bug on Linux where ARGB transparent windows blend
+// sprite paints additively instead of replacing the previous frame, producing
+// the "ghost-frame stacking" visual artifact. Workaround: keep the window
+// technically opaque with a magenta chroma-key fill, then use GTK's
+// gtk_widget_shape_combine_region to cut out non-sprite pixels from both the
+// visual and input regions. The result is visually indistinguishable from a
+// real transparent window — magenta becomes invisible AND click-through.
+//
+// Build the cairo region from the sprite's alpha channel (1 byte per pixel,
+// row-major). Pixels with alpha > 128 are treated as opaque and added to the
+// region via row-wise run-length encoding (typically <= 32 rectangles per
+// 32×32 sprite — cheap enough to call at animation FPS).
+
+#[tauri::command]
+fn set_window_shape(
+    window: tauri::WebviewWindow,
+    mask: Vec<u8>,
+    width: u32,
+    height: u32,
+) -> Result<(), String> {
+    #[cfg(target_os = "linux")]
+    {
+        use cairo::{RectangleInt, Region};
+        use gtk::prelude::WidgetExt;
+
+        if mask.len() < (width * height) as usize {
+            return Err(format!(
+                "mask too small: got {} bytes, need {}",
+                mask.len(),
+                width * height
+            ));
+        }
+
+        let region = Region::create();
+        for y in 0..height as i32 {
+            let mut span_start: Option<i32> = None;
+            for x in 0..width as i32 {
+                let idx = (y as u32 * width + x as u32) as usize;
+                let opaque = mask[idx] > 128;
+                match (opaque, span_start) {
+                    (true, None) => span_start = Some(x),
+                    (false, Some(start)) => {
+                        let _ = region.union_rectangle(&RectangleInt::new(start, y, x - start, 1));
+                        span_start = None;
+                    }
+                    _ => {}
+                }
+            }
+            if let Some(start) = span_start {
+                let _ =
+                    region.union_rectangle(&RectangleInt::new(start, y, width as i32 - start, 1));
+            }
+        }
+
+        let gtk_window = window.gtk_window().map_err(|e| e.to_string())?;
+        gtk_window.shape_combine_region(Some(&region));
+        gtk_window.input_shape_combine_region(Some(&region));
+    }
+
+    // Non-Linux platforms have working transparent windows; nothing to do.
+    #[cfg(not(target_os = "linux"))]
+    {
+        let _ = (window, mask, width, height); // suppress unused warnings
+    }
+
+    Ok(())
+}
+
+#[tauri::command]
+fn clear_window_shape(window: tauri::WebviewWindow) -> Result<(), String> {
+    #[cfg(target_os = "linux")]
+    {
+        use gtk::prelude::WidgetExt;
+        let gtk_window = window.gtk_window().map_err(|e| e.to_string())?;
+        gtk_window.shape_combine_region(None);
+        gtk_window.input_shape_combine_region(None);
+    }
+
+    #[cfg(not(target_os = "linux"))]
+    {
+        let _ = window;
+    }
+
+    Ok(())
+}
+
 // ─── App lifecycle ────────────────────────────────────────────────────────────
 
 #[tauri::command]
@@ -550,6 +637,8 @@ pub fn run() {
             resize_window,
             set_always_on_top,
             set_ignore_cursor_events,
+            set_window_shape,
+            clear_window_shape,
             get_config,
             save_config,
             get_recent_messages,

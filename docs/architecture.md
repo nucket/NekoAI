@@ -118,6 +118,8 @@ Extracted facts are upserted into the `user_facts` SQLite table.
 | `panel_action`                           | Route a panel action (settings, select-pet, pet-mode, pet-size)     |
 | `set_always_on_top`                      | Toggle always-on-top                                                |
 | `set_ignore_cursor_events`               | Pass-through click events                                           |
+| `set_window_shape`                       | Apply per-frame GTK shape mask from canvas alpha (Linux only)       |
+| `clear_window_shape`                     | Remove shape mask so full window is visible (Linux only)            |
 | `get_config` / `save_config`             | Read/write config (SQLite)                                          |
 | `get_recent_messages`                    | Last N messages from SQLite                                         |
 | `save_message`                           | Append a message to SQLite (triggers pruning every 20 inserts)      |

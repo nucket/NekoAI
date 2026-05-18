@@ -13,3 +13,21 @@ body,
   background: transparent;
   user-select: none;
 }
+
+/* Linux chroma-key fill. main.tsx toggles this class on the body for windows
+ * that are technically opaque (main + house) so the GTK shape mask in lib.rs
+ * has a uniform color to cut out. The panel window stays transparent: true
+ * and never gets this class, so no magenta leaks past its UI corners.
+ */
+body.chroma-key {
+  background: #ff00ff;
+}
+
+/* While the main window is in any expanded state (speech bubble open or one
+ * of the settings/pet-selector panels), App.tsx swaps chroma-key for panel-bg.
+ * Without it, after we clear the GTK shape mask the body's magenta fill would
+ * be visible in the rounded corners or gaps not covered by the panel's own UI.
+ */
+body.panel-bg {
+  background: rgb(28, 28, 32);
+}

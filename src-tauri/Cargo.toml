@@ -1,6 +1,6 @@
 [package]
 name = "nekoai"
-version = "0.3.3"
+version = "0.3.4"
 description = "NekoAI - Desktop Pet with AI"
 authors = ["NekoAI"]
 edition = "2021"
@@ -28,6 +28,13 @@ toml = "0.9"
 
 [target.'cfg(target_os = "linux")'.dependencies]
 x11rb = { version = "0.13", features = ["screensaver"] }
+# Used to apply per-frame shape masks on the transparent pet window. WebKitGTK
+# transparent windows have a compositor bug on Linux (additive blending of
+# sprite frames), so on Linux we keep the window technically opaque with a
+# magenta chroma-key fill and cut out non-sprite pixels with cairo regions
+# via gtk_widget_shape_combine_region. Same gtk-rs versions Tauri 2 uses.
+gtk = "0.18"
+cairo-rs = "0.18"
 
 [target.'cfg(windows)'.dependencies]
 windows = { version = "0.61", features = [

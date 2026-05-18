@@ -11,18 +11,20 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - uses: pnpm/action-setup@v4
+
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
-          cache: npm
+          node-version: 22
+          cache: pnpm
 
-      - run: npm ci
+      - run: pnpm install --frozen-lockfile
 
       - name: ESLint
-        run: npx eslint . --max-warnings 0
+        run: pnpm exec eslint . --max-warnings 0
 
       - name: Prettier
-        run: npx prettier --check .
+        run: pnpm exec prettier --check .
 
   typecheck:
     name: Typecheck
@@ -30,17 +32,19 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - uses: pnpm/action-setup@v4
+
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
-          cache: npm
+          node-version: 22
+          cache: pnpm
 
-      - run: npm ci
+      - run: pnpm install --frozen-lockfile
 
-      - run: npx tsc --noEmit
+      - run: pnpm exec tsc --noEmit
 
       - name: Vite build
-        run: npm run build
+        run: pnpm build
 
   rust-check:
     name: Rust Check (${{ matrix.os }})
