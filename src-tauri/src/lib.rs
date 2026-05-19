@@ -393,6 +393,122 @@ async fn nvidia_chat(
         .ok_or_else(|| "NVIDIA NIM: unexpected response format".to_string())
 }
 
+// ─── Ollama proxy (bypasses WebView CORS) ────────────────────────────────────
+//
+// Ollama's daemon enforces a per-Origin CORS allowlist. Its default whitelist
+// covers `http://localhost:*` and `http://127.0.0.1:*`, which matches the dev
+// server (`http://localhost:1420`) but NOT the production webview origin
+// (`http://tauri.localhost` on Windows). A direct browser-side `fetch()` from
+// the installed app is silently rejected with 403, so detection and chat both
+// happen Rust-side via `reqwest`, which sends no `Origin` header.
+//
+// Same pattern as `nvidia_chat` above.
+
+#[derive(serde::Deserialize)]
+struct OllamaMessage {
+    role: String,
+    content: String,
+}
+
+#[tauri::command]
+async fn ollama_detect(base_url: Option<String>) -> Result<Vec<String>, String> {
+    let url = format!(
+        "{}/api/tags",
+        base_url.unwrap_or_else(|| "http://localhost:11434".to_string())
+    );
+
+    let client = reqwest::Client::builder()
+        .timeout(std::time::Duration::from_millis(2500))
+        .build()
+        .map_err(|e| format!("Ollama client error: {e}"))?;
+
+    let resp = client
+        .get(&url)
+        .send()
+        .await
+        .map_err(|e| format!("Ollama request failed: {e}"))?;
+
+    if !resp.status().is_success() {
+        return Err(format!("Ollama API error: {}", resp.status()));
+    }
+
+    let data: serde_json::Value = resp
+        .json()
+        .await
+        .map_err(|e| format!("Ollama parse error: {e}"))?;
+
+    let models = data["models"]
+        .as_array()
+        .map(|arr| {
+            arr.iter()
+                .filter_map(|m| m["name"].as_str().map(str::to_string))
+                .filter(|s| !s.is_empty())
+                .collect::<Vec<_>>()
+        })
+        .unwrap_or_default();
+
+    Ok(models)
+}
+
+#[tauri::command]
+async fn ollama_chat(
+    base_url: Option<String>,
+    model: String,
+    messages: Vec<OllamaMessage>,
+    system_prompt: String,
+) -> Result<String, String> {
+    let url = format!(
+        "{}/api/chat",
+        base_url.unwrap_or_else(|| "http://localhost:11434".to_string())
+    );
+
+    let mut full_messages = vec![serde_json::json!({
+        "role": "system",
+        "content": system_prompt,
+    })];
+    full_messages.extend(messages.iter().map(|m| {
+        serde_json::json!({
+            "role": m.role,
+            "content": m.content,
+        })
+    }));
+
+    let body = serde_json::json!({
+        "model": model,
+        "stream": false,
+        "options": { "num_predict": DEFAULT_MAX_TOKENS },
+        "messages": full_messages,
+    });
+
+    let client = reqwest::Client::builder()
+        .timeout(std::time::Duration::from_secs(60))
+        .build()
+        .map_err(|e| format!("Ollama client error: {e}"))?;
+
+    let resp = client
+        .post(&url)
+        .json(&body)
+        .send()
+        .await
+        .map_err(|e| format!("Ollama request failed: {e}"))?;
+
+    if !resp.status().is_success() {
+        let status = resp.status();
+        let text = resp.text().await.unwrap_or_default();
+        return Err(format!("Ollama API error: {status} — {text}"));
+    }
+
+    let data: serde_json::Value = resp
+        .json()
+        .await
+        .map_err(|e| format!("Ollama parse error: {e}"))?;
+
+    data["message"]["content"]
+        .as_str()
+        .map(str::to_string)
+        .ok_or_else(|| "Ollama: unexpected response format".to_string())
+}
+
 // ─── Desktop monitor commands ─────────────────────────────────────────────────
 
 #[tauri::command]
@@ -655,6 +771,8 @@ pub fn run() {
             disable_autostart,
             open_url,
             nvidia_chat,
+            ollama_detect,
+            ollama_chat,
         ])
         .build(tauri::generate_context!())
         .expect("error while building tauri application")
