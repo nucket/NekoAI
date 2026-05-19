@@ -17,6 +17,7 @@ import { useDesktopContext } from './hooks/useDesktopContext'
 import { useMoodEngine } from './hooks/useMoodEngine'
 import { useIdleSequencer } from './hooks/useIdleSequencer'
 import { useOnboarding } from './hooks/useOnboarding'
+import { IS_LINUX } from './utils/platform'
 import './App.css'
 
 // Onboarding bubble stays up at most this long; user can close earlier via
@@ -269,14 +270,19 @@ export default function App() {
   }, [spriteSize, isLoaded]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── Expanded-state lifecycle (bubble, settings, pet selector) ──────────────
-  // Any of these grow the window past sprite size, so:
+  // On Linux, where the window is opaque with a magenta chroma-key fill, any
+  // of these expanded states grow the window past sprite size, so:
   //   1. The sprite-sized GTK shape mask must be cleared — otherwise the
   //      panel UI is clipped to a tiny rectangle in the window's top-left.
   //   2. The body's chroma-key magenta fill must be swapped for a dark fill
   //      so we don't see magenta peek through the panel's edges/corners.
   // On collapse, the sprite remounts and PetRenderer re-pushes the shape on
   // the next animation frame, and the chroma-key class comes back.
+  // On Windows / macOS the window is natively transparent — no chroma-key
+  // toggling, no shape clearing. The `.app-container--open` dark card fill
+  // in App.css still kicks in via the open class for the bubble panel.
   useEffect(() => {
+    if (!IS_LINUX) return
     const isExpanded = bubbleOpen || anyPanelOpen
     document.body.classList.toggle('chroma-key', !isExpanded)
     document.body.classList.toggle('panel-bg', isExpanded)

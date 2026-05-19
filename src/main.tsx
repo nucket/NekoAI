@@ -3,6 +3,7 @@ import ReactDOM from 'react-dom/client'
 import App from './App'
 import { PanelWindow } from './PanelWindow'
 import { HouseWindow } from './HouseWindow'
+import { IS_LINUX } from './utils/platform'
 import './index.css'
 
 // Route selection: the `panel` Tauri window loads the same bundle but with a
@@ -10,12 +11,14 @@ import './index.css'
 const route = window.location.hash.replace(/^#/, '')
 const isPanel = route.length > 0 && route !== 'house'
 
-// Linux ghost-frame workaround: main + house windows are configured opaque
-// (transparent: false in tauri.conf.json) to avoid the WebKitGTK additive
-// blending bug, and rely on GTK shape masking to cut a magenta chroma-key
-// fill. The panel window remains transparent: true and must not get this
-// fill or it would leak past the UI's rounded corners.
-if (!isPanel) {
+// Linux-only ghost-frame workaround: on Linux the main + house windows are
+// opaque (transparent: false via tauri.linux.conf.json) and rely on GTK
+// shape masking to cut a magenta chroma-key fill. On Windows / macOS the
+// windows are natively transparent — applying the magenta fill there would
+// just paint a solid pink box, so the class is gated on IS_LINUX.
+// The panel window stays transparent: true on every platform and must not
+// get this fill or it would leak past the UI's rounded corners.
+if (IS_LINUX && !isPanel) {
   document.body.classList.add('chroma-key')
 }
 
