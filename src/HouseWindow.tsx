@@ -4,6 +4,7 @@ import { getCurrentWindow, primaryMonitor } from '@tauri-apps/api/window'
 import { PhysicalPosition } from '@tauri-apps/api/dpi'
 import { listen } from '@tauri-apps/api/event'
 import { useConfigStore } from './store/configStore'
+import { IS_LINUX } from './utils/platform'
 
 const HOUSE_SIZE = 64
 
@@ -80,8 +81,11 @@ export function HouseWindow() {
 
   // Extract the alpha channel of the house PNG and push it as a GTK shape
   // mask so the magenta chroma-key fill becomes invisible. Runs whenever the
-  // pet changes (src reload → new <img> load event).
+  // pet changes (src reload → new <img> load event). Linux-only — on Windows
+  // / macOS the house window is natively transparent, so there's no magenta
+  // fill to hide and no IPC needed.
   const applyHouseShape = useCallback((img: HTMLImageElement) => {
+    if (!IS_LINUX) return
     if (!img.complete || img.naturalWidth === 0) return
     const tempCanvas = document.createElement('canvas')
     tempCanvas.width = HOUSE_SIZE
@@ -112,6 +116,7 @@ export function HouseWindow() {
   // when the active pet has no custom house.png — most bundled pets fall
   // through here, so making this path mask-clean is important.
   const applyCssFallbackShape = useCallback(() => {
+    if (!IS_LINUX) return
     const canvas = document.createElement('canvas')
     canvas.width = HOUSE_SIZE
     canvas.height = HOUSE_SIZE

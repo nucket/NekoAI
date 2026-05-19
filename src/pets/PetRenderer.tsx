@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react'
 import { invoke } from '@tauri-apps/api/core'
 import type { AnimationConfig } from '../types/pet'
+import { IS_LINUX } from '../utils/platform'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -132,8 +133,9 @@ export function PetRenderer({
         // Push GTK shape mask only when the frame index actually advances
         // (animation FPS, typically ≤ 12) — not every RAF tick. Skipped when
         // the parent toggles applyWindowShape off (e.g. while the speech
-        // bubble is open and the window is sized 300×300).
-        if (applyWindowShape && lastShapedIndexRef.current !== frameIndexRef.current) {
+        // bubble is open and the window is sized 300×300), and on non-Linux
+        // platforms where the window is natively transparent.
+        if (IS_LINUX && applyWindowShape && lastShapedIndexRef.current !== frameIndexRef.current) {
           pushShapeFromCanvas(canvas, ctx)
           lastShapedIndexRef.current = frameIndexRef.current
         }
