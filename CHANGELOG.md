@@ -7,7 +7,34 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
-## [0.3.4] — 2026-05-18
+## [0.3.4] — 2026-05-19
+
+> Closes the long-running Linux ghost-frame sprite-stacking bug; fixes
+> Ollama magic-onboarding in installed builds (CORS bypass via Rust).
+
+### Fixed — Ollama magic-onboarding broken in installed builds
+
+`useOnboarding` always fell through to `needs_setup` — even with Ollama
+running — when using the installed app on Windows. The root cause is
+Ollama's per-Origin CORS allowlist: it whitelists `http://localhost:*` by
+default (matching the Vite dev server at `:1420`) but rejects
+`http://tauri.localhost`, the webview origin in production builds. The
+browser-side `fetch()` in `OllamaProvider.detect()` and `sendMessage()`
+received a silent `403 Forbidden`, so detection always returned
+`{ok: false}`.
+
+Both methods are now routed through two new Tauri commands —
+`ollama_detect` and `ollama_chat` — backed by `reqwest`, which sends no
+`Origin` header and is unaffected by CORS. Same pattern as `nvidia_chat`.
+
+**Files touched.**
+
+- `src-tauri/src/lib.rs` — adds `ollama_detect` (GET `/api/tags`, 2.5 s
+  timeout) and `ollama_chat` (POST `/api/chat`, 60 s timeout).
+- `src/ai/providers/ollama.ts` — `detect()` and `sendMessage()` rewritten
+  to use `invoke()`. Public signatures unchanged.
+
+---
 
 > Closes the long-running Linux ghost-frame sprite-stacking bug that was
 > documented as "still open" in v0.3.3. Reproduces on Ubuntu 22.04, Fedora,
