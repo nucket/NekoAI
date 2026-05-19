@@ -4,7 +4,7 @@
 
 <img src="https://raw.githubusercontent.com/nucket/NekoAI/refs/heads/main/main/assets/logo.png" alt="NekoAI Logo" width="120" />
 
-# 🐱 NekoAI
+# NekoAI
 
 ### The AI-powered desktop pet. Nostalgic soul, modern brain.
 
@@ -332,12 +332,26 @@ Read [CONTRIBUTING.md](CONTRIBUTING.md) before submitting.
 
 ## 🙏 Inspiration & Credits
 
-This project is a love letter to:
+NekoAI is the latest chapter in a 38-year chain started by a tiny Japanese program in 1988.
 
-- **[Neko](<https://en.wikipedia.org/wiki/Neko_(software)>)** — the original X11 cat, 1989
-- **[eSheep](https://github.com/Adrianotiger/desktopPet)** — the Windows XP classic
-- **[Shimeji](https://kilkakon.com/shimeji/)** — the Japanese desktop mascot framework
-- **[Tauri](https://tauri.app)** — for making lightweight native desktop apps possible
+**The original creators** — their work made this possible:
+
+| Name                            | Contribution                                                            | Year      |
+| ------------------------------- | ----------------------------------------------------------------------- | --------- |
+| **Naoshi Watanabe** (若田部 直) | Created `NEKO.COM` — the original cursor-chasing cat                    | ~1988     |
+| **Kenji Gotoh** (後藤寿庵)      | Designed the iconic 32×32 sprites; released them to the public domain   | 1989      |
+| **Masayuki Koba** (古場正行)    | `xneko` — X11 port that spawned all Unix lineage                        | 1990      |
+| **Tatsuya Kato** (加藤達也)     | `oneko` — Linux/BSD port; still installable today (`apt install oneko`) | 1990      |
+| **David Harvey**                | `Neko95/Neko98` — Win32 port with footprints and installer              | 1997–2000 |
+
+**Standing on the shoulders of:**
+
+- **[eSheep](https://github.com/Adrianotiger/desktopPet)** — the Windows XP sheep that proved desktop pets still had an audience
+- **[Shimeji](https://kilkakon.com/shimeji/)** — Japanese desktop mascot framework with physics and interactions
+- **[Eliot Akira's WebNeko](https://github.com/eliot-akira/neko)** — the browser revival that brought Neko to a new generation
+- **[Tauri](https://tauri.app)** — for making sub-10MB native desktop apps actually possible in 2026
+
+> 📖 **The full story** — from a 1988 NEC PC-9801 to AI-powered conversations — is in **[STORY-Neko.md](STORY-Neko.md)**.
 
 ---
 
