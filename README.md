@@ -53,7 +53,7 @@ Neko:   *walks over, pops a bubble*
 | 🧠 Persistent memory — remembers your name, projects, preferences                | ✅         |
 | 🔌 Multi-provider AI (Claude, OpenAI, Gemini, NVIDIA NIM, Ollama local)          | ✅         |
 | 😴 Dynamic mood — energy changes with time of day & idle time                    | ✅         |
-| 🎭 Multiple pets — Classic Neko, Ghost, Ember, Pingu, Shiba                      | ✅         |
+| 🎭 Multiple pets — Classic Neko, Pingu, Pac-Man, BSD Daemon, Tabby, TIE Fighter  | ✅         |
 | 🏠 Pet house — spawn point at bottom-right corner, click to bring pet home       | ✅         |
 | 🔔 Proactive nudges ("coding 90 min — take a break!")                            | ✅         |
 | 🖥️ System tray — hide/show, switch pets, settings                                | ✅         |
@@ -213,15 +213,16 @@ Mood affects:
 
 ## 🎭 Available Pets
 
-| Pet             | ID              | Personality                                              |
-| --------------- | --------------- | -------------------------------------------------------- |
-| 🐱 Classic Neko | `classic-neko`  | Playful, curious, gives warm short answers               |
-| 👻 Ghost        | `ghost-pixel`   | Ethereal, kind, slightly mysterious — drifts with a glow |
-| 🐉 Ember        | `dragon-pixel`  | Sarcastic fire dragon — impatient but secretly helpful   |
-| 🐧 Pingu        | `penguin-pixel` | Cheerful and clumsy, bounces back from every stumble     |
-| 🐕 Shiba        | `shiba-pixel`   | Loyal, energetic, enthusiastic about everything          |
+| Pet             | ID              | Personality                                                         |
+| --------------- | --------------- | ------------------------------------------------------------------- |
+| 🐱 Classic Neko | `classic-neko`  | Playful, curious — short bursts, occasional nya~                    |
+| 🐧 Pingu        | `penguin-pixel` | Cheerful and clumsy, bounces back from every stumble                |
+| 🟡 Pac-Man      | `pac-man`       | Always hungry, obsessed with dots — very short waka-waka replies    |
+| 😈 BSD Daemon   | `bsd-daemon`    | Wry Unix sysadmin — terse, accurate, mildly smug about BSD          |
+| 🐈 Tabby        | `tabby`         | Dignified and old-school — the original X11 cat, calm and unhurried |
+| 🚀 TIE Fighter  | `tie-fighter`   | Imperial officer — formal, brief, always scanning for Rebel scum    |
 
-Switch pets via right-click → Settings, or from the system tray menu.
+Switch pets via right-click → Select Pet, or from the system tray menu.
 
 Want to create your own? See [Creating a Pet](docs/creating-a-pet.md).
 
@@ -267,10 +268,11 @@ NekoAI/
 └── pets/                        # Pet definitions (bundled with app)
     ├── manifest.json            # Registry of all available pets
     ├── classic-neko/            # 🐱 pet.json + sprites/
-    ├── ghost-pixel/             # 👻 pet.json + sprites/
-    ├── dragon-pixel/            # 🐉 pet.json + sprites/ (Ember)
     ├── penguin-pixel/           # 🐧 pet.json + sprites/ (Pingu)
-    └── shiba-pixel/             # 🐕 pet.json + sprites/
+    ├── pac-man/                 # 🟡 pet.json + sprites/
+    ├── bsd-daemon/              # 😈 pet.json + sprites/
+    ├── tabby/                   # 🐈 pet.json + sprites/
+    └── tie-fighter/             # 🚀 pet.json + sprites/
 ```
 
 ### Window Resizing on Windows
@@ -320,7 +322,7 @@ Read [CONTRIBUTING.md](CONTRIBUTING.md) before submitting.
 | Version     | Focus                                                                                                                                                                                                                       |
 | ----------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **v0.1** ✅ | Core: transparent window, Neko sprite, cursor tracking, AI chat                                                                                                                                                             |
-| **v0.2** ✅ | Persistent memory, dynamic mood engine, pet house window, new pets (Ghost, Ember, Pingu), 8-direction movement                                                                                                              |
+| **v0.2** ✅ | Persistent memory, dynamic mood engine, pet house window, new pets (Pingu, Pac-Man, BSD Daemon, Tabby, TIE Fighter), 8-direction movement                                                                                   |
 | **v0.3** 🚧 | Zero-config onboarding (Ollama auto-detect), Gemini as default provider, NVIDIA NIM provider, classic Neko idle/edge sequencer, restrictive CSP, multi-OS CI matrix, passive install metrics pipeline                       |
 | **v0.4** 🔜 | **NekoMetrics** — anonymous keystroke / mouse / pet-step counters with house right-click menu, animated tooltip above the house, daily/weekly/monthly history, GitHub-style heatmap, BongoCat-style reactive paw animations |
 | **v0.5** 🔜 | Accessories/skins system, sound effects, sprite scale slider, community pet gallery in-app, mini-games                                                                                                                      |
