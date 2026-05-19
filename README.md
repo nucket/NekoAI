@@ -1,5 +1,7 @@
 <div align="center">
 
+<img src="https://raw.githubusercontent.com/nucket/NekoAI/refs/heads/main/main/assets/GH-hero.png" alt="NekoAI Banner" width="100%" />
+
 <img src="https://raw.githubusercontent.com/nucket/NekoAI/refs/heads/main/main/assets/logo.png" alt="NekoAI Logo" width="120" />
 
 # 🐱 NekoAI
