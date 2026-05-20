@@ -661,11 +661,6 @@ export default function App() {
           onMouseDown={handleMouseDown}
           onContextMenu={handleRightClick}
           data-state={petState}
-          title={
-            bubbleOpen
-              ? 'Drag to reposition · Click X to close'
-              : 'Click to chat · right-click for menu'
-          }
         >
           {/* Show pet only after sprites are loaded */}
           {spritesDir && Object.keys(animations).length > 0 ? (
