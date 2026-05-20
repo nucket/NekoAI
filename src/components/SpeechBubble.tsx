@@ -39,6 +39,9 @@ export interface SpeechBubbleProps {
   /** Async function that takes the user's message and returns the AI reply.
    *  Ignored when `announcement` is provided. */
   onSendMessage: (message: string) => Promise<string>
+  /** Loads the most recent conversation turns so a reopened bubble shows
+   *  prior context instead of starting blank. Skipped in announcement mode. */
+  loadHistory?: () => Promise<Message[]>
   /** When set, the bubble shows a single message + action buttons instead of
    *  the chat input. Used for onboarding / system prompts. The inactivity
    *  timer is also disabled in this mode (CTAs require user attention). */
@@ -64,6 +67,7 @@ export function SpeechBubble({
   spriteSize,
   onClose,
   onSendMessage,
+  loadHistory,
   announcement,
 }: SpeechBubbleProps) {
   // ── Internal state (as requested) ─────────────────────────────────────────
@@ -110,7 +114,17 @@ export function SpeechBubble({
     // Skipped in announcement mode (no input present).
     if (!announcement) requestAnimationFrame(() => inputRef.current?.focus())
     resetTimer()
-  }, [isOpen, resetTimer, announcement])
+
+    // Preload prior conversation so a reopened bubble isn't blank. Skipped in
+    // announcement mode (onboarding shows a single scripted message).
+    if (!announcement && loadHistory) {
+      void (async () => {
+        const history = await loadHistory()
+        // Guard: a fast send could land before this resolves — don't clobber.
+        setMessages((prev) => (prev.length === 0 ? history : prev))
+      })()
+    }
+  }, [isOpen, resetTimer, announcement, loadHistory])
 
   // ── Announcement: kick the typewriter on open ─────────────────────────────
   // Re-uses the same scramble effect as AI replies for visual coherence.

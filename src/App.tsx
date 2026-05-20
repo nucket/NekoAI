@@ -6,7 +6,7 @@ import { invoke } from '@tauri-apps/api/core'
 import { PetRenderer } from './pets/PetRenderer'
 import type { PetDefinition } from './types/pet'
 import { usePetMovement } from './hooks/usePetMovement'
-import { SpeechBubble, type AnnouncementContent } from './components/SpeechBubble'
+import { SpeechBubble, type AnnouncementContent, type Message } from './components/SpeechBubble'
 import { SettingsPanel } from './components/SettingsPanel'
 import { PetSelector } from './components/PetSelector'
 import { useConfigStore } from './store/configStore'
@@ -339,6 +339,23 @@ export default function App() {
     }
   }, [])
 
+  // ── Preload recent history when the bubble opens ──────────────────────────
+  // SQLite keeps the conversation, but SpeechBubble starts empty on every
+  // open. Feeding it the last few turns keeps the pet from looking amnesiac
+  // across reopens. Returns chronological order (oldest first) — see
+  // storage::get_recent_messages.
+  const loadHistory = useCallback(async (): Promise<Message[]> => {
+    try {
+      const rows = await invoke<Array<{ role: string; content: string }>>('get_recent_messages', {
+        limit: 6,
+      })
+      return rows.map((r) => ({ role: r.role as 'user' | 'assistant', content: r.content }))
+    } catch (err) {
+      console.error('[NekoAI] loadHistory failed:', err)
+      return []
+    }
+  }, [])
+
   // ── Open bubble ────────────────────────────────────────────────────────────
   const openBubble = useCallback(async () => {
     const win = getCurrentWindow()
@@ -648,6 +665,7 @@ export default function App() {
         spriteSize={spriteSize}
         onClose={closeBubble}
         onSendMessage={handleSendMessage}
+        loadHistory={loadHistory}
         announcement={onboardingAnnouncement ?? undefined}
       />
 
