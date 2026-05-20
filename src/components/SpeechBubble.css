@@ -41,16 +41,10 @@
   }
 }
 
-/* Above the sprite (triangle at bottom) */
-.speech-bubble--above {
-  top: 6px;
-}
-
-/* Below the sprite (triangle at top) */
-.speech-bubble--below {
-  /* SPRITE_SIZE 128 + gap 12 + triangle 10 */
-  top: 150px;
-}
+/* Vertical placement is set inline by SpeechBubble.tsx (`bottom` when above,
+ * `top` when below), computed from the live pet size so the triangle tail
+ * always meets the sprite. The --above / --below modifiers only mark which
+ * side the tail is on; the tail direction itself lives on .speech-bubble__tail. */
 
 /* ─── Triangle tail ──────────────────────────────────────────────────────────── */
 

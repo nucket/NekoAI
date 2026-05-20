@@ -279,8 +279,8 @@ export default function App() {
   // On collapse, the sprite remounts and PetRenderer re-pushes the shape on
   // the next animation frame, and the chroma-key class comes back.
   // On Windows / macOS the window is natively transparent — no chroma-key
-  // toggling, no shape clearing. The `.app-container--open` dark card fill
-  // in App.css still kicks in via the open class for the bubble panel.
+  // toggling, no shape clearing, and no dark fill: only the speech bubble and
+  // sprite show. The dark fill is Linux-only and applied inline (see below).
   useEffect(() => {
     if (!IS_LINUX) return
     const isExpanded = bubbleOpen || anyPanelOpen
@@ -618,8 +618,15 @@ export default function App() {
       } as React.CSSProperties)
     : undefined
 
-  // Container size must match petSize exactly to avoid a visible border/gap
-  const containerStyle = bubbleOpen ? undefined : { width: spriteSize, height: spriteSize }
+  // Container size must match petSize exactly to avoid a visible border/gap.
+  // While the bubble is open the window is 300×300 (sized by .app-container--open);
+  // on Linux it additionally needs an opaque dark fill to mask the magenta
+  // chroma-key body. Windows/macOS keep the window natively transparent.
+  const containerStyle: React.CSSProperties | undefined = bubbleOpen
+    ? IS_LINUX
+      ? { background: 'rgb(28, 28, 32)' }
+      : undefined
+    : { width: spriteSize, height: spriteSize }
 
   return (
     <div
@@ -638,6 +645,7 @@ export default function App() {
       <SpeechBubble
         isOpen={bubbleOpen}
         position={bubblePos}
+        spriteSize={spriteSize}
         onClose={closeBubble}
         onSendMessage={handleSendMessage}
         announcement={onboardingAnnouncement ?? undefined}
@@ -653,11 +661,6 @@ export default function App() {
           onMouseDown={handleMouseDown}
           onContextMenu={handleRightClick}
           data-state={petState}
-          title={
-            bubbleOpen
-              ? 'Drag to reposition · Click X to close'
-              : `${petState} — click to chat · right-click for menu`
-          }
         >
           {/* Show pet only after sprites are loaded */}
           {spritesDir && Object.keys(animations).length > 0 ? (
