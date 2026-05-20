@@ -15,6 +15,7 @@
 [![TypeScript](https://img.shields.io/badge/TypeScript-6.x-blue?logo=typescript)](https://www.typescriptlang.org/)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](CONTRIBUTING.md)
 [![Stars](https://img.shields.io/github/stars/nucket/nekoai?style=social)](https://github.com/nucket/nekoai/stargazers)
+[![Discord](https://img.shields.io/badge/Discord-Join%20us-5865F2?logo=discord&logoColor=white)](https://discord.gg/d7pykbNz)
 
 <br/>
 
@@ -314,6 +315,16 @@ NekoAI is community-first. Ways to contribute:
 - 🧑‍💻 **Code** — check [good first issues](https://github.com/nucket/nekoai/labels/good%20first%20issue)
 
 Read [CONTRIBUTING.md](CONTRIBUTING.md) before submitting.
+
+---
+
+## 💬 Community {#community}
+
+Join our Discord server to chat, share your pets, get help, and follow development:
+
+[![Discord](https://img.shields.io/badge/Discord-Join%20us-5865F2?logo=discord&logoColor=white)](https://discord.gg/d7pykbNz)
+
+_Channels available in: English 🇬🇧 | Español 🇪🇸 | Português 🇧🇷_
 
 ---
 
