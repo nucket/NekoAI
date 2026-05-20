@@ -13,14 +13,11 @@
 .app-container--open {
   width: 300px;
   height: 300px;
-  /* When the bubble opens we clear the GTK shape mask (so the bubble UI is
-   * fully visible) — that exposes the magenta chroma-key body fill on Linux.
-   * A solid dark fill here covers the magenta with a card-like background;
-   * the SpeechBubble graphic and sprite render on top of this.
-   * Square corners (no border-radius) so the card fully covers the 300×300
-   * window — any rounded corner would expose the body's chroma-key fill at
-   * the cut-out quadrants. */
-  background: rgb(28, 28, 32);
+  /* Window stays natively transparent on Windows/macOS so only the speech
+   * bubble and sprite are visible. On Linux the window is opaque with a
+   * magenta chroma-key fill, so App.tsx adds an inline dark background here
+   * (gated on IS_LINUX) once the GTK shape mask is cleared. Do NOT set an
+   * opaque background in CSS — it would paint a solid box on Windows/macOS. */
 }
 
 /* ─── Sprite container ───────────────────────────────────────────────────────── */

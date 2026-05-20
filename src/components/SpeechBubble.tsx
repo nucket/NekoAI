@@ -1,4 +1,11 @@
-import { useState, useEffect, useRef, useCallback, type KeyboardEvent } from 'react'
+import {
+  useState,
+  useEffect,
+  useRef,
+  useCallback,
+  type KeyboardEvent,
+  type CSSProperties,
+} from 'react'
 import './SpeechBubble.css'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -24,6 +31,9 @@ export interface SpeechBubbleProps {
   isOpen: boolean
   /** Whether the bubble appears above or below the sprite. */
   position: 'above' | 'below'
+  /** Live pet sprite size in px. The bubble is anchored just off the sprite
+   *  edge so the tail stays connected at every configured pet size. */
+  spriteSize: number
   /** Called when the user closes the bubble or the inactivity timer fires. */
   onClose: () => void
   /** Async function that takes the user's message and returns the AI reply.
@@ -47,6 +57,7 @@ const SCRAMBLE_LOOKAHEAD = 5 // scrambled chars visible ahead of the locked posi
 export function SpeechBubble({
   isOpen,
   position,
+  spriteSize,
   onClose,
   onSendMessage,
   announcement,
@@ -196,9 +207,18 @@ export function SpeechBubble({
   const isTyping = pendingText !== null
   const hasMessages = messages.length > 0 || isTyping || isLoading
 
+  // Anchor the bubble just off the sprite edge: `bottom` when it sits above the
+  // sprite (tail points down), `top` when below. Offset = sprite size + tail
+  // height (11px) + a small visual gap, so the tail meets the sprite at any
+  // configured pet size instead of floating at a fixed window offset.
+  const anchorOffset = spriteSize + 11 + 3
+  const anchorStyle: CSSProperties =
+    position === 'above' ? { bottom: anchorOffset } : { top: anchorOffset }
+
   return (
     <div
       className={`speech-bubble speech-bubble--${position}`}
+      style={anchorStyle}
       role="dialog"
       aria-label="NekoAI chat"
       // Prevent drag from starting while interacting with the bubble
