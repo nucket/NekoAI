@@ -6,7 +6,7 @@ import { invoke } from '@tauri-apps/api/core'
 import { PetRenderer } from './pets/PetRenderer'
 import type { PetDefinition } from './types/pet'
 import { usePetMovement } from './hooks/usePetMovement'
-import { SpeechBubble, type AnnouncementContent } from './components/SpeechBubble'
+import { SpeechBubble, type AnnouncementContent, type Message } from './components/SpeechBubble'
 import { SettingsPanel } from './components/SettingsPanel'
 import { PetSelector } from './components/PetSelector'
 import { useConfigStore } from './store/configStore'
@@ -64,6 +64,57 @@ function resolveAnimation({
   if (notificationAlert) return hasAlert ? 'alert' : 'idle'
   if (petState === 'WALKING') return edgeAnimOverride ?? currentAnimation
   return edgeAnimOverride ?? clickWakeAnim ?? idleAnim ?? moodOverride ?? currentAnimation
+}
+
+// ─── Error messaging ───────────────────────────────────────────────────────────
+// Turns a raw provider/transport error into a short, actionable message in the
+// pet's voice. Three failure shapes are recognised:
+//   • fetch() network failures — "Failed to fetch" / "Load failed" (Anthropic,
+//     OpenAI, Gemini run in the WebView).
+//   • Rust-proxied connection failures — "<Provider> request failed: …" (the
+//     Ollama / NVIDIA paths go through reqwest).
+//   • HTTP-status errors — "<Provider> API error: <code> …" (all providers).
+// Anything unrecognised falls back to the generic message.
+
+function describeSendError(err: unknown, provider: string): string {
+  const msg = (err instanceof Error ? err.message : String(err)).toLowerCase()
+
+  // Connection / unreachable — no network, daemon down, or a request timeout.
+  if (
+    msg.includes('failed to fetch') ||
+    msg.includes('load failed') ||
+    msg.includes('network error') ||
+    msg.includes('networkerror') ||
+    msg.includes('request failed')
+  ) {
+    return provider === 'ollama'
+      ? "I can't reach Ollama — make sure it's running. 🐾"
+      : "I can't reach the internet right now — check your connection. 🐾"
+  }
+
+  // Invalid credentials — 401 / 403, or a Gemini 400 (its invalid-key status).
+  if (
+    msg.includes('401') ||
+    msg.includes('unauthorized') ||
+    msg.includes('403') ||
+    msg.includes('forbidden') ||
+    (provider === 'gemini' && msg.includes('400'))
+  ) {
+    return 'My API key looks invalid — open Settings to fix it. 🔑'
+  }
+
+  // Rate limit / quota exhausted — 429 or a provider quota message.
+  if (
+    msg.includes('429') ||
+    msg.includes('too many requests') ||
+    msg.includes('rate limit') ||
+    msg.includes('quota') ||
+    msg.includes('resource_exhausted')
+  ) {
+    return "I've hit the usage limit for now — try again in a little while. 😿"
+  }
+
+  return 'Sorry, something went wrong. 😿'
 }
 
 // ─── App ───────────────────────────────────────────────────────────────────────
@@ -335,7 +386,24 @@ export default function App() {
       return reply
     } catch (err) {
       console.error('[NekoAI] handleSendMessage error:', err)
-      return 'Sorry, something went wrong. 😿'
+      return describeSendError(err, cfg.provider)
+    }
+  }, [])
+
+  // ── Preload recent history when the bubble opens ──────────────────────────
+  // SQLite keeps the conversation, but SpeechBubble starts empty on every
+  // open. Feeding it the last few turns keeps the pet from looking amnesiac
+  // across reopens. Returns chronological order (oldest first) — see
+  // storage::get_recent_messages.
+  const loadHistory = useCallback(async (): Promise<Message[]> => {
+    try {
+      const rows = await invoke<Array<{ role: string; content: string }>>('get_recent_messages', {
+        limit: 6,
+      })
+      return rows.map((r) => ({ role: r.role as 'user' | 'assistant', content: r.content }))
+    } catch (err) {
+      console.error('[NekoAI] loadHistory failed:', err)
+      return []
     }
   }, [])
 
@@ -470,14 +538,14 @@ export default function App() {
             ? {
                 text: `Hello! I detected Ollama running and automatically set myself up to use ${
                   onboarding.detectedModel ?? 'your local model'
-                }. You can change this in Settings anytime — ask me anything!`,
+                }. You can change this in Settings, and right-click me anytime for the menu. Ask me anything!`,
                 actions: [
                   { label: 'Got it', primary: true, onClick: () => closeOnboardingBubble(false) },
                   { label: 'Open Settings', onClick: () => closeOnboardingBubble(true) },
                 ],
               }
             : {
-                text: "Hello! I'm your new desktop pet. To chat with you, I need to be connected to an AI engine. Will you help me set one up?",
+                text: "Hello! I'm your new desktop pet. To chat with you, I need to be connected to an AI engine. Will you help me set one up? You can also right-click me anytime for the menu.",
                 actions: [
                   {
                     label: '⚙ Configure AI',
@@ -648,6 +716,7 @@ export default function App() {
         spriteSize={spriteSize}
         onClose={closeBubble}
         onSendMessage={handleSendMessage}
+        loadHistory={loadHistory}
         announcement={onboardingAnnouncement ?? undefined}
       />
 

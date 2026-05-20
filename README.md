@@ -165,7 +165,7 @@ NekoAI builds a persistent context for every conversation:
 
 - **Pet personality** — defined per-pet in `pet.json` via `system_prompt`
 - **User facts** — extracted automatically from conversations and stored in SQLite (`~/.local/share/nekoai/memory.db`). Includes name, current projects, preferred language, etc.
-- **Conversation history** — last 20 messages sent as context on every turn
+- **Conversation history** — last 20 messages sent as context on every turn; the speech bubble also shows your recent turns when reopened, so the pet never looks like it forgot
 - **Dynamic mood** — pet's current energy/happiness/curiosity subtly influences its tone
 
 ```
@@ -252,7 +252,7 @@ NekoAI/
 │   │   ├── types.ts             # AIProvider interface, Message type
 │   │   └── providers/           # anthropic.ts · openai.ts · gemini.ts · ollama.ts · nvidia.ts
 │   ├── components/
-│   │   ├── SpeechBubble.tsx     # Animated chat bubble with scramble text effect
+│   │   ├── SpeechBubble.tsx     # Animated chat bubble — scramble text, sprite-anchored, preloads recent history
 │   │   ├── SettingsPanel.tsx    # Settings panel (API key, model, pet size)
 │   │   ├── ContextMenu.tsx      # Right-click context menu (settings, pet, size)
 │   │   └── PetSelector.tsx      # Pet picker with dynamic window resizing

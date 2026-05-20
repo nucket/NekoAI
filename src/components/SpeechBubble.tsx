@@ -39,6 +39,9 @@ export interface SpeechBubbleProps {
   /** Async function that takes the user's message and returns the AI reply.
    *  Ignored when `announcement` is provided. */
   onSendMessage: (message: string) => Promise<string>
+  /** Loads the most recent conversation turns so a reopened bubble shows
+   *  prior context instead of starting blank. Skipped in announcement mode. */
+  loadHistory?: () => Promise<Message[]>
   /** When set, the bubble shows a single message + action buttons instead of
    *  the chat input. Used for onboarding / system prompts. The inactivity
    *  timer is also disabled in this mode (CTAs require user attention). */
@@ -51,6 +54,10 @@ const INACTIVITY_MS = 30_000
 const SCRAMBLE_FRAME_MS = 30
 const SCRAMBLE_CHARS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789@#$%!?<>[]{}'
 const SCRAMBLE_LOOKAHEAD = 5 // scrambled chars visible ahead of the locked position
+// Upper bound on how long the scramble reveal may take. Without it a long
+// reply (256 tokens ≈ 1000+ chars) would crawl for ~30s at SCRAMBLE_FRAME_MS
+// per character. Short replies still reveal at the natural per-char pace.
+const REVEAL_BUDGET_MS = 2400
 
 // ─── Component ───────────────────────────────────────────────────────────────
 
@@ -60,6 +67,7 @@ export function SpeechBubble({
   spriteSize,
   onClose,
   onSendMessage,
+  loadHistory,
   announcement,
 }: SpeechBubbleProps) {
   // ── Internal state (as requested) ─────────────────────────────────────────
@@ -106,7 +114,17 @@ export function SpeechBubble({
     // Skipped in announcement mode (no input present).
     if (!announcement) requestAnimationFrame(() => inputRef.current?.focus())
     resetTimer()
-  }, [isOpen, resetTimer, announcement])
+
+    // Preload prior conversation so a reopened bubble isn't blank. Skipped in
+    // announcement mode (onboarding shows a single scripted message).
+    if (!announcement && loadHistory) {
+      void (async () => {
+        const history = await loadHistory()
+        // Guard: a fast send could land before this resolves — don't clobber.
+        setMessages((prev) => (prev.length === 0 ? history : prev))
+      })()
+    }
+  }, [isOpen, resetTimer, announcement, loadHistory])
 
   // ── Announcement: kick the typewriter on open ─────────────────────────────
   // Re-uses the same scramble effect as AI replies for visual coherence.
@@ -129,15 +147,20 @@ export function SpeechBubble({
     if (pendingText === null) return
 
     if (typewriterRef.current) clearInterval(typewriterRef.current)
-    let frame = 0
     const total = pendingText.length
+    // Reveal `step` characters per frame so long replies finish within
+    // REVEAL_BUDGET_MS instead of locking one char at a time. Short replies
+    // resolve to step = 1, keeping the original SCRAMBLE_FRAME_MS/char feel.
+    const maxFrames = Math.max(1, Math.round(REVEAL_BUDGET_MS / SCRAMBLE_FRAME_MS))
+    const step = Math.max(1, Math.ceil(total / maxFrames))
+    let frame = 0
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setTypedSoFar('')
 
     const rndChar = () => SCRAMBLE_CHARS[Math.floor(Math.random() * SCRAMBLE_CHARS.length)]
 
     typewriterRef.current = setInterval(() => {
-      frame++
+      frame += step
       if (frame >= total) {
         clearInterval(typewriterRef.current!)
         setMessages((prev) => [...prev, { role: 'assistant', content: pendingText }])
@@ -159,6 +182,20 @@ export function SpeechBubble({
       if (typewriterRef.current) clearInterval(typewriterRef.current)
     }
   }, [pendingText])
+
+  // ── Pause auto-close while the pet is busy ─────────────────────────────────
+  // The inactivity timer must only count once a full reply is on screen. While
+  // a request is in flight (isLoading) or the typewriter is still revealing
+  // (pendingText), the timer is cleared — so a slow model or a long reply can
+  // never close the bubble mid-thought. Announcement mode never auto-closes.
+  useEffect(() => {
+    if (!isOpen || announcement) return
+    if (isLoading || pendingText !== null) {
+      if (inactivityRef.current) clearTimeout(inactivityRef.current)
+    } else {
+      resetTimer()
+    }
+  }, [isOpen, announcement, isLoading, pendingText, resetTimer])
 
   // ── Send handler ───────────────────────────────────────────────────────────
   const handleSend = useCallback(async () => {
