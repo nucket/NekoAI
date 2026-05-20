@@ -470,14 +470,14 @@ export default function App() {
             ? {
                 text: `Hello! I detected Ollama running and automatically set myself up to use ${
                   onboarding.detectedModel ?? 'your local model'
-                }. You can change this in Settings anytime — ask me anything!`,
+                }. You can change this in Settings, and right-click me anytime for the menu. Ask me anything!`,
                 actions: [
                   { label: 'Got it', primary: true, onClick: () => closeOnboardingBubble(false) },
                   { label: 'Open Settings', onClick: () => closeOnboardingBubble(true) },
                 ],
               }
             : {
-                text: "Hello! I'm your new desktop pet. To chat with you, I need to be connected to an AI engine. Will you help me set one up?",
+                text: "Hello! I'm your new desktop pet. To chat with you, I need to be connected to an AI engine. Will you help me set one up? You can also right-click me anytime for the menu.",
                 actions: [
                   {
                     label: '⚙ Configure AI',
