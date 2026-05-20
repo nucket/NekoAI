@@ -664,7 +664,7 @@ export default function App() {
           title={
             bubbleOpen
               ? 'Drag to reposition · Click X to close'
-              : `${petState} — click to chat · right-click for menu`
+              : 'Click to chat · right-click for menu'
           }
         >
           {/* Show pet only after sprites are loaded */}
