@@ -7,6 +7,85 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [Unreleased]
+
+> Speech-bubble appearance fixes plus a round of chat UX improvements: the
+> bubble is transparent again on Windows/macOS, hugs the pet sprite, and the
+> conversation now feels faster, friendlier, and more informative.
+
+### Fixed — speech bubble showed an opaque dark box on Windows/macOS
+
+Since the Linux chroma-key work (v0.3.4), the chat bubble rendered on a solid
+`rgb(28,28,32)` card on every platform. That dark fill is only needed on
+Linux, where the window is opaque and the magenta chroma-key must be masked
+once the GTK shape mask is cleared. On Windows/macOS the window is natively
+transparent, so the card was just an unwanted dark rectangle around the
+bubble.
+
+The fill now lives in an inline `IS_LINUX`-gated style applied from
+`App.tsx`; `.app-container--open` carries no background in CSS. Windows and
+macOS keep the window fully transparent — only the bubble and sprite show.
+
+### Fixed — speech bubble floated far from the pet
+
+The bubble's vertical position used fixed CSS offsets sized for the largest
+pet (128 px), leaving a large gap above/below smaller pets. `SpeechBubble`
+now takes a `spriteSize` prop and anchors itself to the live sprite size
+(`bottom` when above the pet, `top` when below), so the triangle tail meets
+the sprite at every size — S/M/L/XL.
+
+### Removed — hover tooltip on the pet sprite
+
+The native `title` tooltip exposed the internal `petState` value
+(`NEAR_CURSOR`, `IDLE`…), which is meaningless to users. The tooltip was
+removed entirely.
+
+### Added — onboarding bubble mentions the right-click menu
+
+With the tooltip gone, a new user had no hint that right-click opens the
+context menu. The first-launch announcement bubble now points it out, on
+both the Ollama-detected and needs-setup paths.
+
+### Added — speech bubble preloads recent conversation
+
+`SpeechBubble` reset its messages on close, so every reopen showed a blank
+bubble even though SQLite still held the conversation — the pet looked
+amnesiac. It now fetches the last few turns via `get_recent_messages` on
+open and seeds the message list, guarding against a fast send racing the
+fetch.
+
+### Added — specific, actionable chat error messages
+
+A failed AI request always showed the same "something went wrong" line.
+`handleSendMessage` now classifies the provider/transport error and returns
+a targeted hint — unreachable network/Ollama, invalid API key, or rate
+limit — falling back to the generic message when unrecognised.
+
+### Changed — capped typewriter reveal, paused auto-close while busy
+
+A 256-token reply (~1000+ chars) took ~30 s to fully reveal at a fixed 30 ms
+per character, colliding with the 30 s inactivity timer. The scramble now
+reveals several characters per frame so any reply finishes within
+`REVEAL_BUDGET_MS`; short replies keep the original per-char pace. The
+inactivity auto-close is also cleared while a request is in flight or the
+typewriter is still running, so the 30 s idle window only starts once a
+complete reply is on screen.
+
+**Files touched.**
+
+- `src/App.css` — `.app-container--open` no longer sets a background.
+- `src/App.tsx` — inline `IS_LINUX`-gated bubble fill; `spriteSize` and
+  `loadHistory` passed to `SpeechBubble`; `describeSendError()` error
+  classifier; right-click hint in the onboarding announcements; removed the
+  sprite `title` tooltip.
+- `src/components/SpeechBubble.tsx` — `spriteSize` + `loadHistory` props;
+  sprite-anchored placement; `REVEAL_BUDGET_MS` typewriter cap; inactivity
+  timer paused while busy; history preload on open.
+- `src/components/SpeechBubble.css` — fixed `top` offsets removed; placement
+  is computed inline.
+
+---
+
 ## [0.3.4] — 2026-05-19
 
 > Closes the long-running Linux ghost-frame sprite-stacking bug; fixes
