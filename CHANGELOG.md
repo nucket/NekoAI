@@ -7,7 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
-## [Unreleased]
+## [0.3.5] — 2026-05-21
 
 > Speech-bubble appearance fixes plus a round of chat UX improvements: the
 > bubble is transparent again on Windows/macOS, hugs the pet sprite, and the
