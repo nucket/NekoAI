@@ -143,6 +143,11 @@ export default function App() {
   const clickWakeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const [edgeAnimOverride, setEdgeAnimOverride] = useState<string | null>(null)
   const edgeAnimTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  // How the backend can source the cursor position. On a Wayland session with
+  // no readable input device it is 'unavailable' — the pet cannot follow the
+  // mouse and falls back to wanderer mode. See cursor_tracker.rs.
+  const [cursorTracking, setCursorTracking] = useState<'native' | 'evdev' | 'unavailable'>('native')
+  const waylandNoticeShownRef = useRef(false)
   const activePetId = config.activePetId || 'classic-neko'
   // Context menu lives in a separate Tauri window — the main window never
   // gets taken over, so the sprite stays free to follow the cursor.
@@ -174,6 +179,23 @@ export default function App() {
     }
     loadPet()
   }, [activePetId])
+
+  // ── Cursor-tracking capability probe ──────────────────────────────────────
+  // The backend reports whether it can see the global cursor. On a Wayland
+  // session with no readable /dev/input device it cannot, so the pet must fall
+  // back to wanderer mode. Runs once; defaults to 'native' on any failure.
+  useEffect(() => {
+    void (async () => {
+      try {
+        const status = await invoke<string>('cursor_tracking_status')
+        if (status === 'evdev' || status === 'unavailable') {
+          setCursorTracking(status)
+        }
+      } catch {
+        // Backend unavailable — keep the 'native' default.
+      }
+    })()
+  }, [])
 
   // ── Movement ───────────────────────────────────────────────────────────────
   const availableAnimationsList = useMemo(
@@ -221,12 +243,19 @@ export default function App() {
   // and the regular movement state machine takes over.
   const onboardingActive = onboarding.state !== 'done'
 
+  // When the cursor cannot be tracked (Wayland with no input-device access)
+  // the pet physically cannot chase the mouse — fall back to wandering so it
+  // still feels alive. Otherwise honour the user's chosen mode.
+  const userMode: 'buddy' | 'wanderer' = config.petMode ?? 'buddy'
+  const effectiveMode: 'buddy' | 'wanderer' =
+    cursorTracking === 'unavailable' ? 'wanderer' : userMode
+
   const { petState, currentAnimation, overridePosition } = usePetMovement({
     nearThreshold: 50,
     sleepTimeout: 10 * 60 * 1000, // sequencer handles sleep at 5 min; this is a safety fallback
     windowSize: spriteSize,
     enabled: !dragging && !bubbleOpen && !anyPanelOpen && !notificationAlert && !onboardingActive,
-    mode: config.petMode ?? 'buddy',
+    mode: effectiveMode,
     availableAnimations: availableAnimationsList,
     onEdgeAnimation: handleEdgeAnimation,
   })
@@ -582,6 +611,46 @@ export default function App() {
     // openBubble/closeBubble are stable (empty deps); onboarding fns from a hook.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [onboarding.state, onboarding.detectedModel])
+
+  // ── Wayland cursor-tracking notice ─────────────────────────────────────────
+  // When real cursor following is impossible the pet runs in wanderer mode;
+  // explain that once, in the pet's own voice, so the behaviour isn't a
+  // mystery. Waits until onboarding is over so the two bubbles never collide,
+  // and is shown at most once ever (persisted in localStorage).
+  useEffect(() => {
+    if (cursorTracking !== 'unavailable') return
+    if (onboardingActive) return
+    if (waylandNoticeShownRef.current) return
+    if (localStorage.getItem('nekoai.waylandCursorNoticeSeen') === '1') return
+    if (bubbleOpen || anyPanelOpen || notificationAlert) return
+
+    waylandNoticeShownRef.current = true
+    void (async () => {
+      localStorage.setItem('nekoai.waylandCursorNoticeSeen', '1')
+      setOnboardingAnnouncement({
+        text: "Heads-up — I'm running on Wayland, so I can't follow your mouse around the desktop. I'll roam on my own instead! You can still click me to chat and right-click me for the menu. 🐾",
+        actions: [
+          {
+            label: 'Got it',
+            primary: true,
+            onClick: () => {
+              setOnboardingAnnouncement(null)
+              void closeBubble()
+            },
+          },
+        ],
+      })
+      await openBubble()
+    })()
+  }, [
+    cursorTracking,
+    onboardingActive,
+    bubbleOpen,
+    anyPanelOpen,
+    notificationAlert,
+    closeBubble,
+    openBubble,
+  ])
 
   // ── Interaction handlers ───────────────────────────────────────────────────
   const handleSpriteClick = useCallback(() => {

@@ -7,6 +7,70 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.3.6] — 2026-05-22
+
+> Fixes cursor following on Wayland. The pet only "semi-followed" the
+> mouse on a Wayland session — it came to life only while the right-click
+> context menu was open. NekoAI now reads the cursor through evdev when it
+> can, and gracefully falls back to wanderer mode when it can't.
+
+### Fixed — Linux/Wayland: pet only half-followed the cursor
+
+On a Wayland session NekoAI runs as an XWayland client. The cursor
+position came from the `mouse_position` crate, which calls X11
+`XQueryPointer` — and under XWayland that only returns a live position
+while the pointer is over one of NekoAI's own input surfaces (the sprite
+shape or the context menu). Everywhere else it returns a frozen value, so
+the pet appeared to stop following the mouse and only twitched to life
+while the right-click menu was open. (Same root cause as
+`xdotool getmouselocation` being broken on Wayland.)
+
+**The fix — an evdev-based cursor tracker.**
+
+A new `src-tauri/src/cursor_tracker.rs` module reads raw relative mouse
+motion straight from `/dev/input` via the `evdev` crate, integrates an
+absolute position, and reconciles it against `XQueryPointer` whenever that
+reading updates (which means the pointer is momentarily over one of our
+surfaces and the X reading is authoritative). It runs only on a Wayland
+session — Xorg, Windows and macOS keep the native cursor query unchanged.
+
+Reading `/dev/input/event*` requires the user to be in the `input` group.
+When no device is readable the new `cursor_tracking_status` command
+reports `unavailable`, and the pet falls back to **wanderer mode** — it
+roams on its own and shows a one-time notice explaining why. To enable
+real cursor following on Wayland:
+
+```
+sudo usermod -aG input $USER   # then log out and back in
+```
+
+### Known limitation — evdev tracking and pointer acceleration
+
+The evdev tracker integrates raw device deltas, which do not include the
+compositor's pointer-acceleration curve, so the absolute position can
+drift slightly from the real cursor. It self-corrects whenever the pointer
+passes over the pet or the context menu; movement direction is always
+faithful.
+
+**Files touched.**
+
+- `src-tauri/src/cursor_tracker.rs` — new module: evdev `/dev/input`
+  reader, absolute-position integration, `XQueryPointer` reconciliation,
+  wanderer-fallback signalling.
+- `src-tauri/src/lib.rs` — `get_cursor_pos` consults the tracker; new
+  `cursor_tracking_status` command; tracker started and managed in
+  `setup`.
+- `src-tauri/src/desktop_monitor.rs` — new `is_wayland_session()` helper.
+- `src-tauri/Cargo.toml` — adds `evdev = "0.13"` under the
+  `cfg(target_os = "linux")` target.
+- `src/App.tsx` — probes `cursor_tracking_status`; forces wanderer mode
+  (`effectiveMode`) and shows a one-time notice when tracking is
+  unavailable.
+- `README.md`, `CONTRIBUTING.md` — document the Wayland cursor-tracking
+  architecture and the `input`-group requirement.
+
+---
+
 ## [0.3.5] — 2026-05-21
 
 > Speech-bubble appearance fixes plus a round of chat UX improvements: the

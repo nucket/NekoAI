@@ -119,6 +119,19 @@ Go to [Releases](https://github.com/nucket/nekoai/releases) and grab the latest 
 > `sudo apt install ./nekoai_x.x.x_amd64.deb` — GNOME Software / the Ubuntu
 > Software Center cannot reliably install local `.deb` files and may fail with a
 > generic error.
+>
+> **Wayland & cursor following:** On a Wayland session (the default on Fedora,
+> recent Ubuntu and others) NekoAI runs through XWayland and cannot read the
+> global cursor position directly. To let the pet follow your mouse it reads raw
+> motion from `/dev/input`, which requires your user to be in the `input` group:
+>
+> ```bash
+> sudo usermod -aG input $USER   # then log out and back in
+> ```
+>
+> Without this NekoAI still runs — it switches to **wanderer mode** and roams on
+> its own, and tells you so once. Xorg sessions need no setup. See
+> [Cursor Tracking on Wayland](#cursor-tracking-on-wayland-linux) for the details.
 
 ### Option B — Build from source
 
@@ -238,7 +251,8 @@ NekoAI/
 │   │   └── default.json         # Window permissions (main, panel, house)
 │   └── src/
 │       ├── lib.rs               # App setup, tray, Tauri commands, resize_window
-│       ├── desktop_monitor.rs   # Win32 APIs — active window, idle time
+│       ├── desktop_monitor.rs   # Active window & idle time (Windows + Linux/X11)
+│       ├── cursor_tracker.rs    # Wayland cursor fallback — reads /dev/input via evdev
 │       └── storage.rs           # SQLite: conversation history, user facts, config
 │
 ├── src/                         # TypeScript / React frontend
@@ -291,6 +305,23 @@ This allows the speech bubble, settings panel, pet selector, and context menu to
 NVIDIA's `integrate.api.nvidia.com` endpoint is designed for server-to-server usage and does not send CORS headers. Unlike the other providers (Anthropic, OpenAI, Gemini) which explicitly support browser CORS, a direct `fetch()` from Tauri's WebView would be silently blocked.
 
 NekoAI works around this with a dedicated `nvidia_chat` Tauri command (`lib.rs`) that makes the HTTP request from native Rust via `reqwest`, completely bypassing the WebView's CORS enforcement. The TypeScript provider uses `invoke('nvidia_chat', ...)` instead of `fetch`. This keeps the same `AIProvider` interface for all providers while letting NVIDIA NIM work correctly.
+
+### Cursor Tracking on Wayland (Linux)
+
+NekoAI reads the global cursor position to make the pet follow your mouse. On
+Windows, macOS and Linux/Xorg this is a direct OS query. On a **Wayland** session
+it isn't: NekoAI runs as an XWayland client, and X11's `XQueryPointer` only
+reports a live position while the pointer is over one of NekoAI's own windows —
+everywhere else it returns a frozen value, so the pet appears to stop following
+the cursor.
+
+The workaround lives in `cursor_tracker.rs`. On a Wayland session it reads raw
+relative mouse motion straight from `/dev/input` via the `evdev` crate,
+integrates an absolute position, and reconciles it against `XQueryPointer`
+whenever that reading updates. Reading `/dev/input` requires the user to be in
+the `input` group (`sudo usermod -aG input $USER`); when no device is readable
+the `cursor_tracking_status` command reports `unavailable` and the pet
+automatically falls back to wanderer mode so it still feels alive.
 
 ### Pixel-Perfect Sprite Scaling
 

@@ -12,6 +12,7 @@ use tauri::{
     Emitter, Manager, RunEvent,
 };
 
+mod cursor_tracker;
 mod desktop_monitor;
 mod storage;
 use storage::{AIConfig, StoredMessage};
@@ -20,6 +21,12 @@ use storage::{AIConfig, StoredMessage};
 /// signalled from the Tauri RunEvent::Exit handler. The Option lets the
 /// handler `take()` the sender exactly once.
 struct NotificationShutdown(Mutex<Option<mpsc::Sender<()>>>);
+
+/// Holds the optional evdev cursor tracker. `Some` only on a Linux Wayland
+/// session with a readable `/dev/input` mouse device (see cursor_tracker.rs);
+/// `None` everywhere else, where the native OS / X11 cursor query already
+/// works and `get_cursor_pos` reports it unchanged.
+struct CursorTrackerState(Option<cursor_tracker::CursorTracker>);
 
 // ─── Shared types ─────────────────────────────────────────────────────────────
 
@@ -32,7 +39,7 @@ struct Vec2 {
 // ─── Cursor position ──────────────────────────────────────────────────────────
 
 #[tauri::command]
-fn get_cursor_pos(app: tauri::AppHandle) -> Vec2 {
+fn get_cursor_pos(app: tauri::AppHandle, tracker: tauri::State<'_, CursorTrackerState>) -> Vec2 {
     use mouse_position::mouse_position::Mouse;
     let _ = &app; // used only on macOS; suppress unused-variable warning on other targets
 
@@ -57,7 +64,36 @@ fn get_cursor_pos(app: tauri::AppHandle) -> Vec2 {
         }
     }
 
+    // On a Wayland session the X11 reading above is frozen unless the pointer
+    // is over one of our own surfaces. When the evdev tracker is available it
+    // integrates real motion and reconciles against this reading; otherwise
+    // `tracker` is None and the native reading is returned unchanged.
+    if let Some(t) = &tracker.0 {
+        let (rx, ry) = t.reconcile(x, y);
+        return Vec2 { x: rx, y: ry };
+    }
+
     Vec2 { x, y }
+}
+
+/// Reports how NekoAI is sourcing the cursor position, so the frontend can fall
+/// back to wanderer mode when the pet physically cannot follow the cursor.
+///   `"native"`      — OS / X11 cursor query works (Windows, macOS, Xorg).
+///   `"evdev"`       — Wayland session; cursor read from `/dev/input` via evdev.
+///   `"unavailable"` — Wayland session with no readable input device; the pet
+///                     cannot follow the cursor and should wander instead.
+#[tauri::command]
+fn cursor_tracking_status(tracker: tauri::State<'_, CursorTrackerState>) -> String {
+    if tracker.0.is_some() {
+        return "evdev".to_string();
+    }
+    #[cfg(target_os = "linux")]
+    {
+        if desktop_monitor::is_wayland_session() {
+            return "unavailable".to_string();
+        }
+    }
+    "native".to_string()
 }
 
 // ─── Window positioning & sizing ─────────────────────────────────────────────
@@ -642,6 +678,14 @@ pub fn run() {
                 });
             }
 
+            // ── Cursor tracker (Wayland fallback) ──────────────────────────
+            // On a Wayland session X11 XQueryPointer only updates while the
+            // pointer is over one of our own surfaces, so the pet stops
+            // following the mouse. When a /dev/input mouse device is readable
+            // the tracker integrates real motion; otherwise this is None and
+            // the frontend falls back to wanderer mode (cursor_tracking_status).
+            app.manage(CursorTrackerState(cursor_tracker::CursorTracker::start()));
+
             // ── Tray menu ──────────────────────────────────────────────────
             let show_hide =
                 MenuItem::with_id(app, "show_hide", "Show/Hide NekoAI", true, None::<&str>)?;
@@ -749,6 +793,7 @@ pub fn run() {
             resize_panel_window,
             panel_action,
             get_cursor_pos,
+            cursor_tracking_status,
             move_window,
             resize_window,
             set_always_on_top,

@@ -356,3 +356,21 @@ pub fn get_idle_millis() -> u64 {
         0
     }
 }
+
+// ─── Session type ─────────────────────────────────────────────────────────────
+
+/// True when the process is running under a Wayland session.
+///
+/// Under Wayland NekoAI runs as an XWayland client, and X11 `XQueryPointer`
+/// only reports a live cursor position while the pointer is over one of our own
+/// input surfaces. `cursor_tracker.rs` uses this to decide whether the evdev
+/// fallback is needed.
+#[cfg(target_os = "linux")]
+pub fn is_wayland_session() -> bool {
+    std::env::var("WAYLAND_DISPLAY")
+        .map(|v| !v.is_empty())
+        .unwrap_or(false)
+        || std::env::var("XDG_SESSION_TYPE")
+            .map(|v| v.eq_ignore_ascii_case("wayland"))
+            .unwrap_or(false)
+}

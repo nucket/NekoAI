@@ -87,9 +87,10 @@ nekoai/
 │   ├── components/             # SpeechBubble, SettingsPanel
 │   └── hooks/usePetMovement.ts # Movement state machine
 ├── src-tauri/src/              # Rust backend
-│   ├── main.rs                 # App entry, tray icon
-│   ├── window.rs               # Transparent always-on-top window
-│   ├── desktop_monitor.rs      # OS window detection
+│   ├── lib.rs                  # App setup, tray, all Tauri commands
+│   ├── main.rs                 # App entry (calls lib::run())
+│   ├── desktop_monitor.rs      # OS window detection, idle time, session type
+│   ├── cursor_tracker.rs       # Wayland cursor fallback (evdev /dev/input reader)
 │   └── storage.rs              # SQLite persistence
 ├── pets/classic-neko/          # Bundled default pet
 ├── pets-community/             # Community-contributed pets
