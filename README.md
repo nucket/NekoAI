@@ -24,7 +24,7 @@
 
 <br/>
 
-**[🌐 nekoai.dev](https://nekoai.dev/) · [🚀 Download](#-installation) · [📖 Docs](#-documentation) · [🎨 Create a pet](docs/creating-a-pet.md) · [💬 Community](#community)**
+**[🌐 nekoai.dev](https://nekoai.dev/) · [🚀 Download](#-installation) · [🎬 Showcase](docs/showcase.md) · [📖 Docs](#-documentation) · [🎨 Create a pet](docs/creating-a-pet.md) · [💬 Community](#community)**
 
 </div>
 
@@ -41,6 +41,33 @@ You:    "Hey Neko, explain this regex real quick"
 Neko:   *walks over, pops a bubble*
         "That matches one or more digits at start of line. *purrs*"
 ```
+
+---
+
+## 🎬 See it in action
+
+<div align="center">
+
+<img src="https://raw.githubusercontent.com/nucket/NekoAI/refs/heads/main/main/assets/showcase/windows/onboarding-ollama.gif" alt="NekoAI onboarding on Windows with Ollama" width="80%" />
+
+_Zero-config onboarding on Windows — NekoAI auto-detects Ollama and walks you in._
+
+</div>
+
+<table>
+  <tr>
+    <th align="center">💬 Chat · Windows</th>
+    <th align="center">🍎 macOS</th>
+    <th align="center">🐧 Ubuntu</th>
+  </tr>
+  <tr>
+    <td><img src="https://raw.githubusercontent.com/nucket/NekoAI/refs/heads/main/main/assets/showcase/windows/chat.gif" alt="Chat on Windows" /></td>
+    <td><img src="https://raw.githubusercontent.com/nucket/NekoAI/refs/heads/main/main/assets/showcase/macos/overview.gif" alt="NekoAI on macOS" /></td>
+    <td><img src="https://raw.githubusercontent.com/nucket/NekoAI/refs/heads/main/main/assets/showcase/ubuntu/overview.gif" alt="NekoAI on Ubuntu" /></td>
+  </tr>
+</table>
+
+> 🎞️ **Full gallery** — onboarding, chat, pet selection, sizes and settings across Windows, macOS, Ubuntu and Fedora: see **[docs/showcase.md](docs/showcase.md)**.
 
 ---
 
