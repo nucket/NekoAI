@@ -56,9 +56,9 @@ _Zero-config onboarding on Windows — NekoAI auto-detects Ollama and walks you 
 
 <table>
   <tr>
-    <th align="center">💬 Chat · Windows</th>
-    <th align="center">🍎 macOS</th>
-    <th align="center">🐧 Ubuntu</th>
+    <th align="center">Windows</th>
+    <th align="center">MacOS</th>
+    <th align="center">Linux</th>
   </tr>
   <tr>
     <td><img src="https://raw.githubusercontent.com/nucket/NekoAI/refs/heads/main/main/assets/showcase/windows/chat.gif" alt="Chat on Windows" /></td>
