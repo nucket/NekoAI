@@ -627,17 +627,38 @@ export default function App() {
     waylandNoticeShownRef.current = true
     void (async () => {
       localStorage.setItem('nekoai.waylandCursorNoticeSeen', '1')
+      const ENABLE_CMD = 'sudo usermod -aG input $USER'
+      const baseText =
+        "Heads-up — I'm on Wayland, so I can't follow your mouse around the desktop. I'll roam on my own instead! To let me follow your cursor, add yourself to the `input` group and log out / back in:"
+      const dismiss = {
+        label: 'Got it',
+        onClick: () => {
+          setOnboardingAnnouncement(null)
+          void closeBubble()
+        },
+      }
       setOnboardingAnnouncement({
-        text: "Heads-up — I'm running on Wayland, so I can't follow your mouse around the desktop. I'll roam on my own instead! You can still click me to chat and right-click me for the menu. 🐾",
+        text: `${baseText}\n\n${ENABLE_CMD}`,
         actions: [
           {
-            label: 'Got it',
+            label: '📋 Copy fix command',
             primary: true,
             onClick: () => {
-              setOnboardingAnnouncement(null)
-              void closeBubble()
+              void (async () => {
+                try {
+                  await navigator.clipboard.writeText(ENABLE_CMD)
+                } catch {
+                  // Clipboard may be denied by the browser/WebView — ignore;
+                  // the command is already visible in the bubble text.
+                }
+                setOnboardingAnnouncement({
+                  text: `${baseText}\n\n${ENABLE_CMD}\n\n✓ Copied — log out and back in for it to take effect.`,
+                  actions: [dismiss],
+                })
+              })()
             },
           },
+          dismiss,
         ],
       })
       await openBubble()

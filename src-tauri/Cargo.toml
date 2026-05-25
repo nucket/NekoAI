@@ -1,9 +1,12 @@
 [package]
 name = "nekoai"
-version = "0.3.6"
-description = "NekoAI - Desktop Pet with AI"
-authors = ["NekoAI"]
+version = "0.3.7"
+description = "NekoAI — Desktop AI Companion"
+authors = ["Naudy Castellanos <hi@nekoai.dev>"]
 edition = "2021"
+homepage = "https://nekoai.dev/"
+repository = "https://github.com/nucket/nekoai"
+license = "MIT"
 
 [lib]
 name = "nekoai_lib"

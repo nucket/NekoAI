@@ -47,7 +47,7 @@ Other directives: `default-src 'self'`, `object-src 'none'`, `base-uri 'self'`, 
 
 If you discover a security vulnerability in NekoAI, **please do not open a public issue**.
 
-Instead, report it privately by opening a [GitHub Security Advisory](https://github.com/nucket/nekoai/security/advisories/new).
+Instead, report it privately by opening a [GitHub Security Advisory](https://github.com/nucket/nekoai/security/advisories/new) or by emailing **[hi@nekoai.dev](mailto:hi@nekoai.dev)**.
 
 Please include:
 

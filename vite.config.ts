@@ -1,10 +1,14 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import path from 'node:path'
-import { createReadStream, existsSync, statSync } from 'node:fs'
+import { createReadStream, existsSync, readFileSync, statSync } from 'node:fs'
 import { cp } from 'node:fs/promises'
 
 const petsDir = path.resolve(__dirname, 'pets')
+
+const pkg = JSON.parse(readFileSync(path.resolve(__dirname, 'package.json'), 'utf-8')) as {
+  version: string
+}
 
 const MIME: Record<string, string> = {
   '.png': 'image/png',
@@ -45,6 +49,9 @@ export default defineConfig(async () => {
       },
     ],
 
+    define: {
+      __APP_VERSION__: JSON.stringify(pkg.version),
+    },
     clearScreen: false,
     server: {
       port: 1420,

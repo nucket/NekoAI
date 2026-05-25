@@ -17,6 +17,8 @@ npm-debug.log*
 .vscode/
 .idea/
 .claude/
+.codegraph/
+.cursor/
 CLAUDE.md
 *.suo
 *.ntvs*
