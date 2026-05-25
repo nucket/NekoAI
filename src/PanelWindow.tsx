@@ -6,7 +6,7 @@ import { useConfigStore } from './store/configStore'
 // Layout constants — keep in sync with the parent App's expectations
 const MENU_W = 190
 const MENU_H = 260
-const ABOUT_H = 300
+const ABOUT_H = 340
 
 const PET_SIZES: { label: string; value: number }[] = [
   { label: 'S', value: 32 },
@@ -97,24 +97,30 @@ function ContextMenuPanel() {
 
           <div style={aboutStyles.appBlock}>
             <div style={aboutStyles.appName}>NekoAI</div>
-            <div style={aboutStyles.appDesc}>Desktop AI Companion • v0.3.6</div>
+            <div style={aboutStyles.appDesc}>Desktop AI Companion • v{__APP_VERSION__}</div>
           </div>
 
           <div style={styles.divider} />
 
           <div style={aboutStyles.row}>
-            <span style={aboutStyles.label}>Creator</span>
-            <button style={aboutStyles.link} onClick={() => openUrl('https://github.com/nucket')}>
-              Naudy Castellanos
+            <span style={aboutStyles.label}>Website</span>
+            <button style={aboutStyles.link} onClick={() => openUrl('https://nekoai.dev/')}>
+              nekoai.dev
             </button>
           </div>
           <div style={aboutStyles.row}>
             <span style={aboutStyles.label}>Contact</span>
+            <button style={aboutStyles.link} onClick={() => openUrl('mailto:hi@nekoai.dev')}>
+              hi@nekoai.dev
+            </button>
+          </div>
+          <div style={aboutStyles.row}>
+            <span style={aboutStyles.label}>Creator</span>
             <button
               style={aboutStyles.link}
-              onClick={() => openUrl('mailto:nekoai@naudycastellanos.com')}
+              onClick={() => openUrl('https://naudycastellanos.com/')}
             >
-              nekoai@naudycastellanos.com
+              Naudy Castellanos
             </button>
           </div>
 

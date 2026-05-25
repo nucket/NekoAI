@@ -1,7 +1,22 @@
 {
   "name": "nekoai",
   "private": true,
-  "version": "0.3.6",
+  "version": "0.3.7",
+  "homepage": "https://nekoai.dev/",
+  "bugs": {
+    "url": "https://github.com/nucket/nekoai/issues",
+    "email": "hi@nekoai.dev"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/nucket/nekoai.git"
+  },
+  "author": {
+    "name": "Naudy Castellanos",
+    "email": "hi@nekoai.dev",
+    "url": "https://naudycastellanos.com/"
+  },
+  "license": "MIT",
   "type": "module",
   "packageManager": "pnpm@11.1.2",
   "scripts": {
@@ -11,6 +26,7 @@
     "tauri": "tauri",
     "build:portable:win": "pwsh -File scripts/build-portable-windows.ps1",
     "sprites:convert": "python scripts/convert-sprites.py pets/classic-neko/sprites/ico pets/classic-neko/sprites",
+    "version:bump": "node scripts/bump-version.mjs",
     "lint": "eslint . --max-warnings 0",
     "typecheck": "tsc --noEmit",
     "format:check": "prettier --check .",

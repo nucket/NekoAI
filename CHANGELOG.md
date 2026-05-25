@@ -7,6 +7,88 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.3.7] — 2026-05-25
+
+> Polish & branding pass. New high-resolution logo regenerated across the
+> entire icon set, official `nekoai.dev` domain and `hi@nekoai.dev` contact
+> wired into the About panel and docs, the About version no longer drifts
+> from the build, the Wayland cursor-tracking notice now ships with a
+> copy-to-clipboard button for the `usermod` fix, plus a one-shot
+> `version:bump` script and project cleanup.
+
+### Added
+
+- **High-res logo (1200×1200) regenerated across all icon sizes** — replaces
+  the previous 600×600 source. New `NekoAI-logo.png`, refreshed tray icon
+  (`src-tauri/icons/logo.png`), refreshed `icon.png`, `icon.ico`,
+  `icon.icns`, the desktop PNG set (32/64/128/128@2x) and the Windows Store
+  Square logos. Mobile icon sets left untouched (project is desktop-only).
+- **Official project domain & contact in About panel** — `Website
+nekoai.dev`, `Contact hi@nekoai.dev`, `Creator naudycastellanos.com`. The
+  old `nekoai@naudycastellanos.com` mailto is gone.
+- **Wayland notice now includes a "📋 Copy fix command" button** — copies
+  `sudo usermod -aG input $USER` to the clipboard and confirms inline so
+  Wayland users can enable cursor following in one click instead of typing
+  it from the notice.
+- **`pnpm version:bump <version>`** — new
+  [`scripts/bump-version.mjs`](scripts/bump-version.mjs) updates
+  `package.json`, `src-tauri/tauri.conf.json` and `src-tauri/Cargo.toml`
+  in one shot. Refuses to run if the new version isn't strictly higher
+  than the current one.
+- **Project metadata** — `homepage` / `bugs` / `repository` / `author` /
+  `license` in `package.json`; `homepage` / `repository` / `license` /
+  proper `authors` in `src-tauri/Cargo.toml`; `publisher` / `homepage` /
+  `copyright` / `shortDescription` / `longDescription` in
+  `src-tauri/tauri.conf.json` so installers (`.msi`, `.deb`, `.dmg`) carry
+  the real owner instead of the placeholder `"NekoAI"` string.
+
+### Changed
+
+- **About panel version is now dynamic** — `PanelWindow.tsx` reads
+  `__APP_VERSION__` injected by Vite from `package.json`. Bumping the
+  version no longer requires touching the panel (the previous v0.3.6
+  release missed this and shipped with the wrong string).
+- **CODE_OF_CONDUCT.md / SECURITY.md** — point complaints and security
+  reports at `hi@nekoai.dev` instead of the personal Gmail address.
+- **README footer** — links the creator name to
+  [naudycastellanos.com](https://naudycastellanos.com/) and adds a top-of-
+  page link to [nekoai.dev](https://nekoai.dev/).
+
+### Removed
+
+- **Unused desktop icons** — `src-tauri/icons/favicon.ico` (148 KB) and
+  `src-tauri/icons/128x128@2x.icns` (59 KB) were not referenced from any
+  Rust, TypeScript, HTML or JSON file. Verified by grep before deletion.
+- **Legacy mobile/web icon assets** — `assets/NekoAI-Icono1.png` (320 KB)
+  and `assets/NekoAI-icons/` (2.6 MB across Android / Web / iOS / macOS
+  subfolders) — never referenced from any production code, predate the
+  Tauri-managed icon set. Removed from tracking; the canonical icon
+  pipeline is `pnpm tauri icon NekoAI-logo.png`.
+
+### Internal
+
+- **`.codegraph/` and `.cursor/`** added to `.gitignore` — local tool
+  state (CodeGraph SQLite index, Cursor IDE workspace data) should not be
+  tracked.
+- **Vite `define` injects `__APP_VERSION__`** — `vite.config.ts` reads
+  `package.json` at config time and exposes the version as a global
+  constant for the frontend; declared in `src/vite-env.d.ts`.
+
+### Files touched
+
+- `NekoAI-logo.png`, `public/NekoAI-logo.png`, `main/assets/logo.png`
+- `src-tauri/icons/` (desktop set regenerated, two orphans deleted)
+- `src-tauri/Cargo.toml`, `src-tauri/tauri.conf.json`
+- `src/App.tsx` (Wayland notice CTA)
+- `src/PanelWindow.tsx` (dynamic version + new About rows)
+- `src/vite-env.d.ts`, `vite.config.ts`
+- `package.json`, `scripts/bump-version.mjs`
+- `.gitignore`
+- `README.md`, `CODE_OF_CONDUCT.md`, `SECURITY.md`, `CHANGELOG.md`
+- Deleted: `assets/NekoAI-Icono1.png`, `assets/NekoAI-icons/`
+
+---
+
 ## [0.3.6] — 2026-05-22
 
 > Fixes cursor following on Wayland. The pet only "semi-followed" the

@@ -24,7 +24,7 @@
 
 <br/>
 
-**[🚀 Download](#-installation) · [📖 Docs](#-documentation) · [🎨 Create a pet](docs/creating-a-pet.md) · [💬 Community](#community)**
+**[🌐 nekoai.dev](https://nekoai.dev/) · [🚀 Download](#-installation) · [📖 Docs](#-documentation) · [🎨 Create a pet](docs/creating-a-pet.md) · [💬 Community](#community)**
 
 </div>
 
@@ -401,7 +401,7 @@ NekoAI is the latest chapter in a 38-year chain started by a tiny Japanese progr
 
 ## 📄 License
 
-MIT © 2026 [Naudy Castellanos](https://github.com/nucket)
+MIT © 2026 [Naudy Castellanos](https://naudycastellanos.com/)
 
 Free to use, modify, and distribute. Attribution appreciated.
 
@@ -411,6 +411,8 @@ Free to use, modify, and distribute. Attribution appreciated.
 
 **If NekoAI made you smile, give it a ⭐ — it helps a lot!**
 
-_Made with ☕ and deep nostalgia for Windows XP — by [Naudy Castellanos](https://github.com/nucket)_
+🌐 [nekoai.dev](https://nekoai.dev/) · ✉ [hi@nekoai.dev](mailto:hi@nekoai.dev) · 👤 [naudycastellanos.com](https://naudycastellanos.com/)
+
+_Made with ☕ and deep nostalgia for Windows XP — by [Naudy Castellanos](https://naudycastellanos.com/)_
 
 </div>
