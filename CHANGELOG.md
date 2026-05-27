@@ -7,6 +7,70 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.3.8] — 2026-05-25
+
+> AI replies stop feeling cropped. The default token budget doubles
+> (256 → 512), users can now pick **S / M / L** response length from
+> Settings, and the speech bubble grows from 300 to 380 px so a 3-paragraph
+> answer fits with zero scroll.
+
+### Added
+
+- **Response length selector in Settings** — three new buttons (S / M / L)
+  surface the underlying `maxTokens` value (`256 / 512 / 1024`). Hint
+  line under the buttons describes what each preset implies
+  (`~1 / ~3 / ~6 párrafos`). Persisted to `config.toml` via a new
+  `configStore.setMaxTokens()` setter.
+- **`MAX_TOKENS_PRESETS` constant and `maxTokensPreset()` helper** in
+  [`src/ai/types.ts`](src/ai/types.ts) — map a stored number back to a
+  UI key. Custom values (e.g. a user editing the TOML by hand) resolve
+  to `medium` so the UI never loses its highlight.
+- **`AIConfig.maxTokens?: number`** flows through all five providers
+  (Anthropic, OpenAI, Gemini, NVIDIA NIM, Ollama). The Rust-side
+  `nvidia_chat` and `ollama_chat` Tauri commands accept
+  `max_tokens: Option<u32>` and fall back to `DEFAULT_MAX_TOKENS` when
+  the field is absent — no migration step required for existing TOMLs.
+
+### Changed
+
+- **`DEFAULT_MAX_TOKENS` 256 → 512** in both [`src/ai/types.ts`](src/ai/types.ts)
+  and the mirrored constant in [`src-tauri/src/lib.rs`](src-tauri/src/lib.rs).
+  The previous cap truncated mid-sentence on any technical answer; 512
+  covers ~95% of real conversational replies without bleeding into the
+  "Ollama-on-CPU feels slow" zone.
+- **Bubble window taller: `WIN_OPEN_H` 300 → 380 px** in
+  [`src/App.tsx`](src/App.tsx). The expanded chat window now leaves room
+  for the input row + tail + padding around a 220 px scroll area so a
+  Medium-budget reply fits without scrolling at all.
+- **Messages container cap 130 → 220 px** in
+  [`src/components/SpeechBubble.css`](src/components/SpeechBubble.css).
+  Kept in sync with `WIN_OPEN_H` via cross-reference comments on both
+  files.
+- **Settings panel grows `PANEL_H` 500 → 560 px** to absorb the new
+  Response length row without overflow.
+
+### Compatibility
+
+- Existing `~/.config/nekoai/config.toml` files without `max_tokens` keep
+  working — the field is `Option<u32>` on the Rust side and `number | undefined`
+  on the TS side, so legacy configs simply pick up the new 512 default.
+- Cap remains 1024 (Long preset). Users wanting unbounded Ollama
+  generation can edit `max_tokens` in the TOML by hand, but it is not
+  exposed through the UI — keeps the bubble responsive on local CPU
+  models.
+
+### Files touched
+
+- `src/ai/types.ts`, `src/ai/index.ts`
+- `src/ai/providers/anthropic.ts`, `openai.ts`, `gemini.ts`, `ollama.ts`, `nvidia.ts`
+- `src/store/configStore.ts`
+- `src/components/SettingsPanel.tsx`, `SpeechBubble.css`
+- `src/App.tsx`
+- `src-tauri/src/storage.rs`, `lib.rs`
+- `package.json`, `src-tauri/Cargo.toml`, `src-tauri/tauri.conf.json` — version bump
+
+---
+
 ## [0.3.7] — 2026-05-25
 
 > Polish & branding pass. New high-resolution logo regenerated across the
