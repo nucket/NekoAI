@@ -1,7 +1,7 @@
 {
   "name": "nekoai",
   "private": true,
-  "version": "0.3.7",
+  "version": "0.3.8",
   "homepage": "https://nekoai.dev/",
   "bugs": {
     "url": "https://github.com/nucket/nekoai/issues",

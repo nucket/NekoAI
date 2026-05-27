@@ -1,6 +1,6 @@
 [package]
 name = "nekoai"
-version = "0.3.7"
+version = "0.3.8"
 description = "NekoAI — Desktop AI Companion"
 authors = ["Naudy Castellanos <hi@nekoai.dev>"]
 edition = "2021"
