@@ -41,7 +41,7 @@ evdev = "0.13"
 # magenta chroma-key fill and cut out non-sprite pixels with cairo regions
 # via gtk_widget_shape_combine_region. Same gtk-rs versions Tauri 2 uses.
 gtk = "0.18"
-cairo-rs = "0.18"
+cairo-rs = "0.22"
 
 [target.'cfg(windows)'.dependencies]
 windows = { version = "0.61", features = [
