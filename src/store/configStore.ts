@@ -15,6 +15,7 @@ interface ConfigStore {
   setActivePetId: (activePetId: string) => Promise<void>
   setOnboardingCompleted: (completed: boolean) => Promise<void>
   setOllamaAutoDetected: (detected: boolean) => Promise<void>
+  setMaxTokens: (maxTokens: number) => Promise<void>
   applyOllamaAutoConfig: (model: string, baseUrl?: string) => Promise<void>
 }
 
@@ -94,6 +95,12 @@ export const useConfigStore = create<ConfigStore>((set, get) => ({
 
   setOllamaAutoDetected: async (ollamaAutoDetected) => {
     const config = { ...get().config, ollamaAutoDetected }
+    set({ config })
+    await persist(config)
+  },
+
+  setMaxTokens: async (maxTokens) => {
+    const config = { ...get().config, maxTokens }
     set({ config })
     await persist(config)
   },

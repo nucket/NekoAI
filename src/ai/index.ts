@@ -8,17 +8,18 @@ import { GeminiProvider } from './providers/gemini'
 import { NvidiaProvider } from './providers/nvidia'
 
 export function createAIProvider(config: AIConfig): AIProvider {
+  const tokens = config.maxTokens
   switch (config.provider) {
     case 'anthropic':
-      return new AnthropicProvider(config.apiKey ?? '', config.model)
+      return new AnthropicProvider(config.apiKey ?? '', config.model, tokens)
     case 'openai':
-      return new OpenAIProvider(config.apiKey ?? '', config.model)
+      return new OpenAIProvider(config.apiKey ?? '', config.model, tokens)
     case 'ollama':
-      return new OllamaProvider(config.model, config.baseUrl)
+      return new OllamaProvider(config.model, config.baseUrl, tokens)
     case 'gemini':
-      return new GeminiProvider(config.apiKey ?? '', config.model)
+      return new GeminiProvider(config.apiKey ?? '', config.model, tokens)
     case 'nvidia':
-      return new NvidiaProvider(config.apiKey ?? '', config.model)
+      return new NvidiaProvider(config.apiKey ?? '', config.model, tokens)
     default:
       throw new Error(`Unknown AI provider: ${(config as AIConfig).provider}`)
   }

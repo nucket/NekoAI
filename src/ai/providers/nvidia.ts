@@ -4,10 +4,12 @@ import type { AIProvider, Message } from '../types'
 export class NvidiaProvider implements AIProvider {
   private apiKey: string
   private model: string
+  private maxTokens: number | undefined
 
-  constructor(apiKey: string, model = 'meta/llama-3.1-8b-instruct') {
+  constructor(apiKey: string, model = 'meta/llama-3.1-8b-instruct', maxTokens?: number) {
     this.apiKey = apiKey
     this.model = model
+    this.maxTokens = maxTokens
   }
 
   async sendMessage(messages: Message[], systemPrompt: string): Promise<string> {
@@ -16,6 +18,7 @@ export class NvidiaProvider implements AIProvider {
       apiKey: this.apiKey,
       model: this.model,
       messages: allMessages,
+      maxTokens: this.maxTokens,
     })
   }
 }

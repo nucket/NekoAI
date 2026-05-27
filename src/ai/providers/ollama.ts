@@ -14,10 +14,12 @@ export type OllamaDetectResult = { ok: true; models: string[] } | { ok: false }
 export class OllamaProvider implements AIProvider {
   private baseUrl: string
   private model: string
+  private maxTokens: number | undefined
 
-  constructor(model = 'llama3', baseUrl = 'http://localhost:11434') {
+  constructor(model = 'llama3', baseUrl = 'http://localhost:11434', maxTokens?: number) {
     this.model = model
     this.baseUrl = baseUrl
+    this.maxTokens = maxTokens
   }
 
   // Probes a local Ollama daemon via the Rust `ollama_detect` command. Used by
@@ -38,6 +40,7 @@ export class OllamaProvider implements AIProvider {
       model: this.model,
       messages,
       systemPrompt,
+      maxTokens: this.maxTokens,
     })
   }
 }
