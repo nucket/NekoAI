@@ -3,10 +3,12 @@ import { DEFAULT_MAX_TOKENS, type AIProvider, type Message } from '../types'
 export class GeminiProvider implements AIProvider {
   private apiKey: string
   private model: string
+  private maxTokens: number
 
-  constructor(apiKey: string, model = 'gemini-2.5-flash') {
+  constructor(apiKey: string, model = 'gemini-2.5-flash', maxTokens?: number) {
     this.apiKey = apiKey
     this.model = model
+    this.maxTokens = maxTokens ?? DEFAULT_MAX_TOKENS
   }
 
   async sendMessage(messages: Message[], systemPrompt: string): Promise<string> {
@@ -22,7 +24,7 @@ export class GeminiProvider implements AIProvider {
           role: m.role === 'assistant' ? 'model' : 'user',
           parts: [{ text: m.content }],
         })),
-        generationConfig: { maxOutputTokens: DEFAULT_MAX_TOKENS },
+        generationConfig: { maxOutputTokens: this.maxTokens },
       }),
     })
 

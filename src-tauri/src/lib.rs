@@ -372,11 +372,10 @@ fn get_all_user_facts() -> Result<std::collections::HashMap<String, String>, Str
 // ─── NVIDIA NIM proxy (bypasses WebView CORS) ────────────────────────────────
 
 // Mirror of `DEFAULT_MAX_TOKENS` in src/ai/types.ts — keep both in sync.
-// NIM lives on the Rust side because of CORS, so the JS constant cannot reach
-// it without a duplicate. Once `config.maxTokens` ships (rec K), the value
-// will flow in through the `nvidia_chat` command args and this becomes a
-// fallback for `None`.
-const DEFAULT_MAX_TOKENS: u32 = 256;
+// NIM and Ollama live on the Rust side because of CORS, so the JS constant
+// cannot reach them without a duplicate. Callers pass `max_tokens` per-request
+// (from `config.maxTokens`); this is the fallback when `None` is supplied.
+const DEFAULT_MAX_TOKENS: u32 = 512;
 
 #[derive(serde::Deserialize)]
 struct NimMessage {
@@ -389,10 +388,11 @@ async fn nvidia_chat(
     api_key: String,
     model: String,
     messages: Vec<NimMessage>,
+    max_tokens: Option<u32>,
 ) -> Result<String, String> {
     let body = serde_json::json!({
         "model": model,
-        "max_tokens": DEFAULT_MAX_TOKENS,
+        "max_tokens": max_tokens.unwrap_or(DEFAULT_MAX_TOKENS),
         "messages": messages.iter().map(|m| serde_json::json!({
             "role": m.role,
             "content": m.content,
@@ -492,6 +492,7 @@ async fn ollama_chat(
     model: String,
     messages: Vec<OllamaMessage>,
     system_prompt: String,
+    max_tokens: Option<u32>,
 ) -> Result<String, String> {
     let url = format!(
         "{}/api/chat",
@@ -512,7 +513,7 @@ async fn ollama_chat(
     let body = serde_json::json!({
         "model": model,
         "stream": false,
-        "options": { "num_predict": DEFAULT_MAX_TOKENS },
+        "options": { "num_predict": max_tokens.unwrap_or(DEFAULT_MAX_TOKENS) },
         "messages": full_messages,
     });
 

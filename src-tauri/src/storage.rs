@@ -38,6 +38,10 @@ pub struct AIConfig {
     pub onboarding_completed: Option<bool>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub ollama_auto_detected: Option<bool>,
+    // Token budget for each AI reply. `None` falls back to `DEFAULT_MAX_TOKENS`
+    // in lib.rs / src/ai/types.ts. Surfaced as Short/Medium/Long in Settings.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub max_tokens: Option<u32>,
 }
 
 impl Default for AIConfig {
@@ -54,6 +58,7 @@ impl Default for AIConfig {
             active_pet_id: Some("classic-neko".to_string()),
             onboarding_completed: None,
             ollama_auto_detected: None,
+            max_tokens: None,
         }
     }
 }

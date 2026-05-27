@@ -4,13 +4,28 @@ import { getCurrentWindow, currentMonitor } from '@tauri-apps/api/window'
 import { PhysicalPosition } from '@tauri-apps/api/dpi'
 import { useConfigStore } from '../store/configStore'
 import { createAIProvider, buildContextBlock } from '../ai'
-import type { AIConfig } from '../ai/types'
+import {
+  MAX_TOKENS_PRESETS,
+  maxTokensPreset,
+  type AIConfig,
+  type MaxTokensPreset,
+} from '../ai/types'
 
 // ─── Layout constants ─────────────────────────────────────────────────────────
 
 const PANEL_W = 280
-const PANEL_H = 500
+const PANEL_H = 560
 const SPRITE_SIZE = 32
+
+const RESPONSE_LENGTH_OPTIONS: {
+  key: MaxTokensPreset
+  label: string
+  hint: string
+}[] = [
+  { key: 'short', label: 'S', hint: '~1 párrafo · más rápido' },
+  { key: 'medium', label: 'M', hint: '~3 párrafos · recomendado' },
+  { key: 'long', label: 'L', hint: '~6 párrafos · puede tardar más' },
+]
 
 // ─── Provider defaults ────────────────────────────────────────────────────────
 
@@ -43,8 +58,16 @@ interface Props {
 }
 
 export function SettingsPanel({ isOpen, onClose }: Props) {
-  const { config, isLoaded, loadConfig, setProvider, setApiKey, setModel, setBaseUrl } =
-    useConfigStore()
+  const {
+    config,
+    isLoaded,
+    loadConfig,
+    setProvider,
+    setApiKey,
+    setModel,
+    setBaseUrl,
+    setMaxTokens,
+  } = useConfigStore()
 
   const [userName, setUserName] = useState('')
   const [showKey, setShowKey] = useState(false)
@@ -292,6 +315,30 @@ export function SettingsPanel({ isOpen, onClose }: Props) {
           placeholder="e.g. Alex"
         />
 
+        {/* ── Response length ─────────────────────────────────────────────── */}
+        <label style={styles.label}>Response length</label>
+        <div style={styles.tokenRow}>
+          {RESPONSE_LENGTH_OPTIONS.map(({ key, label, hint }) => {
+            const active = maxTokensPreset(config.maxTokens) === key
+            return (
+              <button
+                key={key}
+                style={{
+                  ...styles.tokenBtn,
+                  ...(active ? styles.tokenBtnActive : {}),
+                }}
+                onClick={() => setMaxTokens(MAX_TOKENS_PRESETS[key])}
+                title={hint}
+              >
+                {label}
+              </button>
+            )
+          })}
+        </div>
+        <p style={styles.tokenHint}>
+          {RESPONSE_LENGTH_OPTIONS.find((o) => o.key === maxTokensPreset(config.maxTokens))?.hint}
+        </p>
+
         {/* ── Test button ─────────────────────────────────────────────────── */}
         <button
           style={{
@@ -431,6 +478,33 @@ const styles: Record<string, React.CSSProperties> = {
     cursor: 'pointer',
     fontSize: 14,
     padding: '4px 6px',
+  },
+  tokenRow: {
+    display: 'flex',
+    gap: 6,
+    marginTop: 2,
+  },
+  tokenBtn: {
+    flex: 1,
+    background: '#1e1e2e',
+    border: '1px solid #444',
+    borderRadius: 6,
+    color: '#aaa',
+    cursor: 'pointer',
+    fontSize: 13,
+    fontWeight: 700,
+    padding: '6px 0',
+  },
+  tokenBtnActive: {
+    background: '#3a3a6c',
+    borderColor: '#7878cc',
+    color: '#cceeff',
+  },
+  tokenHint: {
+    margin: '4px 0 0',
+    fontSize: 10,
+    color: '#777',
+    textAlign: 'center',
   },
   testBtn: {
     marginTop: 8,

@@ -31,7 +31,10 @@ const ONBOARDING_SLIDE_MS = 5500
 // ─── Layout constants ──────────────────────────────────────────────────────────
 
 const WIN_OPEN_W = 300
-const WIN_OPEN_H = 300
+// Window height while the bubble is open. Bumped from 300 → 380 to give the
+// AI reply room to breathe alongside DEFAULT_MAX_TOKENS = 512. Keep in sync
+// with `.speech-bubble__messages { max-height }` in SpeechBubble.css.
+const WIN_OPEN_H = 380
 
 // ─── Animation resolver ───────────────────────────────────────────────────────
 // Single source of truth for which sprite plays, with two firm rules:
