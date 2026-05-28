@@ -10,21 +10,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [0.3.8] — 2026-05-25
 
 > AI replies stop feeling cropped. The default token budget doubles
-> (256 → 512), users can now pick **S / M / L** response length from
-> Settings, and the speech bubble grows from 300 to 380 px so a 3-paragraph
-> answer fits with zero scroll.
+> (256 → 512), users can now pick **S / M / L** response length or set a
+> **Custom** value (32–4096 tokens) from Settings, and the speech bubble
+> grows from 300 to 380 px so a 3-paragraph answer fits with zero scroll.
 
 ### Added
 
-- **Response length selector in Settings** — three new buttons (S / M / L)
-  surface the underlying `maxTokens` value (`256 / 512 / 1024`). Hint
-  line under the buttons describes what each preset implies
-  (`~1 / ~3 / ~6 párrafos`). Persisted to `config.toml` via a new
-  `configStore.setMaxTokens()` setter.
-- **`MAX_TOKENS_PRESETS` constant and `maxTokensPreset()` helper** in
-  [`src/ai/types.ts`](src/ai/types.ts) — map a stored number back to a
-  UI key. Custom values (e.g. a user editing the TOML by hand) resolve
-  to `medium` so the UI never loses its highlight.
+- **Response length selector in Settings** — four chips (S / M / L / ⚙)
+  surface the underlying `maxTokens` value. S/M/L set the named presets
+  (`256 / 512 / 1024`); the ⚙ chip focuses an inline numeric input that
+  accepts any value in `MAX_TOKENS_BOUNDS = { min: 32, max: 4096 }`,
+  clamped on commit. Hint line under the row describes what each option
+  implies (`~1 / ~3 / ~6 párrafos · Custom · NNN tokens`). Persisted to
+  `config.toml` via a new `configStore.setMaxTokens()` setter.
+- **`MAX_TOKENS_PRESETS` / `MAX_TOKENS_BOUNDS` constants and
+  `maxTokensPreset()` helper** in [`src/ai/types.ts`](src/ai/types.ts) —
+  the helper maps a stored number to one of `'short' | 'medium' | 'long'
+| 'custom'`. Any positive value outside the three presets resolves to
+  `'custom'`, which is what surfaces the highlight on the ⚙ chip and the
+  active border on the numeric input.
 - **`AIConfig.maxTokens?: number`** flows through all five providers
   (Anthropic, OpenAI, Gemini, NVIDIA NIM, Ollama). The Rust-side
   `nvidia_chat` and `ollama_chat` Tauri commands accept
@@ -54,10 +58,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Existing `~/.config/nekoai/config.toml` files without `max_tokens` keep
   working — the field is `Option<u32>` on the Rust side and `number | undefined`
   on the TS side, so legacy configs simply pick up the new 512 default.
-- Cap remains 1024 (Long preset). Users wanting unbounded Ollama
-  generation can edit `max_tokens` in the TOML by hand, but it is not
-  exposed through the UI — keeps the bubble responsive on local CPU
-  models.
+- UI cap is 4096 (Custom max). On Ollama-on-CPU values past ~2048 will
+  feel slow; cloud providers (Anthropic Haiku, Gemini Flash, NVIDIA
+  Llama-3.1) honor the full range. Going above 4096 still works by
+  hand-editing `max_tokens` in the TOML, but isn't exposed in Settings.
 
 ### Files touched
 
