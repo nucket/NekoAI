@@ -16,15 +16,28 @@ export const MAX_TOKENS_PRESETS = {
   long: 1024,
 } as const
 
-export type MaxTokensPreset = keyof typeof MAX_TOKENS_PRESETS
+// Bounds for the Custom input. The floor keeps the bubble from filling with a
+// stub fragment; the ceiling matches what most providers will actually honor
+// (Anthropic Haiku, Gemini Flash and NVIDIA Llama-3.1 all cap around 4–8k
+// output tokens, and Ollama-on-CPU becomes unusable past ~2k). Settings clamps
+// any user input to this range on commit.
+export const MAX_TOKENS_BOUNDS = {
+  min: 32,
+  max: 4096,
+} as const
 
-// Resolves a stored numeric `maxTokens` back to its preset key, or 'medium'
-// when the number doesn't match a preset (e.g. legacy TOML or a manually
-// edited config).
+export type MaxTokensPreset = keyof typeof MAX_TOKENS_PRESETS | 'custom'
+
+// Resolves a stored numeric `maxTokens` back to one of the UI states. `undefined`
+// (legacy TOML with no field) routes to 'medium' so the highlight defaults to
+// the recommended option. Any non-preset positive number becomes 'custom' so
+// the Settings UI knows to surface the numeric input pre-filled with `value`.
 export function maxTokensPreset(value: number | undefined): MaxTokensPreset {
+  if (value === undefined) return 'medium'
   if (value === MAX_TOKENS_PRESETS.short) return 'short'
+  if (value === MAX_TOKENS_PRESETS.medium) return 'medium'
   if (value === MAX_TOKENS_PRESETS.long) return 'long'
-  return 'medium'
+  return 'custom'
 }
 
 export interface AIProvider {

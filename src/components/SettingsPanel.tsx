@@ -1,10 +1,12 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { invoke } from '@tauri-apps/api/core'
 import { getCurrentWindow, currentMonitor } from '@tauri-apps/api/window'
 import { PhysicalPosition } from '@tauri-apps/api/dpi'
 import { useConfigStore } from '../store/configStore'
 import { createAIProvider, buildContextBlock } from '../ai'
 import {
+  DEFAULT_MAX_TOKENS,
+  MAX_TOKENS_BOUNDS,
   MAX_TOKENS_PRESETS,
   maxTokensPreset,
   type AIConfig,
@@ -14,7 +16,7 @@ import {
 // ─── Layout constants ─────────────────────────────────────────────────────────
 
 const PANEL_W = 280
-const PANEL_H = 560
+const PANEL_H = 600
 const SPRITE_SIZE = 32
 
 const RESPONSE_LENGTH_OPTIONS: {
@@ -25,6 +27,11 @@ const RESPONSE_LENGTH_OPTIONS: {
   { key: 'short', label: 'S', hint: '~1 párrafo · más rápido' },
   { key: 'medium', label: 'M', hint: '~3 párrafos · recomendado' },
   { key: 'long', label: 'L', hint: '~6 párrafos · puede tardar más' },
+  {
+    key: 'custom',
+    label: '⚙',
+    hint: `Custom · ${MAX_TOKENS_BOUNDS.min}–${MAX_TOKENS_BOUNDS.max} tokens`,
+  },
 ]
 
 // ─── Provider defaults ────────────────────────────────────────────────────────
@@ -73,6 +80,14 @@ export function SettingsPanel({ isOpen, onClose }: Props) {
   const [showKey, setShowKey] = useState(false)
   const [testStatus, setTestStatus] = useState<'idle' | 'loading' | 'ok' | 'error'>('idle')
   const [testMsg, setTestMsg] = useState('')
+  // Local draft for the Custom tokens input so the user can type freely
+  // (including transient empty / partial values) before we clamp and persist
+  // on commit. Synced to `config.maxTokens` whenever the persisted value
+  // changes externally (e.g. S/M/L chips set it, or initial config load).
+  const [customDraft, setCustomDraft] = useState<string>(
+    String(config.maxTokens ?? DEFAULT_MAX_TOKENS)
+  )
+  const customInputRef = useRef<HTMLInputElement>(null)
   const [savedPos, setSavedPos] = useState<{ x: number; y: number } | null>(null)
 
   // ── Load config + user name on first open ──────────────────────────────────
@@ -166,6 +181,29 @@ export function SettingsPanel({ isOpen, onClose }: Props) {
   const handleUserNameBlur = useCallback(() => {
     invoke('set_user_fact', { key: 'userName', value: userName })
   }, [userName])
+
+  // ── Custom response-length input: sync draft + commit ─────────────────────
+  // Whenever the persisted value changes (initial load, or another chip is
+  // clicked) refresh the draft so the input never lags behind reality.
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setCustomDraft(String(config.maxTokens ?? DEFAULT_MAX_TOKENS))
+  }, [config.maxTokens])
+
+  // Parse, clamp to [min, max], persist. On invalid input snap back to the
+  // last-known good value so the field never holds garbage.
+  const commitCustomTokens = useCallback(() => {
+    const parsed = Number.parseInt(customDraft, 10)
+    if (!Number.isFinite(parsed)) {
+      setCustomDraft(String(config.maxTokens ?? DEFAULT_MAX_TOKENS))
+      return
+    }
+    const clamped = Math.max(MAX_TOKENS_BOUNDS.min, Math.min(MAX_TOKENS_BOUNDS.max, parsed))
+    setCustomDraft(String(clamped))
+    if (clamped !== config.maxTokens) {
+      void setMaxTokens(clamped)
+    }
+  }, [customDraft, config.maxTokens, setMaxTokens])
 
   // ── Provider change: reset model to provider default ──────────────────────
   const handleProviderChange = useCallback(
@@ -327,7 +365,17 @@ export function SettingsPanel({ isOpen, onClose }: Props) {
                   ...styles.tokenBtn,
                   ...(active ? styles.tokenBtnActive : {}),
                 }}
-                onClick={() => setMaxTokens(MAX_TOKENS_PRESETS[key])}
+                onClick={() => {
+                  // Named presets persist directly; the Custom chip just
+                  // focuses the inline input below so the user can type a
+                  // value (no preset to persist for 'custom').
+                  if (key === 'custom') {
+                    customInputRef.current?.focus()
+                    customInputRef.current?.select()
+                  } else {
+                    void setMaxTokens(MAX_TOKENS_PRESETS[key])
+                  }
+                }}
                 title={hint}
               >
                 {label}
@@ -335,8 +383,37 @@ export function SettingsPanel({ isOpen, onClose }: Props) {
             )
           })}
         </div>
+        <div style={styles.customRow}>
+          <input
+            ref={customInputRef}
+            style={{
+              ...styles.customInput,
+              ...(maxTokensPreset(config.maxTokens) === 'custom' ? styles.customInputActive : {}),
+            }}
+            type="number"
+            inputMode="numeric"
+            min={MAX_TOKENS_BOUNDS.min}
+            max={MAX_TOKENS_BOUNDS.max}
+            step={32}
+            value={customDraft}
+            onChange={(e) => setCustomDraft(e.target.value)}
+            onBlur={commitCustomTokens}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') {
+                e.preventDefault()
+                commitCustomTokens()
+                customInputRef.current?.blur()
+              }
+            }}
+            aria-label="Custom response length in tokens"
+          />
+          <span style={styles.customUnit}>tokens</span>
+        </div>
         <p style={styles.tokenHint}>
-          {RESPONSE_LENGTH_OPTIONS.find((o) => o.key === maxTokensPreset(config.maxTokens))?.hint}
+          {maxTokensPreset(config.maxTokens) === 'custom'
+            ? `Custom · ${config.maxTokens} tokens`
+            : RESPONSE_LENGTH_OPTIONS.find((o) => o.key === maxTokensPreset(config.maxTokens))
+                ?.hint}
         </p>
 
         {/* ── Test button ─────────────────────────────────────────────────── */}
@@ -505,6 +582,36 @@ const styles: Record<string, React.CSSProperties> = {
     fontSize: 10,
     color: '#777',
     textAlign: 'center',
+  },
+  customRow: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: 6,
+    marginTop: 6,
+  },
+  customInput: {
+    background: '#1e1e2e',
+    color: '#e0e0e0',
+    border: '1px solid #444',
+    borderRadius: 6,
+    padding: '5px 8px',
+    fontSize: 13,
+    flex: 1,
+    minWidth: 0,
+    boxSizing: 'border-box',
+    fontVariantNumeric: 'tabular-nums',
+  },
+  customInputActive: {
+    borderColor: '#7878cc',
+    background: '#23234c',
+    color: '#cceeff',
+  },
+  customUnit: {
+    fontSize: 11,
+    color: '#888',
+    textTransform: 'uppercase',
+    letterSpacing: '0.05em',
+    flexShrink: 0,
   },
   testBtn: {
     marginTop: 8,

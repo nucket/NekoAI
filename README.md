@@ -87,7 +87,7 @@ _Zero-config onboarding on Windows — NekoAI auto-detects Ollama and walks you 
 | 🖥️ System tray — hide/show, switch pets, settings                                | ✅         |
 | 📏 Adjustable pet size (S/M/L/XL) with pixel-perfect scaling                     | ✅         |
 | 🖱️ Right-click context menu — quick settings & pet size adjustment               | ✅         |
-| 💬 Tunable AI response length — S / M / L (256 / 512 / 1024 tokens)              | ✅         |
+| 💬 Tunable AI response length — S / M / L / Custom (32–4096 tokens)              | ✅         |
 | 🪄 Zero-config onboarding — auto-detects Ollama; walks pet out from house corner | ✅         |
 | 📊 NekoMetrics — anonymous keystroke / mouse / pet-step counters in a tooltip    | 🔜 v0.4    |
 | 🥁 BongoCat-style reactive paw animations driven by keystrokes                   | 🔜 v0.4    |
@@ -182,7 +182,7 @@ pnpm tauri build         # Production build
 - ⚙ **Settings** — configure AI provider, API key, model, response length, and your name
 - 🐾 **Select Pet** — switch between available pets
 - 📏 **Size** — adjust pet size (S=32px, M=64px, L=96px, XL=128px) for pixel-perfect rendering
-- 💬 **Response length** — pick **S / M / L** (256 / 512 / 1024 tokens). Medium is the default and covers most replies; pick Short for snappy answers on local Ollama, Long for detailed technical explanations.
+- 💬 **Response length** — pick **S / M / L** (256 / 512 / 1024 tokens) or set a **Custom** value (32–4096). Medium is the default and covers most replies; pick Short for snappy answers on local Ollama, Long for detailed technical explanations, Custom when you want exact control.
 
 Configuration is auto-created on first run:
 
@@ -193,7 +193,7 @@ provider   = "gemini"            # "anthropic" | "openai" | "gemini" | "nvidia" 
 api_key    = "AIza..."           # Stored locally, never sent anywhere
 model      = "gemini-2.5-flash"
 pet_size   = 64                  # pixels (32, 64, 96, or 128)
-max_tokens = 512                 # 256 (Short) | 512 (Medium, default) | 1024 (Long)
+max_tokens = 512                 # 256 (Short) | 512 (Medium, default) | 1024 (Long) | 32–4096 (Custom)
 ```
 
 > 🪄 **New user?** NekoAI auto-detects a running Ollama instance and configures itself on first launch — no settings required. Otherwise it guides you to set up your preferred provider.
