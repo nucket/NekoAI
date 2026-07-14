@@ -1,0 +1,10 @@
+[advisories]
+ignore = [
+  # RUSTSEC-2024-0429 — unsoundness in glib::VariantStrIter (NULL deref).
+  # No fix path: gtk3-rs ended at gtk 0.18.2, which pins glib 0.18; the fix
+  # only ships in glib >= 0.20 (the gtk4-rs line). Linux-only in our build
+  # (target.'cfg(target_os = "linux")'), and NekoAI never iterates a
+  # GVariant string array, so VariantStrIter is unreached.
+  # Revisit if/when Tauri moves off GTK3/webkit2gtk to GTK4/webkitgtk-6.
+  { id = "RUSTSEC-2024-0429", reason = "no fix available for the GTK3 binding line; vulnerable code path is unused" },
+]
