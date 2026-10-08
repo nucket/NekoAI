@@ -1,4 +1,12 @@
 import { DEFAULT_MAX_TOKENS, type AIProvider, type Message } from '../types'
+import { emptyReplyError, fetchWithTimeout } from '../http'
+
+interface OpenAIResponse {
+  choices?: {
+    message?: { content?: string | null; refusal?: string | null }
+    finish_reason?: string
+  }[]
+}
 
 export class OpenAIProvider implements AIProvider {
   private apiKey: string
@@ -12,7 +20,7 @@ export class OpenAIProvider implements AIProvider {
   }
 
   async sendMessage(messages: Message[], systemPrompt: string): Promise<string> {
-    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+    const response = await fetchWithTimeout('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
         'content-type': 'application/json',
@@ -29,7 +37,12 @@ export class OpenAIProvider implements AIProvider {
       throw new Error(`OpenAI API error: ${response.status} ${response.statusText}`)
     }
 
-    const data = await response.json()
-    return data.choices[0].message.content as string
+    const data = (await response.json()) as OpenAIResponse
+    const choice = data.choices?.[0]
+    // A refusal is still a user-facing answer — show it rather than an error.
+    const text = (choice?.message?.content ?? choice?.message?.refusal ?? '').trim()
+
+    if (!text) throw emptyReplyError('OpenAI', choice?.finish_reason)
+    return text
   }
 }
