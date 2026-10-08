@@ -38,6 +38,7 @@ const NEAR_ENTER_FACTOR = 0.7 // pet must be visibly close (not just within "nea
 const BORED_MS = 60_000 // 1 min idle → bored animation
 const CURSOR_IDLE_MS = 400 // cursor must be still this long before Neko stops chasing — bumped from 250ms so brief mouse pauses during approach don't trigger a fake NEAR_CURSOR
 const SPEED_PX_PER_SEC = 130 // original Neko: 16px/125ms = 128px/s
+const MAX_FRAME_DT_MS = 100 // cap per-tick movement after a stalled / throttled frame
 // Edge-sequence timings — classic Neko-style "stuck at the wall" behaviour.
 // Sequence: scratch1 → maybe(yawn → rest) → scratch2 → cross. At each phase
 // the sprite is frozen fully inside the current monitor (bounding-box clamp),
@@ -334,9 +335,17 @@ export function usePetMovement({
     if (!enabled) return
 
     const win = getCurrentWindow()
+    // Timestamp of the previous rAF tick. Local to this effect so re-enabling
+    // movement (e.g. after the bubble closes) never sees a huge stale gap.
+    let lastTs: number | null = null
 
-    const loop = () => {
+    const loop = (timestamp: number) => {
       rafIdRef.current = requestAnimationFrame(loop)
+      // Real elapsed time since the previous tick, so walking speed is the same
+      // on 60 Hz and 144 Hz displays. Clamped so a stalled or throttled frame
+      // can't teleport the pet.
+      const dtMs = lastTs === null ? 0 : Math.min(timestamp - lastTs, MAX_FRAME_DT_MS)
+      lastTs = timestamp
       if (document.hidden) return
 
       const cursor = cursorRef.current
@@ -420,8 +429,8 @@ export function usePetMovement({
 
             setWalkDir(wtDx, wtDy)
 
-            // Frame-based movement with accumulator for smooth motion
-            const frameStep = SPEED_PX_PER_SEC / 60 // ~16.67ms frame
+            // Time-based movement with accumulator for smooth motion
+            const frameStep = (SPEED_PX_PER_SEC * dtMs) / 1000
             moveAccumX.current += (wtDx / wtDist) * frameStep
             moveAccumY.current += (wtDy / wtDist) * frameStep
 
@@ -549,8 +558,8 @@ export function usePetMovement({
 
             setWalkDir(walkDx, walkDy)
 
-            // Frame-based movement with accumulator for smooth motion
-            const frameStep = SPEED_PX_PER_SEC / 60 // ~16.67ms frame
+            // Time-based movement with accumulator for smooth motion
+            const frameStep = (SPEED_PX_PER_SEC * dtMs) / 1000
             moveAccumX.current += (walkDx / walkDist) * frameStep
             moveAccumY.current += (walkDy / walkDist) * frameStep
 
