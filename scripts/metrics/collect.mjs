@@ -1,7 +1,10 @@
 // Pulls download counts from the GitHub Releases API and writes a
-// daily snapshot to docs/metrics/snapshots/YYYY-MM-DD.json plus the
-// rolling docs/metrics/latest.json. The aggregation is also reflected
-// in docs/metrics/README.md so it is browsable from the repo.
+// daily snapshot to <METRICS_DIR>/snapshots/YYYY-MM-DD.json plus the
+// rolling <METRICS_DIR>/latest.json. The aggregation is also reflected
+// in <METRICS_DIR>/README.md so it is browsable from the repo.
+//
+// The data lives on the orphan `metrics` branch, not on main; the Metrics
+// workflow checks that branch out into METRICS_DIR before running this.
 //
 // Run locally:
 //   GITHUB_TOKEN=$(gh auth token) node scripts/metrics/collect.mjs
@@ -12,18 +15,23 @@
 //   GITHUB_TOKEN        — optional, raises rate limit from 60/h to 5000/h
 //   INCLUDE_PRERELEASES — set to "1" to count drafts/pre-releases
 //   REPO                — defaults to "nucket/NekoAI"
+//   METRICS_DIR         — output directory (relative to cwd), defaults to
+//                         <repo>/metrics-data
 
 import { writeFile, mkdir, readFile } from 'node:fs/promises'
 import { existsSync } from 'node:fs'
-import { join, dirname } from 'node:path'
+import { join, dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { parseAssetName } from './parse-asset.mjs'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 const REPO_ROOT = join(__dirname, '..', '..')
-const SNAPSHOTS_DIR = join(REPO_ROOT, 'docs', 'metrics', 'snapshots')
-const LATEST_PATH = join(REPO_ROOT, 'docs', 'metrics', 'latest.json')
-const README_PATH = join(REPO_ROOT, 'docs', 'metrics', 'README.md')
+const METRICS_DIR = process.env.METRICS_DIR
+  ? resolve(process.env.METRICS_DIR)
+  : join(REPO_ROOT, 'metrics-data')
+const SNAPSHOTS_DIR = join(METRICS_DIR, 'snapshots')
+const LATEST_PATH = join(METRICS_DIR, 'latest.json')
+const README_PATH = join(METRICS_DIR, 'README.md')
 const SCHEMA_VERSION = 1
 
 const REPO = process.env.REPO || 'nucket/NekoAI'
@@ -161,7 +169,7 @@ function renderReadme(snapshot) {
   lines.push('## How this works')
   lines.push('')
   lines.push(
-    'A nightly GitHub Action calls the public GitHub Releases API, sums the `download_count` reported per asset, and writes a snapshot to `snapshots/YYYY-MM-DD.json`. `latest.json` always points at the newest snapshot. Schema documented in `SCHEMA.md`.'
+    'A nightly GitHub Action calls the public GitHub Releases API, sums the `download_count` reported per asset, and writes a snapshot to `snapshots/YYYY-MM-DD.json`. `latest.json` always points at the newest snapshot. Schema documented in [`docs/metrics/SCHEMA.md`](https://github.com/nucket/NekoAI/blob/main/docs/metrics/SCHEMA.md) on main.'
   )
   lines.push('')
   lines.push('Limitations:')
