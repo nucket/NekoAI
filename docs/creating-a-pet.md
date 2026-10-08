@@ -35,7 +35,9 @@ The folder name is the pet's **ID** — it must be kebab-case and unique.
 
   // ── AI personality ──────────────────────────────────────────────────────────
   "personality": "Ember is snarky, warm-hearted, and obsessed with coffee.",
-  "system_prompt": "You are Ember, a tiny fire dragon living on the user's desktop. You are witty, slightly dramatic, and give short punchy answers. Use 1-2 sentences max unless asked for more. Never use markdown.",
+  // Persona only — reply length and "no markdown" are appended by the app from
+  // the user's Settings → Response length choice, so don't hard-code them here.
+  "system_prompt": "You are Ember, a tiny fire dragon living on the user's desktop. You are witty, slightly dramatic, and love punchy one-liners.",
 
   // ── Sprites ─────────────────────────────────────────────────────────────────
   "spritesDir": "sprites", // subfolder containing frame PNGs
@@ -80,6 +82,10 @@ The folder name is the pet's **ID** — it must be kebab-case and unique.
   },
 }
 ```
+
+### How `system_prompt` is used
+
+`system_prompt` becomes the start of the AI's system prompt whenever your pet is active. NekoAI then appends what the user has taught the pet (name, project…), the pet's current mood, and a reply-length instruction matching **Settings → Response length** (S / M / L). Describe who the pet _is_ — voice, quirks, catchphrases — and leave length and formatting to the app.
 
 ### Required animations
 

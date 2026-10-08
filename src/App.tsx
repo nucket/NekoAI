@@ -401,40 +401,48 @@ export default function App() {
   const idleAnim = useIdleSequencer(petState, availableAnimationsList)
 
   // ── AI send with persistent memory ────────────────────────────────────────
-  const handleSendMessage = useCallback(async (text: string): Promise<string> => {
-    const { config: cfg } = useConfigStore.getState()
+  const handleSendMessage = useCallback(
+    async (text: string): Promise<string> => {
+      const { config: cfg } = useConfigStore.getState()
 
-    if (!cfg.apiKey && cfg.provider !== 'ollama') {
-      return 'Nyaa~ I need an API key to talk! Set one in Settings 🐾'
-    }
+      if (!cfg.apiKey && cfg.provider !== 'ollama') {
+        return 'Nyaa~ I need an API key to talk! Set one in Settings 🐾'
+      }
 
-    try {
-      await invoke('save_message', { role: 'user', content: text })
+      try {
+        await invoke('save_message', { role: 'user', content: text })
 
-      const [history, facts] = await Promise.all([
-        invoke<Array<{ role: string; content: string }>>('get_recent_messages', { limit: 20 }),
-        loadFacts(),
-      ])
+        const [history, facts] = await Promise.all([
+          invoke<Array<{ role: string; content: string }>>('get_recent_messages', { limit: 20 }),
+          loadFacts(),
+        ])
 
-      const mood = useAppStore.getState().mood
-      const systemPrompt = buildContextBlock('NekoAI', facts, mood)
-      const provider = createAIProvider(cfg)
-      const messages = history.map((m) => ({
-        role: m.role as 'user' | 'assistant',
-        content: m.content,
-      }))
+        const mood = useAppStore.getState().mood
+        const systemPrompt = buildContextBlock({
+          persona: petDef?.system_prompt,
+          facts,
+          mood,
+          maxTokens: cfg.maxTokens,
+        })
+        const provider = createAIProvider(cfg)
+        const messages = history.map((m) => ({
+          role: m.role as 'user' | 'assistant',
+          content: m.content,
+        }))
 
-      const reply = await provider.sendMessage(messages, systemPrompt)
+        const reply = await provider.sendMessage(messages, systemPrompt)
 
-      await invoke('save_message', { role: 'assistant', content: reply })
-      extractAndSaveFacts(text, reply)
+        await invoke('save_message', { role: 'assistant', content: reply })
+        extractAndSaveFacts(text, reply)
 
-      return reply
-    } catch (err) {
-      console.error('[NekoAI] handleSendMessage error:', err)
-      return describeSendError(err, cfg.provider)
-    }
-  }, [])
+        return reply
+      } catch (err) {
+        console.error('[NekoAI] handleSendMessage error:', err)
+        return describeSendError(err, cfg.provider)
+      }
+    },
+    [petDef]
+  )
 
   // ── Preload recent history when the bubble opens ──────────────────────────
   // SQLite keeps the conversation, but SpeechBubble starts empty on every
