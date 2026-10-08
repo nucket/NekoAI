@@ -124,9 +124,10 @@ Extracted facts are upserted into the `user_facts` SQLite table.
 | `get_recent_messages`                    | Last N messages from SQLite                                         |
 | `save_message`                           | Append a message to SQLite (triggers pruning every 20 inserts)      |
 | `prune_conversations`                    | Delete rows beyond max_rows / max_age_days (on-demand)              |
-| `clear_conversations`                    | Wipe all conversation history ("Reset memory")                      |
+| `clear_conversations`                    | Wipe all conversation history (Settings → Memory)                   |
 | `get_user_fact` / `set_user_fact`        | Key-value facts storage                                             |
 | `get_all_user_facts`                     | All facts as a JSON object                                          |
+| `delete_user_fact` / `clear_user_facts`  | Forget one fact / all facts (Settings → Memory)                     |
 | `get_active_window`                      | Foreground window title + process name                              |
 | `get_all_windows`                        | All visible windows                                                 |
 | `get_idle_millis`                        | OS-wide idle time in milliseconds                                   |
