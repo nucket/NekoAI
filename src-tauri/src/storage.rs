@@ -243,6 +243,18 @@ fn init_db(conn: &Connection) -> Result<(), String> {
             value TEXT NOT NULL
         );",
     )
+    .map_err(|e| e.to_string())?;
+
+    // Settings used to store the user's name under `userName` while chat
+    // extraction wrote `name`, so both ended up in the prompt. Fold the old
+    // key into `name` (the value typed in Settings wins). Idempotent: once
+    // `userName` is gone both statements are no-ops.
+    conn.execute_batch(
+        "INSERT INTO user_facts (key, value)
+            SELECT 'name', value FROM user_facts WHERE key = 'userName'
+            ON CONFLICT(key) DO UPDATE SET value = excluded.value;
+        DELETE FROM user_facts WHERE key = 'userName';",
+    )
     .map_err(|e| e.to_string())
 }
 

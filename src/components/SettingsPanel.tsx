@@ -172,7 +172,9 @@ export function SettingsPanel({ isOpen, onClose }: Props) {
 
   useEffect(() => {
     if (!isOpen) return
-    invoke<string | null>('get_user_fact', { key: 'userName' }).then((v) => {
+    // Same `name` fact the chat extraction in src/ai/memory.ts writes, so the
+    // prompt never carries two competing names.
+    invoke<string | null>('get_user_fact', { key: 'name' }).then((v) => {
       if (v) setUserName(v)
     })
   }, [isOpen])
@@ -254,7 +256,10 @@ export function SettingsPanel({ isOpen, onClose }: Props) {
 
   // ── Persist user name on blur ─────────────────────────────────────────────
   const handleUserNameBlur = useCallback(() => {
-    invoke('set_user_fact', { key: 'userName', value: userName })
+    const value = userName.trim()
+    // An empty field would store `name=` in every prompt; skip it.
+    if (!value) return
+    invoke('set_user_fact', { key: 'name', value })
   }, [userName])
 
   // ── Custom response-length input: sync draft + commit ─────────────────────

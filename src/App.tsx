@@ -456,7 +456,7 @@ export default function App() {
         const reply = await provider.sendMessage(messages, systemPrompt)
 
         await invoke('save_message', { role: 'assistant', content: reply })
-        extractAndSaveFacts(text, reply)
+        void extractAndSaveFacts(text)
 
         return reply
       } catch (err) {
