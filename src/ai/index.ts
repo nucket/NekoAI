@@ -1,6 +1,6 @@
 export type { AIProvider, AIConfig, Message } from './types'
 
-import type { AIProvider, AIConfig } from './types'
+import { DEFAULT_MAX_TOKENS, MAX_TOKENS_PRESETS, type AIProvider, type AIConfig } from './types'
 import { AnthropicProvider } from './providers/anthropic'
 import { OpenAIProvider } from './providers/openai'
 import { OllamaProvider } from './providers/ollama'
@@ -31,14 +31,26 @@ export interface PetMoodContext {
   curiosity: number
 }
 
-export function buildContextBlock(
-  petName: string,
-  facts: Record<string, string> = {},
+export interface ContextBlockOptions {
+  /** The active pet's `system_prompt` from pet.json. */
+  persona?: string
+  facts?: Record<string, string>
   mood?: PetMoodContext
-): string {
-  const base = `You are ${petName}, a tiny animated desktop cat. You live on the user's screen and give short, helpful, slightly playful answers. Maximum 2 sentences. No markdown.`
+  /** Reply token budget (`config.maxTokens`); selects the length guidance. */
+  maxTokens?: number
+}
 
-  const parts: string[] = [base]
+// Used when no pet definition is loaded yet (or it has no system_prompt).
+const DEFAULT_PERSONA =
+  "You are a tiny animated pet who lives on the user's desktop. You give helpful, slightly playful answers."
+
+export function buildContextBlock({
+  persona,
+  facts = {},
+  mood,
+  maxTokens,
+}: ContextBlockOptions = {}): string {
+  const parts: string[] = [persona?.trim() || DEFAULT_PERSONA]
 
   if (Object.keys(facts).length > 0) {
     const factsStr = Object.entries(facts)
@@ -54,7 +66,25 @@ export function buildContextBlock(
     parts.push(`Your current mood: ${moodDesc}. Let this subtly color your tone.`)
   }
 
+  parts.push(describeLength(maxTokens ?? DEFAULT_MAX_TOKENS))
+  parts.push('Reply in plain text only — the speech bubble cannot render markdown.')
+
   return parts.join(' ')
+}
+
+// Mirrors the Short / Medium / Long presets in Settings (~1 / ~3 / ~6
+// paragraphs); custom budgets fall into the nearest bucket. Stated last and
+// marked as overriding, because bundled personas still carry the "1-2
+// sentences" limit from when every reply was capped that way.
+function describeLength(maxTokens: number): string {
+  if (maxTokens <= MAX_TOKENS_PRESETS.short) {
+    return 'Reply length: keep every answer to one short paragraph at most. This overrides any length limit above.'
+  }
+  const target =
+    maxTokens <= MAX_TOKENS_PRESETS.medium
+      ? 'up to about three short paragraphs'
+      : 'up to about six paragraphs'
+  return `Reply length: keep casual replies brief, and use ${target} when the question needs detail. This overrides any length limit above.`
 }
 
 function describeMood({ energy, happiness, curiosity }: PetMoodContext): string {
