@@ -853,8 +853,14 @@ mod tests {
     #[test]
     fn bundled_pet_manifest_parses() {
         let pets = bundled_pets();
-        assert!(!pets.is_empty(), "pets/manifest.json must list at least one pet");
-        assert!(pets.iter().any(|p| p.id == "classic-neko"), "default pet missing");
+        assert!(
+            !pets.is_empty(),
+            "pets/manifest.json must list at least one pet"
+        );
+        assert!(
+            pets.iter().any(|p| p.id == "classic-neko"),
+            "default pet missing"
+        );
         assert!(pets.iter().all(|p| !p.id.is_empty() && !p.name.is_empty()));
     }
 }
