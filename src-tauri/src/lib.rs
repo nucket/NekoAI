@@ -96,14 +96,7 @@ fn cursor_tracking_status(tracker: tauri::State<'_, CursorTrackerState>) -> Stri
     "native".to_string()
 }
 
-// ─── Window positioning & sizing ─────────────────────────────────────────────
-
-#[tauri::command]
-fn move_window(window: tauri::WebviewWindow, x: f64, y: f64) -> Result<(), String> {
-    window
-        .set_position(tauri::PhysicalPosition::new(x as i32, y as i32))
-        .map_err(|e| e.to_string())
-}
+// ─── Window sizing ────────────────────────────────────────────────────────────
 
 /// Resize the window in logical pixels, bypassing the JS resizable restriction.
 /// `resizable: false` in tauri.conf.json removes WS_THICKFRAME on Windows which
@@ -113,22 +106,6 @@ fn move_window(window: tauri::WebviewWindow, x: f64, y: f64) -> Result<(), Strin
 fn resize_window(window: tauri::WebviewWindow, width: f64, height: f64) -> Result<(), String> {
     window
         .set_size(tauri::LogicalSize::new(width, height))
-        .map_err(|e| e.to_string())
-}
-
-// ─── Window decorations ───────────────────────────────────────────────────────
-
-#[tauri::command]
-fn set_always_on_top(window: tauri::WebviewWindow, always_on_top: bool) -> Result<(), String> {
-    window
-        .set_always_on_top(always_on_top)
-        .map_err(|e| e.to_string())
-}
-
-#[tauri::command]
-fn set_ignore_cursor_events(window: tauri::WebviewWindow, ignore: bool) -> Result<(), String> {
-    window
-        .set_ignore_cursor_events(ignore)
         .map_err(|e| e.to_string())
 }
 
@@ -248,9 +225,7 @@ async fn open_panel_window(
         win.set_position(tauri::PhysicalPosition::new(x as i32, y as i32))
             .map_err(|e| e.to_string())?;
         // Navigate in case the requested route changed
-        let url = format!("index.html#{}", route);
         win.eval(format!("window.location.hash = '{}'", route)).ok();
-        let _ = url;
         win.show().map_err(|e| e.to_string())?;
         win.set_focus().ok();
         return Ok(());
@@ -352,11 +327,6 @@ fn get_recent_messages(limit: u32) -> Result<Vec<StoredMessage>, String> {
 #[tauri::command]
 fn save_message(role: String, content: String) -> Result<(), String> {
     storage::save_message(&role, &content)
-}
-
-#[tauri::command]
-fn prune_conversations(max_rows: u32, max_age_days: i64) -> Result<u32, String> {
-    storage::prune_conversations(max_rows, max_age_days)
 }
 
 #[tauri::command]
@@ -576,16 +546,25 @@ fn get_active_window() -> Option<desktop_monitor::WindowInfo> {
 }
 
 #[tauri::command]
-fn get_all_windows() -> Vec<desktop_monitor::WindowInfo> {
-    desktop_monitor::get_all_windows()
-}
-
-#[tauri::command]
 fn get_idle_millis() -> u64 {
     desktop_monitor::get_idle_millis()
 }
 
 // ─── Autostart commands ───────────────────────────────────────────────────────
+
+/// Whether NekoAI launches with the OS session. `None` in portable mode, where
+/// autostart is unavailable (Settings shows the toggle disabled).
+#[tauri::command]
+fn autostart_status(app: tauri::AppHandle) -> Result<Option<bool>, String> {
+    if storage::is_portable() {
+        return Ok(None);
+    }
+    use tauri_plugin_autostart::ManagerExt;
+    app.autolaunch()
+        .is_enabled()
+        .map(Some)
+        .map_err(|e| e.to_string())
+}
 
 #[tauri::command]
 fn enable_autostart(app: tauri::AppHandle) -> Result<(), String> {
@@ -654,8 +633,6 @@ fn bundled_pets() -> Vec<PetManifestEntry> {
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
-        .plugin(tauri_plugin_fs::init())
-        .plugin(tauri_plugin_shell::init())
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_autostart::init(
             tauri_plugin_autostart::MacosLauncher::LaunchAgent,
@@ -830,10 +807,7 @@ pub fn run() {
             panel_action,
             get_cursor_pos,
             cursor_tracking_status,
-            move_window,
             resize_window,
-            set_always_on_top,
-            set_ignore_cursor_events,
             set_window_shape,
             clear_window_shape,
             get_config,
@@ -841,7 +815,6 @@ pub fn run() {
             patch_config,
             get_recent_messages,
             save_message,
-            prune_conversations,
             clear_conversations,
             get_user_fact,
             set_user_fact,
@@ -849,8 +822,8 @@ pub fn run() {
             delete_user_fact,
             clear_user_facts,
             get_active_window,
-            get_all_windows,
             get_idle_millis,
+            autostart_status,
             enable_autostart,
             disable_autostart,
             open_url,

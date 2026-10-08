@@ -20,15 +20,13 @@ pub struct WindowInfo {
 #[cfg(target_os = "windows")]
 mod win_impl {
     use super::{Rect, WindowInfo};
-    use windows::core::BOOL;
-    use windows::Win32::Foundation::{CloseHandle, HWND, LPARAM, RECT};
+    use windows::Win32::Foundation::{CloseHandle, HWND, RECT};
     use windows::Win32::System::ProcessStatus::K32GetModuleBaseNameW;
     use windows::Win32::System::SystemInformation::GetTickCount64;
     use windows::Win32::System::Threading::{OpenProcess, PROCESS_QUERY_LIMITED_INFORMATION};
     use windows::Win32::UI::Input::KeyboardAndMouse::{GetLastInputInfo, LASTINPUTINFO};
     use windows::Win32::UI::WindowsAndMessaging::{
-        EnumWindows, GetForegroundWindow, GetWindowRect, GetWindowTextW, GetWindowThreadProcessId,
-        IsWindowVisible,
+        GetForegroundWindow, GetWindowRect, GetWindowTextW, GetWindowThreadProcessId,
     };
 
     pub fn get_active_window() -> Option<WindowInfo> {
@@ -39,17 +37,6 @@ mod win_impl {
             }
             window_info_from_hwnd(hwnd)
         }
-    }
-
-    pub fn get_all_windows() -> Vec<WindowInfo> {
-        let mut result: Vec<WindowInfo> = Vec::new();
-        unsafe {
-            let _ = EnumWindows(
-                Some(enum_callback),
-                LPARAM(&mut result as *mut Vec<WindowInfo> as isize),
-            );
-        }
-        result
     }
 
     pub fn get_idle_millis() -> u64 {
@@ -64,19 +51,6 @@ mod win_impl {
                 0
             }
         }
-    }
-
-    unsafe extern "system" fn enum_callback(hwnd: HWND, lparam: LPARAM) -> BOOL {
-        if !IsWindowVisible(hwnd).as_bool() {
-            return BOOL(1);
-        }
-        let windows = &mut *(lparam.0 as *mut Vec<WindowInfo>);
-        if let Some(info) = window_info_from_hwnd(hwnd) {
-            if !info.title.is_empty() {
-                windows.push(info);
-            }
-        }
-        BOOL(1) // continue enumeration
     }
 
     unsafe fn window_info_from_hwnd(hwnd: HWND) -> Option<WindowInfo> {
@@ -204,53 +178,6 @@ mod linux_impl {
         }))
     }
 
-    // ── All visible windows via _NET_CLIENT_LIST (EWMH / X11) ────────────────
-
-    pub fn get_all_windows() -> Vec<WindowInfo> {
-        if !has_display() {
-            return vec![];
-        }
-        all_windows_x11().unwrap_or_default()
-    }
-
-    fn all_windows_x11() -> Result<Vec<WindowInfo>, Box<dyn Error>> {
-        use x11rb::connection::Connection as _;
-        use x11rb::protocol::xproto::{AtomEnum, ConnectionExt as _};
-        use x11rb::rust_connection::RustConnection;
-
-        let (conn, screen_num) = RustConnection::connect(None)?;
-        let root = conn.setup().roots[screen_num].root;
-
-        let net_client_list = conn.intern_atom(false, b"_NET_CLIENT_LIST")?.reply()?.atom;
-        let prop = conn
-            .get_property(false, root, net_client_list, AtomEnum::WINDOW, 0, 2048)?
-            .reply()?;
-
-        let mut windows = Vec::new();
-        for win_id in prop.value32().into_iter().flatten() {
-            if win_id == 0 {
-                continue;
-            }
-            let title = window_title(&conn, win_id).unwrap_or_default();
-            if title.is_empty() {
-                continue;
-            }
-            let process_name = window_process_name(&conn, win_id).unwrap_or_default();
-            let rect = window_rect(&conn, win_id).unwrap_or(Rect {
-                x: 0,
-                y: 0,
-                width: 0,
-                height: 0,
-            });
-            windows.push(WindowInfo {
-                title,
-                process_name,
-                rect,
-            });
-        }
-        Ok(windows)
-    }
-
     // ── Helpers ───────────────────────────────────────────────────────────────
 
     fn window_title(
@@ -324,21 +251,6 @@ pub fn get_active_window() -> Option<WindowInfo> {
     #[cfg(not(any(target_os = "windows", target_os = "linux")))]
     {
         None
-    }
-}
-
-pub fn get_all_windows() -> Vec<WindowInfo> {
-    #[cfg(target_os = "windows")]
-    {
-        win_impl::get_all_windows()
-    }
-    #[cfg(target_os = "linux")]
-    {
-        linux_impl::get_all_windows()
-    }
-    #[cfg(not(any(target_os = "windows", target_os = "linux")))]
-    {
-        vec![]
     }
 }
 

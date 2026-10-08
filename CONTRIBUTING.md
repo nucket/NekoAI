@@ -252,16 +252,16 @@ docs(contributing): add sprite conversion guide
 
 The project uses ESLint (`eslint.config.js`) with `@eslint/js`, `typescript-eslint`, and `prettier`. Prettier is enforced on all `.ts`, `.tsx`, `.json`, `.css`, and `.md` files via lint-staged.
 
-| Rule             | Convention                                                               |
-| ---------------- | ------------------------------------------------------------------------ |
-| Component names  | PascalCase — `PetSprite`, `SpeechBubble`                                 |
-| Hook names       | camelCase prefixed `use` — `usePetMovement`, `useMoodEngine`             |
-| File names       | Match the exported symbol exactly — `PetSprite.tsx`, `usePetMovement.ts` |
-| Object shapes    | `interface` preferred over `type`                                        |
-| Unions / aliases | `type`                                                                   |
-| Default exports  | Components only; utilities use named exports                             |
-| Unused vars      | Error — prefix intentionally unused params with `_`                      |
-| `any`            | Forbidden — use proper types or `unknown`                                |
+| Rule             | Convention                                                                 |
+| ---------------- | -------------------------------------------------------------------------- |
+| Component names  | PascalCase — `PetRenderer`, `SpeechBubble`                                 |
+| Hook names       | camelCase prefixed `use` — `usePetMovement`, `useMoodEngine`               |
+| File names       | Match the exported symbol exactly — `PetRenderer.tsx`, `usePetMovement.ts` |
+| Object shapes    | `interface` preferred over `type`                                          |
+| Unions / aliases | `type`                                                                     |
+| Default exports  | Components only; utilities use named exports                               |
+| Unused vars      | Error — prefix intentionally unused params with `_`                        |
+| `any`            | Forbidden — use proper types or `unknown`                                  |
 
 Run `pnpm lint` (zero warnings allowed) and `pnpm format:check` before submitting.
 

@@ -309,7 +309,6 @@ export default function App() {
         useConfigStore.getState().setActivePetId(e.payload)
         setPetSelectorOpen(true)
       }),
-      listen('tray-quit', () => invoke('quit_app')),
 
       // Actions emitted from the secondary panel window (context menu)
       listen<string>('panel-action', (e) => {
