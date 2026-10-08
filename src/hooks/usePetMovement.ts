@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 import { invoke } from '@tauri-apps/api/core'
 import { getCurrentWindow, availableMonitors } from '@tauri-apps/api/window'
 import { PhysicalPosition } from '@tauri-apps/api/dpi'
+import { workAreaOf, type PhysicalRect } from '../utils/monitor'
 
 // ─── Public types ─────────────────────────────────────────────────────────────
 
@@ -11,9 +12,10 @@ export type EdgeDirection = 'right' | 'left' | 'up' | 'down'
 export type EdgeAnimationKind = 'scratch' | 'yawn' | 'idle'
 
 export interface UsePetMovementOptions {
-  speed?: number
+  /** "Near the cursor" radius in logical px (scaled to the display). */
   nearThreshold?: number
   sleepTimeout?: number
+  /** Sprite window size in logical px (petSize); scaled to physical px. */
   windowSize?: number
   enabled?: boolean
   mode?: 'buddy' | 'wanderer'
@@ -39,6 +41,7 @@ const BORED_MS = 60_000 // 1 min idle → bored animation
 const CURSOR_IDLE_MS = 400 // cursor must be still this long before Neko stops chasing — bumped from 250ms so brief mouse pauses during approach don't trigger a fake NEAR_CURSOR
 const SPEED_PX_PER_SEC = 130 // original Neko: 16px/125ms = 128px/s
 const MAX_FRAME_DT_MS = 100 // cap per-tick movement after a stalled / throttled frame
+const MONITOR_REFRESH_MS = 10_000 // re-read monitor layout (hot-plug, rearrange)
 // Edge-sequence timings — classic Neko-style "stuck at the wall" behaviour.
 // Sequence: scratch1 → maybe(yawn → rest) → scratch2 → cross. At each phase
 // the sprite is frozen fully inside the current monitor (bounding-box clamp),
@@ -114,7 +117,6 @@ function getWalkAnimation(dx: number, dy: number, availableAnims: string[]): str
 // ─── Hook ─────────────────────────────────────────────────────────────────────
 
 export function usePetMovement({
-  speed = 3,
   nearThreshold = 50,
   sleepTimeout = 3 * 60 * 1000,
   windowSize = 128,
@@ -146,24 +148,21 @@ export function usePetMovement({
     availableAnimsRef.current = availableAnimations
   }, [availableAnimations])
 
-  // Track previous position for edge direction calculation
-  const prevPosRef = useRef<Vec2>({ x: 0, y: 0 })
-
   // Play-mode wander state
   const wanderTargetRef = useRef<Vec2 | null>(null)
   const wanderWaitUntil = useRef(0)
 
-  const halfSize = windowSize / 2
-
   // ── Monitor bounds for multi-monitor edge detection ─────────────────────
+  // Full bounds drive the edge / cross-monitor logic; `work` (taskbar / dock
+  // excluded) bounds where wanderer mode picks its targets.
   interface MonitorBounds {
     x: number
     y: number
     width: number
     height: number
+    work: PhysicalRect
   }
   const monitorBoundsRef = useRef<MonitorBounds[]>([])
-  const prevMonitorIndexRef = useRef<number>(-1)
   const edgeCooldownRef = useRef(0)
   const edgePauseUntilRef = useRef(0)
 
@@ -205,6 +204,8 @@ export function usePetMovement({
     []
   )
 
+  // Loaded when movement (re)starts and refreshed periodically, so plugging
+  // in, removing or rearranging a monitor is picked up without a restart.
   useEffect(() => {
     if (!enabled) return
     async function loadMonitors() {
@@ -216,6 +217,7 @@ export function usePetMovement({
             y: m.position.y,
             width: m.size.width,
             height: m.size.height,
+            work: workAreaOf(m),
           }))
         }
       } catch {
@@ -223,6 +225,8 @@ export function usePetMovement({
       }
     }
     loadMonitors()
+    const timer = setInterval(loadMonitors, MONITOR_REFRESH_MS)
+    return () => clearInterval(timer)
   }, [enabled])
 
   // ── Helper: find which monitor the pet center is on ─────────────────────
@@ -353,7 +357,14 @@ export function usePetMovement({
       const state = stateRef.current
       const now = Date.now()
 
-      const centre: Vec2 = { x: winPos.x + halfSize, y: winPos.y + halfSize }
+      // Positions are physical px; petSize and the near radius are logical.
+      // Scale them by the current display factor so the sprite centre, the
+      // near radius and the edge clamp stay right at 125 % / 150 % / 200 %.
+      const scale = window.devicePixelRatio || 1
+      const size = windowSize * scale
+      const near = nearThreshold * scale
+
+      const centre: Vec2 = { x: winPos.x + size / 2, y: winPos.y + size / 2 }
       const dist = distance(cursor, centre)
       const dx = cursor.x - centre.x
       const dy = cursor.y - centre.y
@@ -364,7 +375,7 @@ export function usePetMovement({
       if (mode === 'wanderer') {
         // ── Wanderer Mode ─────────────────────────────────────────────────────
 
-        if (dist <= nearThreshold && state !== 'NEAR_CURSOR' && state !== 'SLEEPING') {
+        if (dist <= near && state !== 'NEAR_CURSOR' && state !== 'SLEEPING') {
           transition('NEAR_CURSOR', dx, dy)
           wanderWaitUntil.current = now + 1500
         }
@@ -378,7 +389,7 @@ export function usePetMovement({
             break
 
           case 'NEAR_CURSOR':
-            if (dist > nearThreshold * NEAR_LEAVE_FACTOR && now >= wanderWaitUntil.current) {
+            if (dist > near * NEAR_LEAVE_FACTOR && now >= wanderWaitUntil.current) {
               transition('IDLE', 0, 1)
             }
             break
@@ -393,13 +404,16 @@ export function usePetMovement({
             }
 
             if (now >= wanderWaitUntil.current) {
-              const scale = window.devicePixelRatio || 1
-              const screenW = window.screen.availWidth * scale
-              const screenH = window.screen.availHeight * scale
-              const margin = windowSize * scale
+              // Pick the next target inside the work area of the monitor the
+              // pet is on (not window.screen, which only knows the primary
+              // monitor and assumes it starts at 0,0).
+              const monitors = monitorBoundsRef.current
+              const monIdx = findMonitorIndex(centre.x, centre.y)
+              const area = (monIdx >= 0 ? monitors[monIdx] : monitors[0])?.work ?? workAreaOf(null)
+              const margin = size
               wanderTargetRef.current = {
-                x: margin + Math.random() * (screenW - margin * 2),
-                y: margin + Math.random() * (screenH - margin * 2),
+                x: area.x + margin + Math.random() * Math.max(0, area.width - margin * 2),
+                y: area.y + margin + Math.random() * Math.max(0, area.height - margin * 2),
               }
               transition('WALKING', 1, 0)
             }
@@ -417,7 +431,7 @@ export function usePetMovement({
             const wtDy = wt.y - centre.y
             const wtDist = distance(wt, centre)
 
-            if (wtDist <= nearThreshold) {
+            if (wtDist <= near) {
               wanderTargetRef.current = null
               wanderWaitUntil.current = now + 2000 + Math.random() * 3000
               transition('IDLE', 0, 1)
@@ -457,7 +471,7 @@ export function usePetMovement({
 
         switch (state) {
           case 'SLEEPING':
-            if (dist > nearThreshold * NEAR_LEAVE_FACTOR) {
+            if (dist > near * NEAR_LEAVE_FACTOR) {
               transition('IDLE', dx, dy)
               lastCursorMoveRef.current = now
             }
@@ -466,7 +480,7 @@ export function usePetMovement({
           case 'NEAR_CURSOR':
             if (idleMs >= sleepTimeout) {
               transition('SLEEPING', dx, dy)
-            } else if (dist > nearThreshold * NEAR_LEAVE_FACTOR) {
+            } else if (dist > near * NEAR_LEAVE_FACTOR) {
               transition('WALKING', dx, dy)
             }
             break
@@ -474,7 +488,7 @@ export function usePetMovement({
           case 'IDLE':
             if (idleMs >= sleepTimeout) {
               transition('SLEEPING', dx, dy)
-            } else if (dist > nearThreshold) {
+            } else if (dist > near) {
               transition('WALKING', dx, dy)
             } else if (idleMs >= BORED_MS) {
               // 1 min cursor idle → bored animation (still IDLE state)
@@ -537,7 +551,7 @@ export function usePetMovement({
             // immediate re-walk when the cursor wiggles within the near zone.
             const cursorIdleMs = now - lastCursorMoveRef.current
             const isCursorStopped = cursorIdleMs >= CURSOR_IDLE_MS
-            const nearEnterRadius = nearThreshold * NEAR_ENTER_FACTOR
+            const nearEnterRadius = near * NEAR_ENTER_FACTOR
 
             if (dist <= nearEnterRadius && isCursorStopped) {
               transition('NEAR_CURSOR', dx, dy)
@@ -583,20 +597,14 @@ export function usePetMovement({
                   const mon = monitorBoundsRef.current[currMonIdx]
                   const projWinX = winPos.x + intStepX
                   const projWinY = winPos.y + intStepY
-                  const edgeDir = getBoundingBoxEdgeHit(projWinX, projWinY, windowSize, mon)
+                  const edgeDir = getBoundingBoxEdgeHit(projWinX, projWinY, size, mon)
 
                   if (edgeDir !== null) {
                     // Clamp the sprite back to fit fully inside the current
                     // monitor — handles the case where the previous frame
                     // already left it partially poking out.
-                    const clampedX = Math.max(
-                      mon.x,
-                      Math.min(winPos.x, mon.x + mon.width - windowSize)
-                    )
-                    const clampedY = Math.max(
-                      mon.y,
-                      Math.min(winPos.y, mon.y + mon.height - windowSize)
-                    )
+                    const clampedX = Math.max(mon.x, Math.min(winPos.x, mon.x + mon.width - size))
+                    const clampedY = Math.max(mon.y, Math.min(winPos.y, mon.y + mon.height - size))
                     if (clampedX !== winPos.x || clampedY !== winPos.y) {
                       winPosRef.current = { x: clampedX, y: clampedY }
                       win
@@ -612,10 +620,8 @@ export function usePetMovement({
                     onEdgeAnimation('scratch', edgeDir, EDGE_SCRATCH_MS)
                     moveAccumX.current = 0
                     moveAccumY.current = 0
-                    prevMonitorIndexRef.current = currMonIdx
                     break // do NOT apply this step
                   }
-                  prevMonitorIndexRef.current = currMonIdx
                 }
               }
 
@@ -634,20 +640,15 @@ export function usePetMovement({
           }
         }
       }
-
-      // Track position for next frame's edge direction calculation
-      prevPosRef.current = { x: centre.x, y: centre.y }
     }
 
     rafIdRef.current = requestAnimationFrame(loop)
     return () => cancelAnimationFrame(rafIdRef.current)
   }, [
     enabled,
-    speed,
     nearThreshold,
     sleepTimeout,
     windowSize,
-    halfSize,
     mode,
     transition,
     setWalkDir,
