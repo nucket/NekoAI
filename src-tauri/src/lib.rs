@@ -660,14 +660,17 @@ pub fn run() {
             window.set_always_on_top(true).ok();
 
             // Position near house before making visible to avoid flash at (100, 100).
-            // pet(32) + gap(4) + house(64) + margin(8) = 108 logical px from right
-            // taskbar(48) + house(64) + margin(8) = 120 logical px from bottom
+            // Measured from the work area, which excludes the taskbar / dock on any
+            // edge (HouseWindow.tsx places the house the same way):
+            // pet(32) + gap(4) + house(64) + margin(8) = 108 logical px from the right,
+            // house(64) + margin(8) = 72 logical px from the bottom (pet top = house top).
             if let Ok(Some(monitor)) = window.primary_monitor() {
                 let scale = monitor.scale_factor();
-                let mw = monitor.size().width as f64;
-                let mh = monitor.size().height as f64;
-                let x = (mw - 108.0 * scale) as i32;
-                let y = (mh - 120.0 * scale) as i32;
+                let area = monitor.work_area();
+                let right = f64::from(area.position.x) + f64::from(area.size.width);
+                let bottom = f64::from(area.position.y) + f64::from(area.size.height);
+                let x = (right - 108.0 * scale) as i32;
+                let y = (bottom - 72.0 * scale) as i32;
                 window.set_position(tauri::PhysicalPosition::new(x, y)).ok();
             }
             window.show().ok();

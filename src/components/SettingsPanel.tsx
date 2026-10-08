@@ -3,6 +3,7 @@ import { invoke } from '@tauri-apps/api/core'
 import { getCurrentWindow, currentMonitor } from '@tauri-apps/api/window'
 import { PhysicalPosition } from '@tauri-apps/api/dpi'
 import { useConfigStore } from '../store/configStore'
+import { workAreaOf } from '../utils/monitor'
 import { createAIProvider, buildContextBlock } from '../ai'
 import {
   DEFAULT_MAX_TOKENS,
@@ -194,12 +195,9 @@ export function SettingsPanel({ isOpen, onClose }: Props) {
         if (cancelled) return
         setSavedPos({ x: pos.x, y: pos.y })
 
-        // Physical bounds of the active monitor
+        // Usable bounds of the active monitor (excludes the taskbar / dock)
         const scale = monitor?.scaleFactor ?? window.devicePixelRatio ?? 1
-        const monX = monitor?.position.x ?? 0
-        const monY = monitor?.position.y ?? 0
-        const monW = monitor?.size.width ?? window.screen.availWidth * scale
-        const monH = monitor?.size.height ?? window.screen.availHeight * scale
+        const { x: monX, y: monY, width: monW, height: monH } = workAreaOf(monitor)
 
         // Panel physical size
         const panelPhysW = PANEL_W * scale

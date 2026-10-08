@@ -5,6 +5,7 @@ import { PhysicalPosition } from '@tauri-apps/api/dpi'
 import { listen } from '@tauri-apps/api/event'
 import { useConfigStore } from './store/configStore'
 import { IS_LINUX } from './utils/platform'
+import { workAreaOf } from './utils/monitor'
 
 const HOUSE_SIZE = 64
 
@@ -46,18 +47,15 @@ export function HouseWindow() {
         // for hidden windows that haven't been placed on a monitor yet.
         const monitor = await primaryMonitor()
         const scale = monitor?.scaleFactor ?? window.devicePixelRatio ?? 1
-        const monX = monitor?.position.x ?? 0
-        const monY = monitor?.position.y ?? 0
-        const monW = monitor?.size.width ?? window.screen.width * scale
-        const monH = monitor?.size.height ?? window.screen.height * scale
-
-        // Exact taskbar height: total screen height minus available height (CSS px → physical).
-        const taskbarH = (window.screen.height - window.screen.availHeight) * scale
+        // Bottom-right corner of the work area: clear of the taskbar / dock on
+        // any edge (the old screen.height - availHeight trick assumed a bottom
+        // taskbar).
+        const area = workAreaOf(monitor)
         const margin = 8 * scale
 
         const win = getCurrentWindow()
-        const x = monX + monW - HOUSE_SIZE * scale - margin
-        const y = monY + monH - taskbarH - HOUSE_SIZE * scale - margin
+        const x = area.x + area.width - HOUSE_SIZE * scale - margin
+        const y = area.y + area.height - HOUSE_SIZE * scale - margin
 
         await win.setPosition(new PhysicalPosition(Math.round(x), Math.round(y)))
         await win.show()
