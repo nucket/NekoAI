@@ -46,6 +46,12 @@ pub struct AIConfig {
     // in lib.rs / src/ai/types.ts. Surfaced as Short/Medium/Long in Settings.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub max_tokens: Option<u32>,
+    // Sprite size in logical px (32 / 64 / 96 / 128). `None` lets the frontend
+    // fall back to 32. Every field of `AIConfig` in src/ai/types.ts needs a
+    // twin here: serde silently drops unknown keys, which is how this one used
+    // to be lost on every save.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub pet_size: Option<u32>,
 }
 
 impl Default for AIConfig {
@@ -63,6 +69,7 @@ impl Default for AIConfig {
             onboarding_completed: None,
             ollama_auto_detected: None,
             max_tokens: None,
+            pet_size: None,
         }
     }
 }
@@ -479,5 +486,29 @@ mod tests {
         assert_eq!(config.model, "gemini-2.5-flash");
         assert_eq!(config.api_key.as_deref(), Some("sk-test"));
         assert!(find_backups(&path).is_empty());
+    }
+
+    #[test]
+    fn every_frontend_config_field_survives_a_save() {
+        // Mirrors `AIConfig` in src/ai/types.ts. A key with no Rust twin is
+        // silently dropped by serde (that is how `petSize` used to be lost),
+        // so add new frontend fields here too.
+        let frontend = serde_json::json!({
+            "provider": "ollama",
+            "apiKey": "sk-test",
+            "model": "llama3",
+            "baseUrl": "http://localhost:11434",
+            "petSize": 128,
+            "petMode": "wanderer",
+            "activePetId": "tabby",
+            "onboardingCompleted": true,
+            "ollamaAutoDetected": true,
+            "maxTokens": 1024
+        });
+        let config: AIConfig = serde_json::from_value(frontend.clone()).unwrap();
+        let path = temp_config("frontend-fields");
+        write_config_to(&path, &config).unwrap();
+        let saved = serde_json::to_value(read_config_from(&path)).unwrap();
+        assert_eq!(saved, frontend);
     }
 }
