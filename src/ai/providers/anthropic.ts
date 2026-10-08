@@ -18,6 +18,10 @@ export class AnthropicProvider implements AIProvider {
         'content-type': 'application/json',
         'x-api-key': this.apiKey,
         'anthropic-version': '2023-06-01',
+        // Required for any request that carries an Origin header (i.e. every
+        // WebView fetch). Without it the API omits Access-Control-Allow-Origin
+        // and the WebView blocks the response, surfacing as "Failed to fetch".
+        'anthropic-dangerous-direct-browser-access': 'true',
       },
       body: JSON.stringify({
         model: this.model,
