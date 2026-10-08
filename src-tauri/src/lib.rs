@@ -325,9 +325,21 @@ fn get_config() -> AIConfig {
 #[tauri::command]
 fn save_config(app: tauri::AppHandle, config: AIConfig) -> Result<(), String> {
     storage::write_config(&config)?;
-    // Notify all windows (HouseWindow, panel) that the config changed
-    app.emit("config-updated", ()).ok();
+    // Notify all windows (main, panel, house) with the new config so each
+    // WebView's configStore adopts it.
+    app.emit("config-updated", config).ok();
     Ok(())
+}
+
+/// Merges `patch` (a partial config in camelCase; `null` clears a field) into
+/// the stored config and broadcasts the result. This is what configStore uses:
+/// windows send only the fields they changed, so a stale copy in one window
+/// can no longer overwrite another window's edits.
+#[tauri::command]
+fn patch_config(app: tauri::AppHandle, patch: serde_json::Value) -> Result<AIConfig, String> {
+    let config = storage::patch_config(&patch)?;
+    app.emit("config-updated", config.clone()).ok();
+    Ok(config)
 }
 
 // ─── Conversation commands ────────────────────────────────────────────────────
@@ -823,6 +835,7 @@ pub fn run() {
             clear_window_shape,
             get_config,
             save_config,
+            patch_config,
             get_recent_messages,
             save_message,
             prune_conversations,

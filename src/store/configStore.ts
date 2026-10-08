@@ -1,11 +1,17 @@
 import { create } from 'zustand'
 import { invoke } from '@tauri-apps/api/core'
+import { listen } from '@tauri-apps/api/event'
 import type { AIConfig } from '../ai/types'
+
+/** Fields to change. `null` clears an optional field on the Rust side. */
+export type ConfigPatch = { [K in keyof AIConfig]?: AIConfig[K] | null }
 
 interface ConfigStore {
   config: AIConfig
   isLoaded: boolean
   loadConfig: () => Promise<void>
+  /** Merge-and-persist any subset of fields in one write. */
+  updateConfig: (patch: ConfigPatch) => Promise<void>
   setProvider: (provider: AIConfig['provider']) => Promise<void>
   setApiKey: (apiKey: string) => Promise<void>
   setModel: (model: string) => Promise<void>
@@ -32,91 +38,69 @@ const DEFAULT_CONFIG: AIConfig = {
   activePetId: 'classic-neko',
 }
 
-async function persist(config: AIConfig): Promise<void> {
-  await invoke('save_config', { config })
+function applyPatch(config: AIConfig, patch: ConfigPatch): AIConfig {
+  const next: Record<string, unknown> = { ...config }
+  for (const [key, value] of Object.entries(patch)) {
+    if (value === null) delete next[key]
+    else if (value !== undefined) next[key] = value
+  }
+  return next as AIConfig
 }
 
-export const useConfigStore = create<ConfigStore>((set, get) => ({
-  config: DEFAULT_CONFIG,
-  isLoaded: false,
+// Every Tauri window (main, panel, house) is a separate WebView with its own
+// copy of this store. Writes therefore send only the changed fields to the
+// `patch_config` command, which merges them into config.toml under a lock and
+// broadcasts the merged config as `config-updated`; every window adopts that
+// payload. (Persisting the whole object let a stale copy in one window
+// overwrite another window's edits.)
+let subscribed = false
 
-  loadConfig: async () => {
-    const config = await invoke<AIConfig>('get_config')
-    set({ config, isLoaded: true })
-  },
+export const useConfigStore = create<ConfigStore>((set, get) => {
+  const update = async (patch: ConfigPatch): Promise<void> => {
+    // Optimistic, so inputs don't lag; the merged result replaces it.
+    set({ config: applyPatch(get().config, patch) })
+    const merged = await invoke<AIConfig>('patch_config', { patch })
+    set({ config: merged })
+  }
 
-  setProvider: async (provider) => {
-    const config = { ...get().config, provider }
-    set({ config })
-    await persist(config)
-  },
+  return {
+    config: DEFAULT_CONFIG,
+    isLoaded: false,
 
-  setApiKey: async (apiKey) => {
-    const config = { ...get().config, apiKey }
-    set({ config })
-    await persist(config)
-  },
+    loadConfig: async () => {
+      if (!subscribed) {
+        subscribed = true
+        listen<AIConfig>('config-updated', (e) => set({ config: e.payload, isLoaded: true })).catch(
+          () => {
+            subscribed = false
+          }
+        )
+      }
+      const config = await invoke<AIConfig>('get_config')
+      set({ config, isLoaded: true })
+    },
 
-  setModel: async (model) => {
-    const config = { ...get().config, model }
-    set({ config })
-    await persist(config)
-  },
+    updateConfig: update,
+    setProvider: (provider) => update({ provider }),
+    setApiKey: (apiKey) => update({ apiKey }),
+    setModel: (model) => update({ model }),
+    setBaseUrl: (baseUrl) => update({ baseUrl }),
+    setPetSize: (petSize) => update({ petSize }),
+    setPetMode: (petMode) => update({ petMode }),
+    setActivePetId: (activePetId) => update({ activePetId }),
+    setOnboardingCompleted: (onboardingCompleted) => update({ onboardingCompleted }),
+    setOllamaAutoDetected: (ollamaAutoDetected) => update({ ollamaAutoDetected }),
+    setMaxTokens: (maxTokens) => update({ maxTokens }),
 
-  setBaseUrl: async (baseUrl) => {
-    const config = { ...get().config, baseUrl }
-    set({ config })
-    await persist(config)
-  },
-
-  setPetSize: async (petSize) => {
-    const config = { ...get().config, petSize }
-    set({ config })
-    await persist(config)
-  },
-
-  setPetMode: async (petMode) => {
-    const config = { ...get().config, petMode }
-    set({ config })
-    await persist(config)
-  },
-
-  setActivePetId: async (activePetId) => {
-    const config = { ...get().config, activePetId }
-    set({ config })
-    await persist(config)
-  },
-
-  setOnboardingCompleted: async (onboardingCompleted) => {
-    const config = { ...get().config, onboardingCompleted }
-    set({ config })
-    await persist(config)
-  },
-
-  setOllamaAutoDetected: async (ollamaAutoDetected) => {
-    const config = { ...get().config, ollamaAutoDetected }
-    set({ config })
-    await persist(config)
-  },
-
-  setMaxTokens: async (maxTokens) => {
-    const config = { ...get().config, maxTokens }
-    set({ config })
-    await persist(config)
-  },
-
-  // Atomic write of provider + model + baseUrl + flags. Used by the onboarding
-  // detection so we don't race three separate `save_config` round-trips.
-  applyOllamaAutoConfig: async (model, baseUrl = 'http://localhost:11434') => {
-    const config: AIConfig = {
-      ...get().config,
-      provider: 'ollama',
-      model,
-      baseUrl,
-      ollamaAutoDetected: true,
-      onboardingCompleted: true,
-    }
-    set({ config })
-    await persist(config)
-  },
-}))
+    // Provider + model + baseUrl + flags in a single write. Used by the
+    // onboarding detection.
+    applyOllamaAutoConfig: (model, baseUrl = 'http://localhost:11434') =>
+      update({
+        provider: 'ollama',
+        model,
+        baseUrl,
+        ollamaAutoDetected: true,
+        onboardingCompleted: true,
+      }),
+  }
+})
