@@ -58,6 +58,23 @@ const PROVIDER_HELP: Record<string, { url: string; label: string }> = {
   ollama: { url: 'https://ollama.com/download', label: 'Descargar Ollama' },
 }
 
+// ─── Draft fields ─────────────────────────────────────────────────────────────
+
+const DEFAULT_OLLAMA_URL = 'http://localhost:11434'
+
+type DraftField = 'apiKey' | 'model' | 'baseUrl'
+
+// What a draft input shows for the stored config value.
+function storedDraftValue(config: AIConfig, field: DraftField): string {
+  if (field === 'model') return config.model
+  if (field === 'apiKey') return config.apiKey ?? ''
+  return config.baseUrl ?? DEFAULT_OLLAMA_URL
+}
+
+function blurOnEnter(e: React.KeyboardEvent<HTMLInputElement>) {
+  if (e.key === 'Enter') e.currentTarget.blur()
+}
+
 // ─── Memory section ───────────────────────────────────────────────────────────
 
 const CONFIRM_MS = 3000
@@ -82,16 +99,7 @@ interface Props {
 }
 
 export function SettingsPanel({ isOpen, onClose }: Props) {
-  const {
-    config,
-    isLoaded,
-    loadConfig,
-    setProvider,
-    setApiKey,
-    setModel,
-    setBaseUrl,
-    setMaxTokens,
-  } = useConfigStore()
+  const { config, isLoaded, loadConfig, updateConfig, setMaxTokens } = useConfigStore()
 
   const [userName, setUserName] = useState('')
   const [showKey, setShowKey] = useState(false)
@@ -106,6 +114,24 @@ export function SettingsPanel({ isOpen, onClose }: Props) {
   )
   const customInputRef = useRef<HTMLInputElement>(null)
   const [savedPos, setSavedPos] = useState<{ x: number; y: number } | null>(null)
+
+  // ── Drafts for the free-text config fields ─────────────────────────────────
+  // Typing must not write config.toml (and broadcast to every window) on each
+  // keystroke, nor persist a half-typed API key. Committed on blur / Enter;
+  // resynced whenever the stored value changes.
+  const [drafts, setDrafts] = useState<Record<DraftField, string>>(() => ({
+    apiKey: storedDraftValue(config, 'apiKey'),
+    model: storedDraftValue(config, 'model'),
+    baseUrl: storedDraftValue(config, 'baseUrl'),
+  }))
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setDrafts({
+      apiKey: config.apiKey ?? '',
+      model: config.model,
+      baseUrl: config.baseUrl ?? DEFAULT_OLLAMA_URL,
+    })
+  }, [config.apiKey, config.model, config.baseUrl])
 
   // ── Memory (learned facts + chat history) ──────────────────────────────────
   const [facts, setFacts] = useState<Record<string, string>>({})
@@ -283,21 +309,46 @@ export function SettingsPanel({ isOpen, onClose }: Props) {
     }
   }, [customDraft, config.maxTokens, setMaxTokens])
 
-  // ── Provider change: reset model to provider default ──────────────────────
+  // ── Free-text fields: commit the draft on blur / Enter ─────────────────────
+  const commitDraft = useCallback(
+    (field: DraftField) => {
+      const value = drafts[field].trim()
+      if (value === storedDraftValue(config, field)) return
+      if (field === 'model' && !value) {
+        // A model is required — snap back instead of saving an empty one.
+        setDrafts((d) => ({ ...d, model: config.model }))
+        return
+      }
+      // An emptied API key / base URL is cleared (null) rather than stored as ''.
+      void updateConfig({ [field]: value || null })
+    },
+    [drafts, config, updateConfig]
+  )
+
+  // ── Provider change: reset model to provider default (one write) ──────────
   const handleProviderChange = useCallback(
     (p: string) => {
-      setProvider(p as AIConfig['provider'])
-      setModel(PROVIDER_DEFAULTS[p]?.model ?? config.model)
+      void updateConfig({
+        provider: p as AIConfig['provider'],
+        model: PROVIDER_DEFAULTS[p]?.model ?? config.model,
+      })
     },
-    [config.model, setProvider, setModel]
+    [config.model, updateConfig]
   )
 
   // ── Test connection ────────────────────────────────────────────────────────
+  // Uses the drafts too, so a key typed and tested without leaving the field
+  // is the one that gets tested.
   const handleTest = useCallback(async () => {
     setTestStatus('loading')
     setTestMsg('')
     try {
-      const provider = createAIProvider(config)
+      const provider = createAIProvider({
+        ...config,
+        apiKey: drafts.apiKey.trim() || undefined,
+        model: drafts.model.trim() || config.model,
+        baseUrl: drafts.baseUrl.trim() || undefined,
+      })
       const system = buildContextBlock({
         facts: userName ? { name: userName } : {},
         maxTokens: config.maxTokens,
@@ -312,7 +363,7 @@ export function SettingsPanel({ isOpen, onClose }: Props) {
       setTestStatus('error')
       setTestMsg(err instanceof Error ? err.message : String(err))
     }
-  }, [config, userName])
+  }, [config, drafts, userName])
 
   if (!isOpen) return null
 
@@ -369,8 +420,10 @@ export function SettingsPanel({ isOpen, onClose }: Props) {
         <input
           style={styles.input}
           type="text"
-          value={config.model}
-          onChange={(e) => setModel(e.target.value)}
+          value={drafts.model}
+          onChange={(e) => setDrafts((d) => ({ ...d, model: e.target.value }))}
+          onBlur={() => commitDraft('model')}
+          onKeyDown={blurOnEnter}
           placeholder={PROVIDER_DEFAULTS[config.provider]?.model ?? ''}
         />
 
@@ -382,8 +435,10 @@ export function SettingsPanel({ isOpen, onClose }: Props) {
               <input
                 style={{ ...styles.input, flex: 1 }}
                 type={showKey ? 'text' : 'password'}
-                value={config.apiKey ?? ''}
-                onChange={(e) => setApiKey(e.target.value)}
+                value={drafts.apiKey}
+                onChange={(e) => setDrafts((d) => ({ ...d, apiKey: e.target.value }))}
+                onBlur={() => commitDraft('apiKey')}
+                onKeyDown={blurOnEnter}
                 placeholder={PROVIDER_DEFAULTS[config.provider]?.placeholder ?? ''}
                 autoComplete="off"
               />
@@ -405,9 +460,11 @@ export function SettingsPanel({ isOpen, onClose }: Props) {
             <input
               style={styles.input}
               type="text"
-              value={config.baseUrl ?? 'http://localhost:11434'}
-              onChange={(e) => setBaseUrl(e.target.value)}
-              placeholder="http://localhost:11434"
+              value={drafts.baseUrl}
+              onChange={(e) => setDrafts((d) => ({ ...d, baseUrl: e.target.value }))}
+              onBlur={() => commitDraft('baseUrl')}
+              onKeyDown={blurOnEnter}
+              placeholder={DEFAULT_OLLAMA_URL}
             />
           </>
         )}

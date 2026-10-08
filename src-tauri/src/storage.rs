@@ -188,6 +188,46 @@ fn write_config_to(path: &Path, config: &AIConfig) -> Result<(), String> {
     std::fs::rename(&tmp, path).map_err(|e| e.to_string())
 }
 
+// Serialises read-modify-write cycles so two windows patching the config at
+// the same time can't interleave and lose one of the updates.
+static CONFIG_LOCK: Mutex<()> = Mutex::new(());
+
+/// Merges a partial config (see `merge_config`) into the stored one, writes
+/// it and returns the result. Each window sends only the fields it changed,
+/// so a stale copy of the config in one window can't overwrite another
+/// window's edits.
+pub fn patch_config(patch: &serde_json::Value) -> Result<AIConfig, String> {
+    let _guard = CONFIG_LOCK.lock().unwrap_or_else(|p| p.into_inner());
+    let config = merge_config(&read_config(), patch)?;
+    write_config(&config)?;
+    Ok(config)
+}
+
+/// Applies a partial camelCase JSON object to `current`. A `null` value clears
+/// an optional field (required ones fall back to their default). Keys that
+/// `AIConfig` doesn't know are rejected rather than silently dropped.
+fn merge_config(current: &AIConfig, patch: &serde_json::Value) -> Result<AIConfig, String> {
+    let fields = patch.as_object().ok_or("patch must be an object")?;
+    let mut merged = serde_json::to_value(current).map_err(|e| e.to_string())?;
+    let target = merged.as_object_mut().ok_or("config is not an object")?;
+    for (key, value) in fields {
+        if value.is_null() {
+            target.remove(key);
+        } else {
+            target.insert(key.clone(), value.clone());
+        }
+    }
+    let config: AIConfig = serde_json::from_value(merged).map_err(|e| e.to_string())?;
+    // serde drops unknown keys on deserialize; spot them by re-serializing.
+    let known = serde_json::to_value(&config).map_err(|e| e.to_string())?;
+    for (key, value) in fields {
+        if !value.is_null() && known.get(key).is_none() {
+            return Err(format!("unknown config field: {key}"));
+        }
+    }
+    Ok(config)
+}
+
 // ─── SQLite ───────────────────────────────────────────────────────────────────
 //
 // NekoAI is a single-user desktop app, so a process-wide `Mutex<Connection>`
@@ -438,6 +478,33 @@ mod tests {
             }
         }
         found
+    }
+
+    #[test]
+    fn patch_merges_only_the_given_fields() {
+        let current = AIConfig {
+            api_key: Some("sk-keep".to_string()),
+            max_tokens: Some(256),
+            ..AIConfig::default()
+        };
+        let patch = serde_json::json!({ "petSize": 96, "maxTokens": null });
+        let merged = merge_config(&current, &patch).unwrap();
+        assert_eq!(merged.api_key.as_deref(), Some("sk-keep"));
+        assert_eq!(merged.pet_size, Some(96));
+        assert_eq!(merged.max_tokens, None);
+    }
+
+    #[test]
+    fn patch_rejects_unknown_fields() {
+        let patch = serde_json::json!({ "petSzie": 64 });
+        let err = merge_config(&AIConfig::default(), &patch).unwrap_err();
+        assert!(err.contains("petSzie"));
+    }
+
+    #[test]
+    fn patch_must_be_an_object() {
+        let patch = serde_json::json!(["provider"]);
+        assert!(merge_config(&AIConfig::default(), &patch).is_err());
     }
 
     #[test]
