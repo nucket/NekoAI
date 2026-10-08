@@ -353,11 +353,6 @@ pub fn save_message(role: &str, content: &str) -> Result<(), String> {
 /// Deletes conversation rows older than `max_age_days` and rows beyond the
 /// most-recent `max_rows`, whichever cuts more. Returns the number of rows
 /// removed.
-pub fn prune_conversations(max_rows: u32, max_age_days: i64) -> Result<u32, String> {
-    let conn = db()?;
-    prune_with_conn(&conn, max_rows, max_age_days)
-}
-
 fn prune_with_conn(conn: &Connection, max_rows: u32, max_age_days: i64) -> Result<u32, String> {
     let cutoff_secs = max_age_days.saturating_mul(86_400);
 

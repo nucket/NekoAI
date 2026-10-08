@@ -55,7 +55,7 @@ To carry your pet's memory to another machine, copy the entire folder including 
 
 ### Limitations of portable mode
 
-- **Launch at login is disabled.** The autostart option in Settings will show an error in portable mode. To run NekoAI at login, use the installer version instead.
+- **Launch at login is disabled.** The "Start NekoAI with the system" toggle in Settings is disabled in portable mode. To run NekoAI at login, use the installer version instead.
 - **WebView2 is still required.** The portable ZIP does not bundle WebView2. See the table above for your Windows version.
 
 ---

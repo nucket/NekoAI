@@ -116,24 +116,21 @@ Extracted facts are upserted into the `user_facts` SQLite table.
 | `resize_panel_window`                    | Resize the secondary panel window (context menu / settings)         |
 | `close_panel_window`                     | Close the panel window                                              |
 | `panel_action`                           | Route a panel action (settings, select-pet, pet-mode, pet-size)     |
-| `set_always_on_top`                      | Toggle always-on-top                                                |
-| `set_ignore_cursor_events`               | Pass-through click events                                           |
 | `set_window_shape`                       | Apply per-frame GTK shape mask from canvas alpha (Linux only)       |
 | `clear_window_shape`                     | Remove shape mask so full window is visible (Linux only)            |
 | `get_config` / `save_config`             | Read/write config (SQLite)                                          |
 | `get_recent_messages`                    | Last N messages from SQLite                                         |
 | `save_message`                           | Append a message to SQLite (triggers pruning every 20 inserts)      |
-| `prune_conversations`                    | Delete rows beyond max_rows / max_age_days (on-demand)              |
 | `clear_conversations`                    | Wipe all conversation history (Settings → Memory)                   |
 | `get_user_fact` / `set_user_fact`        | Key-value facts storage                                             |
 | `get_all_user_facts`                     | All facts as a JSON object                                          |
 | `delete_user_fact` / `clear_user_facts`  | Forget one fact / all facts (Settings → Memory)                     |
 | `get_active_window`                      | Foreground window title + process name                              |
-| `get_all_windows`                        | All visible windows                                                 |
 | `get_idle_millis`                        | OS-wide idle time in milliseconds                                   |
 | `nvidia_chat`                            | Native HTTP call to NVIDIA NIM API (bypasses WebView CORS)          |
 | `open_url`                               | Open a URL or mailto link via the system browser                    |
-| `enable_autostart` / `disable_autostart` | Launch-at-login                                                     |
+| `autostart_status`                       | Launch-at-login state (`null` in portable mode)                     |
+| `enable_autostart` / `disable_autostart` | Launch-at-login (Settings → "Start NekoAI with the system")         |
 | `quit_app`                               | Exit the process                                                    |
 
 ### Storage
@@ -156,7 +153,6 @@ when portable mode is active.
 | ------------------- | --------------------------- | ----------------------------------- | -------------- | -------------- |
 | `get_idle_millis`   | Win32 `GetLastInputInfo`    | XScreenSaver extension (`x11rb`)    | Returns `0`    | Returns `0`    |
 | `get_active_window` | Win32 `GetForegroundWindow` | EWMH `_NET_ACTIVE_WINDOW` (`x11rb`) | Returns `None` | Returns `None` |
-| `get_all_windows`   | Win32 `EnumWindows`         | EWMH `_NET_CLIENT_LIST` (`x11rb`)   | Returns `[]`   | Returns `[]`   |
 
 Pure Wayland sessions and macOS gracefully degrade: the mood engine runs on
 time-of-day only, desktop context is empty, and the notification monitor is effectively

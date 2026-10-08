@@ -192,6 +192,32 @@ export function SettingsPanel({ isOpen, onClose }: Props) {
     [confirming]
   )
 
+  // ── Start with system (autostart) ──────────────────────────────────────────
+  // `undefined` while loading, `null` when unavailable (portable mode, or the
+  // OS launcher could not be queried).
+  const [autostart, setAutostart] = useState<boolean | null | undefined>(undefined)
+  const [autostartError, setAutostartError] = useState('')
+
+  useEffect(() => {
+    if (!isOpen) return
+    invoke<boolean | null>('autostart_status')
+      .then(setAutostart)
+      .catch((err) => {
+        setAutostart(null)
+        setAutostartError(`Couldn't read autostart status: ${String(err)}`)
+      })
+  }, [isOpen])
+
+  const toggleAutostart = useCallback(async (enabled: boolean) => {
+    setAutostartError('')
+    try {
+      await invoke(enabled ? 'enable_autostart' : 'disable_autostart')
+      setAutostart(enabled)
+    } catch (err) {
+      setAutostartError(String(err))
+    }
+  }, [])
+
   // ── Load config + user name on first open ──────────────────────────────────
   useEffect(() => {
     if (!isLoaded) loadConfig()
@@ -491,6 +517,25 @@ export function SettingsPanel({ isOpen, onClose }: Props) {
           placeholder="e.g. Alex"
         />
 
+        {/* ── Start with system ───────────────────────────────────────────── */}
+        <label
+          style={{
+            ...styles.toggleRow,
+            ...(autostart == null ? styles.toggleRowDisabled : {}),
+          }}
+          title={autostart === null ? 'Not available in portable mode' : undefined}
+        >
+          <input
+            type="checkbox"
+            checked={autostart === true}
+            disabled={autostart == null}
+            onChange={(e) => void toggleAutostart(e.target.checked)}
+          />
+          Start NekoAI with the system
+          {autostart === null && ' (portable mode)'}
+        </label>
+        {autostartError !== '' && <p style={styles.memoryHint}>{autostartError}</p>}
+
         {/* ── Response length ─────────────────────────────────────────────── */}
         <label style={styles.label}>Response length</label>
         <div style={styles.tokenRow}>
@@ -633,27 +678,6 @@ export function SettingsPanel({ isOpen, onClose }: Props) {
         </button>
       </div>
     </div>
-  )
-}
-
-// ─── Gear trigger button ──────────────────────────────────────────────────────
-
-interface GearProps {
-  onClick: () => void
-}
-
-export function SettingsGear({ onClick }: GearProps) {
-  return (
-    <button
-      style={styles.gear}
-      onClick={(e) => {
-        e.stopPropagation()
-        onClick()
-      }}
-      title="Open settings"
-    >
-      ⚙
-    </button>
   )
 }
 
@@ -945,22 +969,17 @@ const styles: Record<string, React.CSSProperties> = {
     fontWeight: 600,
     marginBottom: 4,
   },
-  gear: {
-    position: 'absolute',
-    bottom: 2,
-    right: 2,
-    background: 'rgba(0,0,0,0.5)',
-    border: 'none',
-    borderRadius: '50%',
-    width: 20,
-    height: 20,
-    fontSize: 11,
-    lineHeight: 1,
-    cursor: 'pointer',
-    color: '#ccc',
+  toggleRow: {
     display: 'flex',
     alignItems: 'center',
-    justifyContent: 'center',
-    zIndex: 10,
+    gap: 8,
+    marginTop: 6,
+    fontSize: 12,
+    color: '#ccc',
+    cursor: 'pointer',
+  },
+  toggleRowDisabled: {
+    color: '#666',
+    cursor: 'default',
   },
 }
