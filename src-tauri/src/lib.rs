@@ -7,7 +7,7 @@ use serde::Serialize;
 use std::sync::mpsc;
 use std::sync::Mutex;
 use tauri::{
-    menu::{Menu, MenuItem, PredefinedMenuItem, Submenu},
+    menu::{IsMenuItem, Menu, MenuItem, PredefinedMenuItem, Submenu},
     tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent},
     Emitter, Manager, RunEvent,
 };
@@ -602,6 +602,31 @@ fn show_window(app: &tauri::AppHandle) {
     }
 }
 
+// ─── Bundled pets (tray "Select Pet" submenu) ─────────────────────────────────
+// The tray reads the same pets/manifest.json as the frontend PetSelector, so
+// the two lists can't drift apart. Embedded at compile time: the file lives
+// outside src-tauri and is only served to the WebView as a static asset.
+
+const PET_MANIFEST: &str = include_str!("../../pets/manifest.json");
+const PET_MENU_PREFIX: &str = "pet:";
+
+#[derive(serde::Deserialize)]
+struct PetManifest {
+    pets: Vec<PetManifestEntry>,
+}
+
+#[derive(serde::Deserialize)]
+struct PetManifestEntry {
+    id: String,
+    name: String,
+}
+
+fn bundled_pets() -> Vec<PetManifestEntry> {
+    serde_json::from_str::<PetManifest>(PET_MANIFEST)
+        .map(|m| m.pets)
+        .unwrap_or_default()
+}
+
 // ─── Entry point ──────────────────────────────────────────────────────────────
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -691,26 +716,23 @@ pub fn run() {
             let show_hide =
                 MenuItem::with_id(app, "show_hide", "Show/Hide NekoAI", true, None::<&str>)?;
             let settings = MenuItem::with_id(app, "settings", "Settings", true, None::<&str>)?;
-            let pet_classic =
-                MenuItem::with_id(app, "pet_classic", "Classic Neko", true, None::<&str>)?;
-            let pet_ghost = MenuItem::with_id(app, "pet_ghost", "Ghost", true, None::<&str>)?;
-            let pet_dragon =
-                MenuItem::with_id(app, "pet_dragon", "Ember (Dragon)", true, None::<&str>)?;
-            let pet_penguin =
-                MenuItem::with_id(app, "pet_penguin", "Pingu (Penguin)", true, None::<&str>)?;
-            let pet_shiba = MenuItem::with_id(app, "pet_shiba", "Shiba", true, None::<&str>)?;
-            let select_pet = Submenu::with_items(
-                app,
-                "Select Pet",
-                true,
-                &[
-                    &pet_classic,
-                    &pet_ghost,
-                    &pet_dragon,
-                    &pet_penguin,
-                    &pet_shiba,
-                ],
-            )?;
+            // One item per manifest entry; the id carries the pet id after
+            // PET_MENU_PREFIX so the menu handler needs no per-pet arms.
+            let mut pet_items = Vec::new();
+            for pet in bundled_pets() {
+                pet_items.push(MenuItem::with_id(
+                    app,
+                    format!("{PET_MENU_PREFIX}{}", pet.id),
+                    &pet.name,
+                    true,
+                    None::<&str>,
+                )?);
+            }
+            let pet_refs: Vec<&dyn IsMenuItem<tauri::Wry>> = pet_items
+                .iter()
+                .map(|item| item as &dyn IsMenuItem<tauri::Wry>)
+                .collect();
+            let select_pet = Submenu::with_items(app, "Select Pet", true, &pet_refs)?;
             let sep = PredefinedMenuItem::separator(app)?;
             let about = MenuItem::with_id(
                 app,
@@ -744,34 +766,22 @@ pub fn run() {
                 .tooltip("NekoAI")
                 .menu(&menu)
                 .show_menu_on_left_click(false)
-                .on_menu_event(|app, event| match event.id.as_ref() {
-                    "show_hide" => toggle_window(app),
-                    "settings" => {
+                .on_menu_event(|app, event| {
+                    let id = event.id.as_ref();
+                    if let Some(pet_id) = id.strip_prefix(PET_MENU_PREFIX) {
                         show_window(app);
-                        app.emit("tray-settings", ()).ok();
+                        app.emit("tray-select-pet", pet_id).ok();
+                        return;
                     }
-                    "pet_classic" => {
-                        show_window(app);
-                        app.emit("tray-select-pet", "classic-neko").ok();
+                    match id {
+                        "show_hide" => toggle_window(app),
+                        "settings" => {
+                            show_window(app);
+                            app.emit("tray-settings", ()).ok();
+                        }
+                        "quit" => app.exit(0),
+                        _ => {}
                     }
-                    "pet_ghost" => {
-                        show_window(app);
-                        app.emit("tray-select-pet", "ghost-pixel").ok();
-                    }
-                    "pet_dragon" => {
-                        show_window(app);
-                        app.emit("tray-select-pet", "dragon-pixel").ok();
-                    }
-                    "pet_penguin" => {
-                        show_window(app);
-                        app.emit("tray-select-pet", "penguin-pixel").ok();
-                    }
-                    "pet_shiba" => {
-                        show_window(app);
-                        app.emit("tray-select-pet", "shiba-pixel").ok();
-                    }
-                    "quit" => app.exit(0),
-                    _ => {}
                 })
                 .on_tray_icon_event(|tray, event| {
                     if let TrayIconEvent::Click {
@@ -834,4 +844,17 @@ pub fn run() {
                 }
             }
         });
+}
+
+#[cfg(test)]
+mod tests {
+    use super::bundled_pets;
+
+    #[test]
+    fn bundled_pet_manifest_parses() {
+        let pets = bundled_pets();
+        assert!(!pets.is_empty(), "pets/manifest.json must list at least one pet");
+        assert!(pets.iter().any(|p| p.id == "classic-neko"), "default pet missing");
+        assert!(pets.iter().all(|p| !p.id.is_empty() && !p.name.is_empty()));
+    }
 }

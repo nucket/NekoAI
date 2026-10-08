@@ -26,6 +26,9 @@ jobs:
       - name: Prettier
         run: pnpm exec prettier --check .
 
+      - name: Validate bundled pets
+        run: node scripts/validate-pets.mjs
+
   typecheck:
     name: Typecheck
     runs-on: ubuntu-latest
