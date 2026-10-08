@@ -57,6 +57,22 @@ const PROVIDER_HELP: Record<string, { url: string; label: string }> = {
   ollama: { url: 'https://ollama.com/download', label: 'Descargar Ollama' },
 }
 
+// ─── Memory section ───────────────────────────────────────────────────────────
+
+const CONFIRM_MS = 3000
+
+// Facts that hold the user's name: `name` from chat extraction and the legacy
+// `userName` written by older Settings versions. Forgetting either clears the
+// name field below.
+const NAME_FACT_KEYS = ['name', 'userName']
+
+const FACT_LABELS: Record<string, string> = {
+  name: 'Name',
+  userName: 'Name',
+  project: 'Project',
+  language: 'Language',
+}
+
 // ─── Component ────────────────────────────────────────────────────────────────
 
 interface Props {
@@ -89,6 +105,65 @@ export function SettingsPanel({ isOpen, onClose }: Props) {
   )
   const customInputRef = useRef<HTMLInputElement>(null)
   const [savedPos, setSavedPos] = useState<{ x: number; y: number } | null>(null)
+
+  // ── Memory (learned facts + chat history) ──────────────────────────────────
+  const [facts, setFacts] = useState<Record<string, string>>({})
+  // Destructive actions need a second click within CONFIRM_MS (no native
+  // confirm() dialog — it would block the Tauri event loop).
+  const [confirming, setConfirming] = useState<'history' | 'all' | null>(null)
+  const [memoryMsg, setMemoryMsg] = useState('')
+  const confirmTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  useEffect(() => {
+    if (!isOpen) return
+    invoke<Record<string, string>>('get_all_user_facts')
+      .then(setFacts)
+      .catch(() => setFacts({}))
+    return () => {
+      if (confirmTimerRef.current) clearTimeout(confirmTimerRef.current)
+    }
+  }, [isOpen])
+
+  const forgetFact = useCallback(async (key: string) => {
+    try {
+      await invoke('delete_user_fact', { key })
+      setFacts((prev) => {
+        const next = { ...prev }
+        delete next[key]
+        return next
+      })
+      if (NAME_FACT_KEYS.includes(key)) setUserName('')
+      setMemoryMsg('')
+    } catch (err) {
+      setMemoryMsg(`Couldn't forget "${key}": ${String(err)}`)
+    }
+  }, [])
+
+  const handleClear = useCallback(
+    async (kind: 'history' | 'all') => {
+      if (confirming !== kind) {
+        setConfirming(kind)
+        setMemoryMsg('')
+        if (confirmTimerRef.current) clearTimeout(confirmTimerRef.current)
+        confirmTimerRef.current = setTimeout(() => setConfirming(null), CONFIRM_MS)
+        return
+      }
+      if (confirmTimerRef.current) clearTimeout(confirmTimerRef.current)
+      setConfirming(null)
+      try {
+        await invoke('clear_conversations')
+        if (kind === 'all') {
+          await invoke('clear_user_facts')
+          setFacts({})
+          setUserName('')
+        }
+        setMemoryMsg(kind === 'all' ? 'Everything forgotten.' : 'Chat history cleared.')
+      } catch (err) {
+        setMemoryMsg(`Couldn't clear memory: ${String(err)}`)
+      }
+    },
+    [confirming]
+  )
 
   // ── Load config + user name on first open ──────────────────────────────────
   useEffect(() => {
@@ -443,6 +518,54 @@ export function SettingsPanel({ isOpen, onClose }: Props) {
           </p>
         )}
 
+        {/* ── Memory ──────────────────────────────────────────────────────── */}
+        <div style={styles.divider} />
+        <label style={styles.label}>Memory</label>
+        {Object.keys(facts).length === 0 ? (
+          <p style={styles.memoryHint}>Nothing learned about you yet.</p>
+        ) : (
+          <ul style={styles.factList}>
+            {Object.entries(facts).map(([key, value]) => (
+              <li key={key} style={styles.factRow}>
+                <span style={styles.factText} title={value}>
+                  <span style={styles.factKey}>{FACT_LABELS[key] ?? key}</span> {value}
+                </span>
+                <button
+                  style={styles.factDelete}
+                  onClick={() => void forgetFact(key)}
+                  title={`Forget ${FACT_LABELS[key] ?? key}`}
+                  aria-label={`Forget ${FACT_LABELS[key] ?? key}`}
+                >
+                  ✕
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
+        <div style={styles.memoryActions}>
+          <button
+            style={{
+              ...styles.memoryBtn,
+              ...(confirming === 'history' ? styles.memoryBtnConfirm : {}),
+            }}
+            onClick={() => void handleClear('history')}
+            title="Delete the stored conversation; learned facts are kept"
+          >
+            {confirming === 'history' ? 'Click to confirm' : 'Clear chat history'}
+          </button>
+          <button
+            style={{
+              ...styles.memoryBtn,
+              ...(confirming === 'all' ? styles.memoryBtnConfirm : {}),
+            }}
+            onClick={() => void handleClear('all')}
+            title="Delete the conversation and everything learned about you"
+          >
+            {confirming === 'all' ? 'Click to confirm' : 'Forget everything'}
+          </button>
+        </div>
+        {memoryMsg !== '' && <p style={styles.memoryHint}>{memoryMsg}</p>}
+
         {/* ── Quit ────────────────────────────────────────────────────────── */}
         <div style={styles.divider} />
         <button style={styles.quitBtn} onClick={() => invoke('quit_app')}>
@@ -497,7 +620,12 @@ const styles: Record<string, React.CSSProperties> = {
     fontSize: 13,
     boxSizing: 'border-box',
     width: '280px',
-    overflowY: 'hidden',
+    // The Memory section can push the content past the fixed window height;
+    // scroll inside the card instead of clipping it.
+    maxHeight: PANEL_H - 8,
+    overflowY: 'auto',
+    scrollbarWidth: 'thin',
+    scrollbarColor: '#444 transparent',
   },
   header: {
     display: 'flex',
@@ -679,6 +807,72 @@ const styles: Record<string, React.CSSProperties> = {
   divider: {
     borderTop: '1px solid #333',
     marginTop: 8,
+  },
+  memoryHint: {
+    margin: 0,
+    fontSize: 11,
+    color: '#888',
+  },
+  factList: {
+    listStyle: 'none',
+    margin: 0,
+    padding: 0,
+    display: 'flex',
+    flexDirection: 'column',
+    gap: 3,
+  },
+  factRow: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: 6,
+    background: '#1e1e2e',
+    border: '1px solid #333',
+    borderRadius: 6,
+    padding: '3px 4px 3px 8px',
+  },
+  factText: {
+    flex: 1,
+    minWidth: 0,
+    fontSize: 12,
+    overflow: 'hidden',
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap',
+  },
+  factKey: {
+    color: '#888',
+    fontSize: 10,
+    textTransform: 'uppercase',
+    letterSpacing: '0.05em',
+  },
+  factDelete: {
+    background: 'transparent',
+    border: 'none',
+    color: '#aaa',
+    cursor: 'pointer',
+    fontSize: 12,
+    lineHeight: 1,
+    padding: '2px 4px',
+  },
+  memoryActions: {
+    display: 'flex',
+    gap: 6,
+    marginTop: 2,
+  },
+  memoryBtn: {
+    flex: 1,
+    background: 'transparent',
+    color: '#d9a066',
+    border: '1px solid #6b5233',
+    borderRadius: 6,
+    padding: '5px 0',
+    cursor: 'pointer',
+    fontSize: 11,
+    fontWeight: 600,
+  },
+  memoryBtnConfirm: {
+    background: '#4a1414',
+    borderColor: '#f44336',
+    color: '#ef9a9a',
   },
   quitBtn: {
     background: 'transparent',

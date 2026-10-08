@@ -317,6 +317,23 @@ pub fn set_user_fact(key: &str, value: &str) -> Result<(), String> {
     Ok(())
 }
 
+/// Forgets one learned fact. Used by Settings → Memory.
+pub fn delete_user_fact(key: &str) -> Result<(), String> {
+    let conn = db()?;
+    conn.execute("DELETE FROM user_facts WHERE key = ?1", params![key])
+        .map_err(|e| e.to_string())?;
+    Ok(())
+}
+
+/// Forgets every learned fact. Used by Settings → Memory → "Forget everything".
+pub fn clear_user_facts() -> Result<u32, String> {
+    let conn = db()?;
+    let removed = conn
+        .execute("DELETE FROM user_facts", [])
+        .map_err(|e| e.to_string())?;
+    Ok(removed as u32)
+}
+
 pub fn get_all_user_facts() -> Result<std::collections::HashMap<String, String>, String> {
     let conn = db()?;
     let mut stmt = conn

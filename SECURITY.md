@@ -18,7 +18,7 @@ NekoAI is designed with privacy as a core principle.
   - NVIDIA NIM — `https://integrate.api.nvidia.com` (proxied through the Rust `nvidia_chat` command to bypass WebView CORS; the destination is unchanged)
   - Ollama — `http://localhost:11434` (loopback only — never leaves your machine)
 - **API keys stored locally** in `~/.config/nekoai/config.toml`. They are never transmitted anywhere except to the provider whose key it is.
-- **Conversation history stored locally** in a SQLite database at `~/.local/share/nekoai/memory.db` (Linux), `%APPDATA%\nekoai\memory.db` (Windows) or `~/Library/Application Support/nekoai/memory.db` (macOS). The `conversations` table auto-prunes to the most recent 200 rows / 30 days to bound disk growth. The `clear_conversations` command wipes the table on demand.
+- **Conversation history stored locally** in a SQLite database at `~/.local/share/nekoai/memory.db` (Linux), `%APPDATA%\nekoai\memory.db` (Windows) or `~/Library/Application Support/nekoai/memory.db` (macOS). The `conversations` table auto-prunes to the most recent 200 rows / 30 days to bound disk growth. **Settings → Memory** lists everything the pet has learned about you and lets you forget individual facts, clear the conversation history, or forget everything (`delete_user_fact`, `clear_conversations`, `clear_user_facts`).
 - **First-launch Ollama detection.** On first run, NekoAI pings `http://localhost:11434/api/tags` once with an 800ms timeout to detect a local Ollama install. The request is loopback only — it cannot leave your machine. Once onboarding completes, this probe does not run again.
 
 ### Public install metrics — not telemetry

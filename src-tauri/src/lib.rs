@@ -369,6 +369,16 @@ fn get_all_user_facts() -> Result<std::collections::HashMap<String, String>, Str
     storage::get_all_user_facts()
 }
 
+#[tauri::command]
+fn delete_user_fact(key: String) -> Result<(), String> {
+    storage::delete_user_fact(&key)
+}
+
+#[tauri::command]
+fn clear_user_facts() -> Result<u32, String> {
+    storage::clear_user_facts()
+}
+
 // ─── NVIDIA NIM proxy (bypasses WebView CORS) ────────────────────────────────
 
 // Mirror of `DEFAULT_MAX_TOKENS` in src/ai/types.ts — keep both in sync.
@@ -820,6 +830,8 @@ pub fn run() {
             get_user_fact,
             set_user_fact,
             get_all_user_facts,
+            delete_user_fact,
+            clear_user_facts,
             get_active_window,
             get_all_windows,
             get_idle_millis,
