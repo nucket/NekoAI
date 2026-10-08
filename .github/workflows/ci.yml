@@ -46,6 +46,9 @@ jobs:
 
       - run: pnpm exec tsc --noEmit
 
+      - name: Unit tests (Vitest)
+        run: pnpm test
+
       - name: Vite build
         run: pnpm build
 
