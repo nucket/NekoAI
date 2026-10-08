@@ -1,9 +1,10 @@
 use rusqlite::{params, Connection};
 use serde::{Deserialize, Serialize};
-use std::path::PathBuf;
+use std::io::{ErrorKind, Write};
+use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicU32, Ordering};
 use std::sync::{Mutex, MutexGuard, OnceLock};
-use std::time::Duration;
+use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
 // ─── Pruning policy ───────────────────────────────────────────────────────────
 // Conversations are pruned after every Nth `save_message` so the table cannot
@@ -21,6 +22,9 @@ static INSERTS_SINCE_PRUNE: AtomicU32 = AtomicU32::new(0);
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
+// Fields missing from the TOML take their value from `AIConfig::default()`, so
+// a hand-edited or older file without e.g. `model` still loads.
+#[serde(default)]
 pub struct AIConfig {
     pub provider: String,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -118,24 +122,63 @@ pub fn db_path() -> PathBuf {
 // ─── Config (TOML) ────────────────────────────────────────────────────────────
 
 pub fn read_config() -> AIConfig {
-    let path = config_path();
-    if !path.exists() {
-        return AIConfig::default();
-    }
-    let text = match std::fs::read_to_string(&path) {
-        Ok(t) => t,
-        Err(_) => return AIConfig::default(),
-    };
-    toml::from_str(&text).unwrap_or_default()
+    read_config_from(&config_path())
 }
 
 pub fn write_config(config: &AIConfig) -> Result<(), String> {
-    let path = config_path();
+    write_config_to(&config_path(), config)
+}
+
+/// A missing file yields the defaults. A file that exists but can't be read or
+/// parsed is renamed to `config.toml.bak-<unix-secs>` before falling back:
+/// otherwise the next `save_config` (almost any UI action) would overwrite it
+/// and silently wipe the user's provider, model and API key.
+fn read_config_from(path: &Path) -> AIConfig {
+    let parsed: Result<AIConfig, String> = match std::fs::read_to_string(path) {
+        Ok(text) => toml::from_str(&text).map_err(|e| e.to_string()),
+        Err(e) if e.kind() == ErrorKind::NotFound => return AIConfig::default(),
+        Err(e) => Err(e.to_string()),
+    };
+    match parsed {
+        Ok(config) => config,
+        Err(reason) => {
+            let backup = backup_path(path);
+            match std::fs::rename(path, &backup) {
+                Ok(()) => eprintln!(
+                    "[nekoai] invalid config ({reason}); moved it to {}",
+                    backup.display()
+                ),
+                Err(e) => eprintln!("[nekoai] invalid config ({reason}); backup failed: {e}"),
+            }
+            AIConfig::default()
+        }
+    }
+}
+
+fn backup_path(path: &Path) -> PathBuf {
+    let secs = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .map(|d| d.as_secs())
+        .unwrap_or(0);
+    let mut name = path.file_name().unwrap_or_default().to_os_string();
+    name.push(format!(".bak-{secs}"));
+    path.with_file_name(name)
+}
+
+/// Writes atomically — serialise to a sibling `.tmp`, fsync, then rename over
+/// the real file — so a crash mid-write can't leave a truncated config.toml
+/// behind (which `read_config` would then have to treat as corrupt).
+fn write_config_to(path: &Path, config: &AIConfig) -> Result<(), String> {
     if let Some(parent) = path.parent() {
         std::fs::create_dir_all(parent).map_err(|e| e.to_string())?;
     }
     let text = toml::to_string(config).map_err(|e| e.to_string())?;
-    std::fs::write(&path, text).map_err(|e| e.to_string())
+    let tmp = path.with_extension("toml.tmp");
+    let mut file = std::fs::File::create(&tmp).map_err(|e| e.to_string())?;
+    file.write_all(text.as_bytes()).map_err(|e| e.to_string())?;
+    file.sync_all().map_err(|e| e.to_string())?;
+    drop(file);
+    std::fs::rename(&tmp, path).map_err(|e| e.to_string())
 }
 
 // ─── SQLite ───────────────────────────────────────────────────────────────────
@@ -334,4 +377,78 @@ pub fn get_all_user_facts() -> Result<std::collections::HashMap<String, String>,
         map.insert(row.0, row.1);
     }
     Ok(map)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// A fresh, empty directory per test so parallel tests never collide.
+    fn temp_config(test: &str) -> PathBuf {
+        let name = format!("nekoai-{test}-{}", std::process::id());
+        let dir = std::env::temp_dir().join(name);
+        let _ = std::fs::remove_dir_all(&dir);
+        std::fs::create_dir_all(&dir).unwrap();
+        dir.join("config.toml")
+    }
+
+    fn find_backups(path: &Path) -> Vec<PathBuf> {
+        let dir = path.parent().unwrap();
+        let mut found = Vec::new();
+        for entry in std::fs::read_dir(dir).unwrap().flatten() {
+            let name = entry.file_name().to_string_lossy().into_owned();
+            if name.starts_with("config.toml.bak-") {
+                found.push(entry.path());
+            }
+        }
+        found
+    }
+
+    #[test]
+    fn missing_config_yields_defaults() {
+        let path = temp_config("missing");
+        assert_eq!(read_config_from(&path).provider, "gemini");
+        assert!(find_backups(&path).is_empty());
+    }
+
+    #[test]
+    fn config_round_trips_through_atomic_write() {
+        let path = temp_config("roundtrip");
+        let config = AIConfig {
+            provider: "anthropic".to_string(),
+            api_key: Some("sk-test".to_string()),
+            ..AIConfig::default()
+        };
+        write_config_to(&path, &config).unwrap();
+        let read = read_config_from(&path);
+        assert_eq!(read.provider, "anthropic");
+        assert_eq!(read.api_key.as_deref(), Some("sk-test"));
+        assert!(!path.with_extension("toml.tmp").exists());
+    }
+
+    #[test]
+    fn corrupt_config_is_backed_up_not_destroyed() {
+        let path = temp_config("corrupt");
+        let corrupt = "provider = \"anthropic\"\napiKey = [oops";
+        std::fs::write(&path, corrupt).unwrap();
+
+        let config = read_config_from(&path);
+        assert_eq!(config.provider, "gemini");
+        assert!(!path.exists(), "corrupt file should be moved aside");
+
+        let backups = find_backups(&path);
+        assert_eq!(backups.len(), 1);
+        let saved = std::fs::read_to_string(&backups[0]).unwrap();
+        assert_eq!(saved, corrupt);
+    }
+
+    #[test]
+    fn missing_fields_fall_back_to_defaults() {
+        let path = temp_config("partial");
+        std::fs::write(&path, "apiKey = \"sk-test\"\n").unwrap();
+        let config = read_config_from(&path);
+        assert_eq!(config.model, "gemini-2.5-flash");
+        assert_eq!(config.api_key.as_deref(), Some("sk-test"));
+        assert!(find_backups(&path).is_empty());
+    }
 }
