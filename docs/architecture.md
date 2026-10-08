@@ -135,12 +135,16 @@ Extracted facts are upserted into the `user_facts` SQLite table.
 
 ### Storage
 
-Default paths (installed mode):
+Default paths (installed mode), the same on every OS:
 
 | File            | Path                              |
 | --------------- | --------------------------------- |
 | SQLite database | `~/.local/share/nekoai/memory.db` |
 | Config          | `~/.config/nekoai/config.toml`    |
+
+`~` is `$HOME`, falling back to `%USERPROFILE%` on Windows. `$XDG_DATA_HOME` and
+`$XDG_CONFIG_HOME` override the `.local/share` and `.config` parts (`storage::db_path` /
+`storage::config_path`).
 
 In **portable mode** (a `portable` marker file sits next to the executable), both files are
 redirected to a `data/` folder beside the exe — safe to run from a USB drive with no writes
@@ -172,10 +176,9 @@ The WebView runs with a strict CSP defined in `src-tauri/tauri.conf.json` (`app.
 | `https://api.anthropic.com`                 | Anthropic provider                   |
 | `https://api.openai.com`                    | OpenAI provider                      |
 | `https://generativelanguage.googleapis.com` | Gemini provider                      |
-| `http://localhost:11434` / `127.0.0.1`      | Ollama provider (loopback only)      |
 | `ws://localhost:1420` + `1421` _(dev only)_ | Vite HMR WebSocket                   |
 
-NVIDIA NIM is intentionally absent from `connect-src` — its endpoint is reached from native Rust via `nvidia_chat`, so the WebView never touches `integrate.api.nvidia.com`. If you add a new provider that calls `fetch()` directly, append its host to `connect-src` (and to `devCsp`).
+NVIDIA NIM and Ollama are intentionally absent from `connect-src` — they are reached from native Rust via `nvidia_chat` and `ollama_detect` / `ollama_chat`, so the WebView never touches `integrate.api.nvidia.com` or the Ollama daemon. If you add a new provider that calls `fetch()` directly, append its host to `connect-src` (and to `devCsp`).
 
 ```sql
 CREATE TABLE conversations (
@@ -239,7 +242,7 @@ config loaded
      │
      ├─ onboardingCompleted=true OR isConfigured(config)=true → done (silent stamp if needed)
      │
-     └─ detecting: OllamaProvider.detect() (800ms timeout, GET /api/tags)
+     └─ detecting: OllamaProvider.detect() → Rust ollama_detect (2.5 s timeout, GET /api/tags)
               │
               ├─ ok + models ≥ 1 → applyOllamaAutoConfig(models[0])
               │                     setState('ollama_found')
