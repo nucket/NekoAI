@@ -28,7 +28,11 @@ export class OpenAIProvider implements AIProvider {
       },
       body: JSON.stringify({
         model: this.model,
-        max_tokens: this.maxTokens,
+        // `max_tokens` is deprecated and rejected (HTTP 400) by the o-series /
+        // gpt-5 reasoning models; `max_completion_tokens` works on all current
+        // chat models. For reasoning models the budget also covers reasoning
+        // tokens, so very low values can still yield an empty reply.
+        max_completion_tokens: this.maxTokens,
         messages: [{ role: 'system', content: systemPrompt }, ...messages],
       }),
     })
