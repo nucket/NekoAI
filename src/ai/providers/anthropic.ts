@@ -1,4 +1,10 @@
 import { DEFAULT_MAX_TOKENS, type AIProvider, type Message } from '../types'
+import { emptyReplyError, fetchWithTimeout } from '../http'
+
+interface AnthropicResponse {
+  content?: { type: string; text?: string }[]
+  stop_reason?: string
+}
 
 export class AnthropicProvider implements AIProvider {
   private apiKey: string
@@ -12,7 +18,7 @@ export class AnthropicProvider implements AIProvider {
   }
 
   async sendMessage(messages: Message[], systemPrompt: string): Promise<string> {
-    const response = await fetch('https://api.anthropic.com/v1/messages', {
+    const response = await fetchWithTimeout('https://api.anthropic.com/v1/messages', {
       method: 'POST',
       headers: {
         'content-type': 'application/json',
@@ -31,7 +37,14 @@ export class AnthropicProvider implements AIProvider {
       throw new Error(`Anthropic API error: ${response.status} ${response.statusText}`)
     }
 
-    const data = await response.json()
-    return data.content[0].text as string
+    const data = (await response.json()) as AnthropicResponse
+    const text = (data.content ?? [])
+      .filter((block) => block.type === 'text')
+      .map((block) => block.text ?? '')
+      .join('')
+      .trim()
+
+    if (!text) throw emptyReplyError('Anthropic', data.stop_reason)
+    return text
   }
 }
