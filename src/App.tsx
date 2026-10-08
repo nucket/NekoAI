@@ -28,6 +28,17 @@ const ONBOARDING_AUTOCLOSE_MS = 10_000
 // (bottom-right) and slides left to monitor center-bottom over this period.
 const ONBOARDING_SLIDE_MS = 5500
 
+const DEFAULT_PET_ID = 'classic-neko'
+
+function imageLoads(url: string): Promise<boolean> {
+  return new Promise((resolve) => {
+    const img = new Image()
+    img.onload = () => resolve(img.naturalWidth > 0)
+    img.onerror = () => resolve(false)
+    img.src = url
+  })
+}
+
 // ─── Layout constants ──────────────────────────────────────────────────────────
 
 const WIN_OPEN_W = 300
@@ -165,7 +176,7 @@ export default function App() {
   // mouse and falls back to wanderer mode. See cursor_tracker.rs.
   const [cursorTracking, setCursorTracking] = useState<'native' | 'evdev' | 'unavailable'>('native')
   const waylandNoticeShownRef = useRef(false)
-  const activePetId = config.activePetId || 'classic-neko'
+  const activePetId = config.activePetId || DEFAULT_PET_ID
   // Context menu lives in a separate Tauri window — the main window never
   // gets taken over, so the sprite stays free to follow the cursor.
   const anyPanelOpen = settingsOpen || petSelectorOpen
@@ -188,10 +199,22 @@ export default function App() {
         const def: PetDefinition = await res.json()
         const spritesPath = `/pets/${activePetId}/${def.spritesDir}`
 
+        // A pet whose frames can't load renders as an empty canvas — the pet
+        // just vanishes. Probe the first idle frame before committing to it.
+        const idleFrame = def.animations?.idle?.files?.[0]
+        if (!idleFrame || !(await imageLoads(`${spritesPath}/${idleFrame}`))) {
+          throw new Error(`sprites missing for "${activePetId}"`)
+        }
+
         setPetDef(def)
         setSpritesDir(spritesPath)
       } catch (err) {
         console.error('[NekoAI] loadPet failed:', err)
+        // Fall back to the default pet (e.g. a stored id that is no longer
+        // bundled). The default itself is never retried, so this can't loop.
+        if (activePetId !== DEFAULT_PET_ID) {
+          void useConfigStore.getState().setActivePetId(DEFAULT_PET_ID)
+        }
       }
     }
     loadPet()

@@ -144,8 +144,11 @@ After these two steps the pet appears in both the in-app selector (PetSelector r
 
 ```bash
 cd NekoAI
+pnpm pets:validate   # checks every manifest pet: required fields + animations, sprite files, triggers
 pnpm tauri dev
 ```
+
+`pets:validate` also runs in CI. A pet listed in `manifest.json` appears in both the pet selector and the tray's **Select Pet** menu, so every sprite it references must exist.
 
 1. Right-click the pet → open the selector
 2. Choose your new pet
