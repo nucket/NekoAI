@@ -3,6 +3,7 @@ import { invoke } from '@tauri-apps/api/core'
 import { getCurrentWindow, currentMonitor } from '@tauri-apps/api/window'
 import { PhysicalPosition } from '@tauri-apps/api/dpi'
 import { useConfigStore } from '../store/configStore'
+import { workAreaOf } from '../utils/monitor'
 
 // ─── Layout constants ─────────────────────────────────────────────────────────
 
@@ -61,10 +62,8 @@ export function PetSelector({ isOpen, activePetId, onSelect, onClose }: Props) {
         savedPosRef.current = { x: pos.x, y: pos.y }
 
         const scale = monitor?.scaleFactor ?? window.devicePixelRatio ?? 1
-        const monX = monitor?.position.x ?? 0
-        const monY = monitor?.position.y ?? 0
-        const monW = monitor?.size.width ?? window.screen.availWidth * scale
-        const monH = monitor?.size.height ?? window.screen.availHeight * scale
+        // Usable bounds of the active monitor (excludes the taskbar / dock)
+        const { x: monX, y: monY, width: monW, height: monH } = workAreaOf(monitor)
 
         const panelPhysW = SELECTOR_W * scale
         const panelPhysH = SELECTOR_H * scale

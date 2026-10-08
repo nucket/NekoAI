@@ -18,6 +18,7 @@ import { useMoodEngine } from './hooks/useMoodEngine'
 import { useIdleSequencer } from './hooks/useIdleSequencer'
 import { useOnboarding } from './hooks/useOnboarding'
 import { IS_LINUX } from './utils/platform'
+import { workAreaOf } from './utils/monitor'
 import './App.css'
 
 // Onboarding bubble stays up at most this long; user can close earlier via
@@ -344,21 +345,21 @@ export default function App() {
         try {
           const monitor = await currentMonitor()
           const scale = monitor?.scaleFactor ?? window.devicePixelRatio ?? 1
-          const monH = monitor?.size.height ?? window.screen.height * scale
-          const monX = monitor?.position.x ?? 0
-          const monW = monitor?.size.width ?? window.screen.width * scale
-          const monY = monitor?.position.y ?? 0
-
-          // Approximate taskbar height: 48 logical px
-          const taskbarH = 48 * scale
+          const area = workAreaOf(monitor)
           const sz = useConfigStore.getState().config.petSize ?? 32
 
-          // Target Y: just above the taskbar
-          const targetY = monY + monH - taskbarH - sz * scale
+          // Target Y: bottom of the work area, i.e. just above the taskbar /
+          // dock wherever it sits (nothing to avoid when it auto-hides).
+          const targetY = area.y + area.height - sz * scale
 
-          // Target X: center of the notifying window (rect may be in logical px → scale)
-          const windowCenterX = (e.payload.rect.x + e.payload.rect.width / 2) * scale
-          const targetX = Math.max(monX, Math.min(monX + monW - sz * scale, windowCenterX))
+          // Target X: center of the notifying window. The rect is already in
+          // physical px (GetWindowRect in a per-monitor DPI-aware process, X11
+          // geometry), so it must not be scaled again.
+          const windowCenterX = e.payload.rect.x + e.payload.rect.width / 2
+          const targetX = Math.max(
+            area.x,
+            Math.min(area.x + area.width - sz * scale, windowCenterX)
+          )
 
           overridePosition(Math.round(targetX), Math.round(targetY))
 
@@ -492,11 +493,8 @@ export default function App() {
     const sz = useConfigStore.getState().config.petSize ?? 32
     const scale = monitor?.scaleFactor ?? window.devicePixelRatio ?? 1
 
-    // Physical bounds of the active monitor
-    const monX = monitor?.position.x ?? 0
-    const monY = monitor?.position.y ?? 0
-    const monW = monitor?.size.width ?? window.screen.availWidth * scale
-    const monH = monitor?.size.height ?? window.screen.availHeight * scale
+    // Usable bounds of the active monitor (excludes the taskbar / dock)
+    const { x: monX, y: monY, width: monW, height: monH } = workAreaOf(monitor)
 
     // Physical sizes
     const openPhysW = WIN_OPEN_W * scale
@@ -573,16 +571,13 @@ export default function App() {
       try {
         const monitor = await currentMonitor()
         const scale = monitor?.scaleFactor ?? window.devicePixelRatio ?? 1
-        const monX = monitor?.position.x ?? 0
-        const monY = monitor?.position.y ?? 0
-        const monW = monitor?.size.width ?? window.screen.width * scale
-        const monH = monitor?.size.height ?? window.screen.height * scale
+        // Work area, not full monitor bounds: the bottom edge already sits
+        // above the taskbar / dock, matching where HouseWindow places itself.
+        const { x: monX, y: monY, width: monW, height: monH } = workAreaOf(monitor)
         const sz = useConfigStore.getState().config.petSize ?? 32
 
-        // Same approximations the notification handler uses.
-        const taskbarH = 48 * scale
         const houseW = 64 * scale
-        const bottomY = Math.round(monY + monH - taskbarH - sz * scale)
+        const bottomY = Math.round(monY + monH - sz * scale)
         // Pet starts immediately to the left of the house with a small gap.
         const startX = Math.round(monX + monW - houseW - sz * scale - 8 * scale)
         // Target = horizontally centred on the active monitor, same Y line.
@@ -754,12 +749,9 @@ export default function App() {
           currentMonitor(),
         ])
 
-        // Physical bounds of the active monitor (fall back to primary-screen guess)
+        // Usable bounds of the active monitor (excludes the taskbar / dock)
         const scale = monitor?.scaleFactor ?? window.devicePixelRatio ?? 1
-        const monX = monitor?.position.x ?? 0
-        const monY = monitor?.position.y ?? 0
-        const monW = monitor?.size.width ?? window.screen.availWidth * scale
-        const monH = monitor?.size.height ?? window.screen.availHeight * scale
+        const { x: monX, y: monY, width: monW, height: monH } = workAreaOf(monitor)
 
         // Menu size in physical pixels
         const menuPhysW = MENU_W * scale
