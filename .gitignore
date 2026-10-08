@@ -54,3 +54,6 @@ NekoAI-Win-Portable.zip
 # Local working docs (auditoría / planes de acción no versionados)
 PLAN_RECOMENDACIONES.md
 PLAN_ONBOARDING_MAGIC.md
+
+# Metrics collector output (the data lives on the metrics branch)
+/metrics-data/

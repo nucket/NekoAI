@@ -23,7 +23,7 @@ NekoAI is designed with privacy as a core principle.
 
 ### Public install metrics — not telemetry
 
-The repository publishes daily snapshots of public GitHub download counts under [`docs/metrics/`](docs/metrics/). The pipeline runs entirely inside a GitHub Action against the public Releases API; **no code in the app emits this data**. Source: [`scripts/metrics/`](scripts/metrics/), workflow: [`.github/workflows/metrics.yml`](.github/workflows/metrics.yml).
+The repository publishes daily snapshots of public GitHub download counts on the [`metrics` branch](https://github.com/nucket/NekoAI/tree/metrics) (schema: [`docs/metrics/SCHEMA.md`](docs/metrics/SCHEMA.md)). The pipeline runs entirely inside a GitHub Action against the public Releases API; **no code in the app emits this data**. Source: [`scripts/metrics/`](scripts/metrics/), workflow: [`.github/workflows/metrics.yml`](.github/workflows/metrics.yml).
 
 ## Web Content Security Policy
 
