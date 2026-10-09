@@ -361,6 +361,16 @@ fn clear_user_facts() -> Result<u32, String> {
     storage::clear_user_facts()
 }
 
+// ─── Shared HTTP client ──────────────────────────────────────────────────────
+
+/// One `reqwest::Client` for every provider call, so connections and TLS
+/// sessions are pooled instead of rebuilt per request. Timeouts are set per
+/// request, since the Ollama probe and chat calls need different limits.
+fn http_client() -> &'static reqwest::Client {
+    static CLIENT: std::sync::OnceLock<reqwest::Client> = std::sync::OnceLock::new();
+    CLIENT.get_or_init(reqwest::Client::new)
+}
+
 // ─── NVIDIA NIM proxy (bypasses WebView CORS) ────────────────────────────────
 
 // Mirror of `DEFAULT_MAX_TOKENS` in src/ai/types.ts — keep both in sync.
@@ -391,13 +401,9 @@ async fn nvidia_chat(
         })).collect::<Vec<_>>(),
     });
 
-    let client = reqwest::Client::builder()
-        .timeout(std::time::Duration::from_secs(30))
-        .build()
-        .map_err(|e| format!("NVIDIA NIM client error: {e}"))?;
-
-    let resp = client
+    let resp = http_client()
         .post("https://integrate.api.nvidia.com/v1/chat/completions")
+        .timeout(std::time::Duration::from_secs(30))
         .header("authorization", format!("Bearer {}", api_key))
         .json(&body)
         .send()
@@ -445,13 +451,9 @@ async fn ollama_detect(base_url: Option<String>) -> Result<Vec<String>, String> 
         base_url.unwrap_or_else(|| "http://localhost:11434".to_string())
     );
 
-    let client = reqwest::Client::builder()
-        .timeout(std::time::Duration::from_millis(2500))
-        .build()
-        .map_err(|e| format!("Ollama client error: {e}"))?;
-
-    let resp = client
+    let resp = http_client()
         .get(&url)
+        .timeout(std::time::Duration::from_millis(2500))
         .send()
         .await
         .map_err(|e| format!("Ollama request failed: {e}"))?;
@@ -509,13 +511,9 @@ async fn ollama_chat(
         "messages": full_messages,
     });
 
-    let client = reqwest::Client::builder()
-        .timeout(std::time::Duration::from_secs(60))
-        .build()
-        .map_err(|e| format!("Ollama client error: {e}"))?;
-
-    let resp = client
+    let resp = http_client()
         .post(&url)
+        .timeout(std::time::Duration::from_secs(60))
         .json(&body)
         .send()
         .await
