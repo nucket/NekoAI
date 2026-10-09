@@ -43,7 +43,11 @@ export type AnimationName =
 
 // ─── Triggers ────────────────────────────────────────────────────────────────
 
-/** System / interaction events that can map to an animation. Mirrors the schema. */
+/**
+ * System / interaction events that can map to an animation. Mirrors the schema.
+ * When each one fires: src/pets/triggers.ts. `on_happy`, `on_surprised` and
+ * `on_eating` are reserved and not fired yet.
+ */
 export type TriggerEvent =
   | 'on_cursor_near'
   | 'on_chat_open'

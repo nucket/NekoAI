@@ -83,6 +83,23 @@ The folder name is the pet's **ID** — it must be kebab-case and unique.
 }
 ```
 
+### Triggers
+
+Every trigger is optional, and a trigger that points at an animation your pet doesn't define is ignored. While the pet is walking, only the edge-hit scratch can replace the walk animation.
+
+| Trigger                                 | When it fires                                                                                                                              |
+| --------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
+| `on_cursor_near`                        | Once, when the pet settles next to the cursor (after a short pause, before grooming)                                                       |
+| `on_chat_open`                          | The user clicks the pet to open the chat bubble                                                                                            |
+| `on_ai_thinking`                        | Held while the AI request is in flight                                                                                                     |
+| `on_ai_response`                        | The AI reply arrives (not on errors)                                                                                                       |
+| `on_idle_3min` / `5min` / `6min`        | The OS has been idle (no keyboard or mouse) that long. A looping animation (e.g. `sleep`) is held until the user is back; others play once |
+| `on_movement_start`                     | The pet starts moving after a real rest. Defaults to `awaken` when unmapped                                                                |
+| `on_edge_hit_*`                         | The pet runs into a screen edge (`right`, `left`, `up`, `down`)                                                                            |
+| `on_happy`, `on_surprised`, `on_eating` | Reserved, not fired by the app yet                                                                                                         |
+
+One-shot triggers play one pass of the animation (frames ÷ fps), clamped to 0.4–2 s.
+
 ### How `system_prompt` is used
 
 `system_prompt` becomes the start of the AI's system prompt whenever your pet is active. NekoAI then appends what the user has taught the pet (name, project…), the pet's current mood, and a reply-length instruction matching **Settings → Response length** (S / M / L). Describe who the pet _is_ — voice, quirks, catchphrases — and leave length and formatting to the app.

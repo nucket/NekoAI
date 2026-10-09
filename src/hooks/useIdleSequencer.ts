@@ -36,6 +36,7 @@ function yawnIntervalMs() {
 
 type Phase =
   | 'stop'
+  | 'greet'
   | 'wash'
   | 'scratch'
   | 'yawning'
@@ -47,25 +48,41 @@ type Phase =
 
 // ─── Hook ─────────────────────────────────────────────────────────────────────
 
+/** Animations a pet maps to the sequencer's trigger points (pet.json `triggers`). */
+export interface IdleSequencerCues {
+  /** on_cursor_near: played once the pet has settled at the cursor. */
+  greet: { anim: string; durationMs: number } | null
+  /** on_movement_start: the wake flash when leaving a rest. Defaults to 'awaken'. */
+  wake: string | null
+}
+
+const NO_CUES: IdleSequencerCues = { greet: null, wake: null }
+
 /**
  * Drives the classic Neko idle animation sequence while petState === 'NEAR_CURSOR'.
  *
  * Faithful to the original x11 Neko / Neko98 state machine:
  *   On arrival at cursor:
- *     stop (250ms idle settle) → wash (JARE, 1.25s) → scratch (KAKI, 0.5s)
+ *     stop (250ms idle settle) → [greet: on_cursor_near, if mapped]
+ *       → wash (JARE, 1.25s) → scratch (KAKI, 0.5s)
  *       → yawn (AKUBI, 0.375s) → resting (periodic yawn / groom) → falling_asleep → sleep
  *
  * On departure (cursor moves away):
- *   → 'awaken' flash for ~375ms, but ONLY if the pet was past the wash phase
+ *   → wake flash (on_movement_start, default 'awaken') for ~375ms, but ONLY if the pet was past the wash phase
  *     (i.e. actually rested). This prevents the glitch where a brief
  *     NEAR_CURSOR bump during approach made the walking sprite freeze on
  *     'awaken' for 375ms.
  */
-export function useIdleSequencer(petState: PetState, availableAnimations: string[]): string | null {
+export function useIdleSequencer(
+  petState: PetState,
+  availableAnimations: string[],
+  cues: IdleSequencerCues = NO_CUES
+): string | null {
   const [anim, setAnim] = useState<string | null>(null)
   const [wakeAnim, setWakeAnim] = useState<string | null>(null)
 
   const availRef = useRef(availableAnimations)
+  const cuesRef = useRef(cues)
   const activeRef = useRef(false)
   const prevState = useRef<PetState>(petState)
   const lastPhaseRef = useRef<Phase>('stop')
@@ -76,6 +93,9 @@ export function useIdleSequencer(petState: PetState, availableAnimations: string
   useEffect(() => {
     availRef.current = availableAnimations
   }, [availableAnimations])
+  useEffect(() => {
+    cuesRef.current = cues
+  }, [cues])
 
   // ── Main idle sequence (runs while NEAR_CURSOR) ───────────────────────────
   useEffect(() => {
@@ -112,11 +132,24 @@ export function useIdleSequencer(petState: PetState, availableAnimations: string
         case 'stop':
           // Idle settle — pet just arrived, hold the idle frame briefly
           // before starting the grooming chain. A brief NEAR_CURSOR bounce
-          // during approach exits here without ever showing 'wash'.
+          // during approach exits here without ever showing 'wash' (or the
+          // on_cursor_near greeting).
           setAnim(safe('idle'))
-          setPhase('wash')
+          setPhase(cuesRef.current.greet ? 'greet' : 'wash')
           timerId = setTimeout(tick, STOP_MS)
           break
+
+        case 'greet': {
+          const greet = cuesRef.current.greet
+          setPhase('wash')
+          if (!greet) {
+            timerId = setTimeout(tick, 0)
+            break
+          }
+          setAnim(greet.anim)
+          timerId = setTimeout(tick, greet.durationMs)
+          break
+        }
 
         case 'wash':
           setAnim(safe('wash'))
@@ -217,9 +250,10 @@ export function useIdleSequencer(petState: PetState, availableAnimations: string
     const wasDeeplyResting = prev === 'SLEEPING' || WAKE_REQUIRED_PHASES.has(lastPhaseRef.current)
 
     if (!wasDeeplyResting) return
-    if (!availRef.current.includes('awaken')) return
+    const wake = cuesRef.current.wake ?? 'awaken'
+    if (!availRef.current.includes(wake)) return
 
-    setWakeAnim('awaken')
+    setWakeAnim(wake)
     if (wakeTimer.current) clearTimeout(wakeTimer.current)
     wakeTimer.current = setTimeout(() => setWakeAnim(null), AWAKE_MS)
 
