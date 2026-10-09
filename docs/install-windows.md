@@ -13,6 +13,13 @@ Download `nekoai-setup-windows-x64.exe` from the [releases page](https://github.
 - Supports launch-at-login via the Settings panel
 - Data is stored in `%USERPROFILE%\.config\nekoai\` and `%USERPROFILE%\.local\share\nekoai\`
 
+### Where your data is stored
+
+The installed app keeps its settings in `%APPDATA%\nekoai\config.toml` and the conversation history in
+`%LOCALAPPDATA%\nekoai\memory.db`. To remove everything after uninstalling, delete those two `nekoai` folders.
+Versions up to 0.3.x used `%USERPROFILE%\.config\nekoai` and
+`%USERPROFILE%\.local\share\nekoai`; the first launch of a newer version moves the files.
+
 ### WebView2
 
 NekoAI uses the [Microsoft WebView2](https://developer.microsoft.com/en-us/microsoft-edge/webview2/) runtime for rendering.
