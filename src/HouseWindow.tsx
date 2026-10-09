@@ -6,8 +6,7 @@ import { listen } from '@tauri-apps/api/event'
 import { useConfigStore } from './store/configStore'
 import { IS_LINUX } from './utils/platform'
 import { workAreaOf } from './utils/monitor'
-
-const HOUSE_SIZE = 64
+import { HOUSE_SIZE } from './constants/layout'
 
 export function HouseWindow() {
   const [placed, setPlaced] = useState(false)

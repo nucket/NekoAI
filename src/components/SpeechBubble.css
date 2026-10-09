@@ -110,7 +110,7 @@
 
 .speech-bubble__messages {
   /* Auto-grow up to the cap — the parent Tauri window is 380px tall (see
-   * WIN_OPEN_H in App.tsx), so 220px here leaves room for the input row,
+   * BUBBLE_WIN_H in src/constants/layout.ts), so 220px here leaves room for the input row,
    * padding, tail and a comfortable margin. Beyond the cap the messages
    * container scrolls internally. */
   max-height: 220px;
