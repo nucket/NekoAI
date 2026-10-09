@@ -14,6 +14,15 @@
 //! *does* change (which means the pointer is momentarily over one of our
 //! surfaces and the X reading is authoritative).
 //!
+//! evdev reports raw device counts, but the compositor applies pointer
+//! acceleration (libinput) before moving the cursor, so integrating the raw
+//! counts drifts from the real cursor. Every reconcile with an authoritative
+//! X reading compares the real displacement with the raw counts since the
+//! previous one and nudges a learned gain toward that ratio (see
+//! `learn_gain`). libinput's acceleration depends on speed, so one gain is an
+//! approximation: it keeps the estimate close between reconciles rather than
+//! exact.
+//!
 //! Reading `/dev/input/event*` requires membership in the `input` group. When
 //! no device can be opened, `CursorTracker::start` returns `None` and the
 //! caller (the frontend, via `cursor_tracking_status`) falls back to wanderer
@@ -35,6 +44,42 @@ struct Pos {
     /// always snaps to the real X reading.
     last_xq_x: f64,
     last_xq_y: f64,
+    /// Learned ratio between cursor pixels and raw device counts.
+    gain: f64,
+    /// Raw device counts since the last authoritative reading.
+    raw_dx: f64,
+    raw_dy: f64,
+    /// True when the estimate hit the screen bounds since that reading, which
+    /// makes the displacement useless for learning the gain.
+    clamped: bool,
+}
+
+/// Smallest raw / real displacement (counts / px) worth learning from; short
+/// moves are dominated by rounding and sensor noise.
+#[cfg(any(target_os = "linux", test))]
+const GAIN_MIN_RAW: f64 = 80.0;
+#[cfg(any(target_os = "linux", test))]
+const GAIN_MIN_REAL: f64 = 40.0;
+/// How far one sample moves the learned gain (exponential moving average).
+#[cfg(any(target_os = "linux", test))]
+const GAIN_ALPHA: f64 = 0.3;
+/// Plausible range for the gain; anything outside is treated as noise.
+#[cfg(any(target_os = "linux", test))]
+const GAIN_RANGE: (f64, f64) = (0.25, 4.0);
+
+/// Updates the learned pointer gain from one interval between authoritative
+/// readings: `raw` is the summed device counts, `real` the cursor's actual
+/// displacement in pixels. Intervals too short to be meaningful leave the
+/// gain unchanged.
+#[cfg(any(target_os = "linux", test))]
+fn learn_gain(gain: f64, raw: (f64, f64), real: (f64, f64)) -> f64 {
+    let raw_len = raw.0.hypot(raw.1);
+    let real_len = real.0.hypot(real.1);
+    if raw_len < GAIN_MIN_RAW || real_len < GAIN_MIN_REAL {
+        return gain;
+    }
+    let sample = (real_len / raw_len).clamp(GAIN_RANGE.0, GAIN_RANGE.1);
+    gain + (sample - gain) * GAIN_ALPHA
 }
 
 #[cfg(target_os = "linux")]
@@ -83,12 +128,20 @@ impl CursorTracker {
             let mut pos = self.shared.pos.lock().unwrap_or_else(|e| e.into_inner());
             let changed =
                 (pos.last_xq_x - xq_x).abs() >= 1.0 || (pos.last_xq_y - xq_y).abs() >= 1.0;
-            pos.last_xq_x = xq_x;
-            pos.last_xq_y = xq_y;
+            let had_anchor = pos.last_xq_x.is_finite() && pos.last_xq_y.is_finite();
             if changed {
+                if had_anchor && !pos.clamped {
+                    let real = (xq_x - pos.last_xq_x, xq_y - pos.last_xq_y);
+                    pos.gain = learn_gain(pos.gain, (pos.raw_dx, pos.raw_dy), real);
+                }
                 pos.x = xq_x;
                 pos.y = xq_y;
+                pos.raw_dx = 0.0;
+                pos.raw_dy = 0.0;
+                pos.clamped = false;
             }
+            pos.last_xq_x = xq_x;
+            pos.last_xq_y = xq_y;
             (pos.x, pos.y)
         }
         #[cfg(not(target_os = "linux"))]
@@ -119,6 +172,10 @@ mod linux {
                 y: (bounds.1 + bounds.3) / 2.0,
                 last_xq_x: f64::INFINITY,
                 last_xq_y: f64::INFINITY,
+                gain: 1.0,
+                raw_dx: 0.0,
+                raw_dy: 0.0,
+                clamped: false,
             }),
             bounds,
         });
@@ -182,8 +239,16 @@ mod linux {
             if dx != 0 || dy != 0 {
                 let (min_x, min_y, max_x, max_y) = shared.bounds;
                 let mut pos = shared.pos.lock().unwrap_or_else(|e| e.into_inner());
-                pos.x = (pos.x + f64::from(dx)).clamp(min_x, max_x);
-                pos.y = (pos.y + f64::from(dy)).clamp(min_y, max_y);
+                let (dx, dy) = (f64::from(dx), f64::from(dy));
+                pos.raw_dx += dx;
+                pos.raw_dy += dy;
+                let x = pos.x + dx * pos.gain;
+                let y = pos.y + dy * pos.gain;
+                pos.x = x.clamp(min_x, max_x);
+                pos.y = y.clamp(min_y, max_y);
+                if pos.x != x || pos.y != y {
+                    pos.clamped = true;
+                }
             }
         }
     }
@@ -205,5 +270,32 @@ mod linux {
             );
         }
         (0.0, 0.0, 65535.0, 65535.0)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn gain_moves_toward_the_observed_ratio() {
+        // 200 raw counts moved the cursor 300 px: acceleration of 1.5x.
+        let g = learn_gain(1.0, (200.0, 0.0), (300.0, 0.0));
+        assert!((g - (1.0 + 0.5 * GAIN_ALPHA)).abs() < 1e-9);
+        // Repeated samples converge on the ratio.
+        let mut g = 1.0;
+        for _ in 0..30 {
+            g = learn_gain(g, (120.0, 160.0), (180.0, 240.0));
+        }
+        assert!((g - 1.5).abs() < 1e-3);
+    }
+
+    #[test]
+    fn short_or_implausible_moves_do_not_corrupt_the_gain() {
+        assert_eq!(learn_gain(1.2, (10.0, 0.0), (30.0, 0.0)), 1.2);
+        assert_eq!(learn_gain(1.2, (300.0, 0.0), (5.0, 0.0)), 1.2);
+        // A wild ratio is clamped to the plausible range before averaging.
+        let g = learn_gain(1.0, (100.0, 0.0), (10_000.0, 0.0));
+        assert!((g - (1.0 + (GAIN_RANGE.1 - 1.0) * GAIN_ALPHA)).abs() < 1e-9);
     }
 }

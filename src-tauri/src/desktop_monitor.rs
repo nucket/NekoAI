@@ -225,7 +225,7 @@ mod linux_impl {
 
             let title = window_title(x11, win_id).unwrap_or_default();
             let process_name = window_process_name(x11, win_id).unwrap_or_default();
-            let rect = window_rect(&x11.conn, win_id).unwrap_or(Rect {
+            let rect = window_rect(&x11.conn, x11.root, win_id).unwrap_or(Rect {
                 x: 0,
                 y: 0,
                 width: 0,
@@ -276,15 +276,20 @@ mod linux_impl {
             .unwrap_or_default())
     }
 
-    fn window_rect(conn: &RustConnection, win: u32) -> Result<Rect, Box<dyn Error>> {
+    /// The window's rectangle in root (screen) coordinates.
+    fn window_rect(conn: &RustConnection, root: u32, win: u32) -> Result<Rect, Box<dyn Error>> {
         use x11rb::protocol::xproto::ConnectionExt as _;
 
         let g = conn.get_geometry(win)?.reply()?;
+        // get_geometry reports x/y relative to the parent window, which under a
+        // reparenting window manager is the WM frame (so usually ~0,0).
+        // Translate the window's origin to the root window instead.
+        let origin = conn.translate_coordinates(win, root, 0, 0)?.reply()?;
         Ok(Rect {
-            x: g.x as i32,
-            y: g.y as i32,
-            width: g.width as i32,
-            height: g.height as i32,
+            x: i32::from(origin.dst_x),
+            y: i32::from(origin.dst_y),
+            width: i32::from(g.width),
+            height: i32::from(g.height),
         })
     }
 }
