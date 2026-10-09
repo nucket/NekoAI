@@ -75,14 +75,10 @@ export function PetRenderer({
 }: PetRendererProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const frameIndexRef = useRef(0)
-  const rafIdRef = useRef(0)
-  const lastFrameTimeRef = useRef(0)
   const currentAnimRef = useRef('')
   const lastShapedIndexRef = useRef(-1)
 
   useEffect(() => {
-    cancelAnimationFrame(rafIdRef.current)
-
     const animDef = animations[currentAnimation] ?? animations['idle']
     if (!animDef || animDef.files.length === 0) return
 
@@ -106,7 +102,6 @@ export function PetRenderer({
 
     if (currentAnimRef.current !== currentAnimation) {
       frameIndexRef.current = 0
-      lastFrameTimeRef.current = 0
       currentAnimRef.current = currentAnimation
     }
 
@@ -115,38 +110,46 @@ export function PetRenderer({
     frameUrls.forEach(preloadFrame)
 
     const intervalMs = 1000 / animDef.fps
+    const lastIndex = animDef.files.length - 1
+    let timerId: ReturnType<typeof setTimeout> | undefined
 
-    const loop = (timestamp: number) => {
-      // Advance frame index only when the animation's frame interval elapses.
-      if (timestamp - lastFrameTimeRef.current >= intervalMs) {
-        lastFrameTimeRef.current = timestamp
-        const next = frameIndexRef.current + 1
-        frameIndexRef.current =
-          next >= animDef.files.length ? (animDef.loop ? 0 : animDef.files.length - 1) : next
-      }
-
+    // Draws the current frame; false while its image is still decoding.
+    const draw = (): boolean => {
       const img = preloadFrame(frameUrls[frameIndexRef.current])
-      if (img.complete && img.naturalWidth > 0) {
-        ctx.clearRect(0, 0, canvas.width, canvas.height)
-        ctx.drawImage(img, 0, 0, canvas.width, canvas.height)
+      if (!img.complete || img.naturalWidth === 0) return false
+      ctx.clearRect(0, 0, canvas.width, canvas.height)
+      ctx.drawImage(img, 0, 0, canvas.width, canvas.height)
 
-        // Push GTK shape mask only when the frame index actually advances
-        // (animation FPS, typically ≤ 12) — not every RAF tick. Skipped when
-        // the parent toggles applyWindowShape off (e.g. while the speech
-        // bubble is open and the window is sized 300×300), and on non-Linux
-        // platforms where the window is natively transparent.
-        if (IS_LINUX && applyWindowShape && lastShapedIndexRef.current !== frameIndexRef.current) {
-          pushShapeFromCanvas(canvas, ctx)
-          lastShapedIndexRef.current = frameIndexRef.current
-        }
+      // Push the GTK shape mask once per frame change. Skipped when the
+      // parent toggles applyWindowShape off (e.g. while the speech bubble is
+      // open and the window is sized 300×300), and on non-Linux platforms
+      // where the window is natively transparent.
+      if (IS_LINUX && applyWindowShape && lastShapedIndexRef.current !== frameIndexRef.current) {
+        pushShapeFromCanvas(canvas, ctx)
+        lastShapedIndexRef.current = frameIndexRef.current
       }
-
-      rafIdRef.current = requestAnimationFrame(loop)
+      return true
     }
 
-    rafIdRef.current = requestAnimationFrame(loop)
-    return () => cancelAnimationFrame(rafIdRef.current)
-  }, [currentAnimation, animations, spritesDir, applyWindowShape])
+    // Wake up only when there is something new to draw — at the animation's
+    // own fps — instead of every display refresh. A single-frame animation,
+    // or a one-shot one that reached its last frame, schedules nothing.
+    const tick = () => {
+      if (!draw()) {
+        timerId = setTimeout(tick, 50)
+        return
+      }
+      const atEnd = frameIndexRef.current >= lastIndex
+      if (lastIndex === 0 || (atEnd && !animDef.loop)) return
+      timerId = setTimeout(() => {
+        frameIndexRef.current = atEnd ? 0 : frameIndexRef.current + 1
+        tick()
+      }, intervalMs)
+    }
+
+    tick()
+    return () => clearTimeout(timerId)
+  }, [currentAnimation, animations, spritesDir, applyWindowShape, displaySize])
 
   return (
     <canvas

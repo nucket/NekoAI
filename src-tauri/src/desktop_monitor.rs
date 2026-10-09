@@ -98,11 +98,74 @@ mod win_impl {
 mod linux_impl {
     use super::{Rect, WindowInfo};
     use std::error::Error;
+    use std::sync::Mutex;
+    use x11rb::rust_connection::RustConnection;
 
     // Returns true when an X11 display is reachable.
     // On a pure Wayland session (no XWayland) DISPLAY is unset.
     fn has_display() -> bool {
         std::env::var("DISPLAY").is_ok()
+    }
+
+    // ── Shared connection ─────────────────────────────────────────────────────
+    //
+    // The notification thread polls every 500 ms and useDesktopContext every
+    // 2 s; opening a fresh X11 connection (and re-interning atoms) on every
+    // call was the dominant idle cost on Linux. One connection and the atoms
+    // we query are cached for the life of the process.
+
+    struct X11 {
+        conn: RustConnection,
+        root: u32,
+        net_active_window: u32,
+        net_wm_name: u32,
+        utf8_string: u32,
+        net_wm_pid: u32,
+    }
+
+    static X11_CONN: Mutex<Option<X11>> = Mutex::new(None);
+
+    impl X11 {
+        fn connect() -> Result<Self, Box<dyn Error>> {
+            use x11rb::connection::Connection as _;
+            use x11rb::protocol::xproto::ConnectionExt as _;
+
+            let (conn, screen_num) = RustConnection::connect(None)?;
+            let root = conn.setup().roots[screen_num].root;
+            let atom = |name: &[u8]| -> Result<u32, Box<dyn Error>> {
+                Ok(conn.intern_atom(false, name)?.reply()?.atom)
+            };
+            let net_active_window = atom(b"_NET_ACTIVE_WINDOW")?;
+            let net_wm_name = atom(b"_NET_WM_NAME")?;
+            let utf8_string = atom(b"UTF8_STRING")?;
+            let net_wm_pid = atom(b"_NET_WM_PID")?;
+            Ok(Self {
+                conn,
+                root,
+                net_active_window,
+                net_wm_name,
+                utf8_string,
+                net_wm_pid,
+            })
+        }
+    }
+
+    /// Runs `f` on the shared connection, connecting on first use. An error
+    /// drops the connection so the next call reconnects (X server restart,
+    /// changed DISPLAY).
+    fn with_x11<T>(f: impl FnOnce(&X11) -> Result<T, Box<dyn Error>>) -> Result<T, Box<dyn Error>> {
+        let mut guard = X11_CONN.lock().unwrap_or_else(|e| e.into_inner());
+        if guard.is_none() {
+            *guard = Some(X11::connect()?);
+        }
+        let result = match guard.as_ref() {
+            Some(x11) => f(x11),
+            None => return Err("X11 connection unavailable".into()),
+        };
+        if result.is_err() {
+            *guard = None;
+        }
+        result
     }
 
     // ── Idle time via XScreenSaver extension ──────────────────────────────────
@@ -118,14 +181,12 @@ mod linux_impl {
     }
 
     fn idle_millis_x11() -> Result<u64, Box<dyn Error>> {
-        use x11rb::connection::Connection as _;
         use x11rb::protocol::screensaver::ConnectionExt as _;
-        use x11rb::rust_connection::RustConnection;
 
-        let (conn, screen_num) = RustConnection::connect(None)?;
-        let root = conn.setup().roots[screen_num].root;
-        let info = conn.screensaver_query_info(root)?.reply()?;
-        Ok(info.ms_since_user_input as u64)
+        with_x11(|x11| {
+            let info = x11.conn.screensaver_query_info(x11.root)?.reply()?;
+            Ok(info.ms_since_user_input as u64)
+        })
     }
 
     // ── Active window via _NET_ACTIVE_WINDOW (EWMH / X11) ────────────────────
@@ -142,75 +203,69 @@ mod linux_impl {
     }
 
     fn active_window_x11() -> Result<Option<WindowInfo>, Box<dyn Error>> {
-        use x11rb::connection::Connection as _;
         use x11rb::protocol::xproto::{AtomEnum, ConnectionExt as _};
-        use x11rb::rust_connection::RustConnection;
 
-        let (conn, screen_num) = RustConnection::connect(None)?;
-        let root = conn.setup().roots[screen_num].root;
+        with_x11(|x11| {
+            let prop = x11
+                .conn
+                .get_property(
+                    false,
+                    x11.root,
+                    x11.net_active_window,
+                    AtomEnum::WINDOW,
+                    0,
+                    1,
+                )?
+                .reply()?;
 
-        let net_active_window = conn
-            .intern_atom(false, b"_NET_ACTIVE_WINDOW")?
-            .reply()?
-            .atom;
-        let prop = conn
-            .get_property(false, root, net_active_window, AtomEnum::WINDOW, 0, 1)?
-            .reply()?;
+            let win_id = match prop.value32().and_then(|mut it| it.next()) {
+                Some(id) if id != 0 => id,
+                _ => return Ok(None),
+            };
 
-        let win_id = match prop.value32().and_then(|mut it| it.next()) {
-            Some(id) if id != 0 => id,
-            _ => return Ok(None),
-        };
+            let title = window_title(x11, win_id).unwrap_or_default();
+            let process_name = window_process_name(x11, win_id).unwrap_or_default();
+            let rect = window_rect(&x11.conn, win_id).unwrap_or(Rect {
+                x: 0,
+                y: 0,
+                width: 0,
+                height: 0,
+            });
 
-        let title = window_title(&conn, win_id).unwrap_or_default();
-        let process_name = window_process_name(&conn, win_id).unwrap_or_default();
-        let rect = window_rect(&conn, win_id).unwrap_or(Rect {
-            x: 0,
-            y: 0,
-            width: 0,
-            height: 0,
-        });
-
-        Ok(Some(WindowInfo {
-            title,
-            process_name,
-            rect,
-        }))
+            Ok(Some(WindowInfo {
+                title,
+                process_name,
+                rect,
+            }))
+        })
     }
 
     // ── Helpers ───────────────────────────────────────────────────────────────
 
-    fn window_title(
-        conn: &x11rb::rust_connection::RustConnection,
-        win: u32,
-    ) -> Result<String, Box<dyn Error>> {
+    fn window_title(x11: &X11, win: u32) -> Result<String, Box<dyn Error>> {
         use x11rb::protocol::xproto::{AtomEnum, ConnectionExt as _};
 
-        let net_wm_name = conn.intern_atom(false, b"_NET_WM_NAME")?.reply()?.atom;
-        let utf8 = conn.intern_atom(false, b"UTF8_STRING")?.reply()?.atom;
-
-        let prop = conn
-            .get_property(false, win, net_wm_name, utf8, 0, 1024)?
+        let prop = x11
+            .conn
+            .get_property(false, win, x11.net_wm_name, x11.utf8_string, 0, 1024)?
             .reply()?;
         if !prop.value.is_empty() {
             return Ok(String::from_utf8_lossy(&prop.value).to_string());
         }
         // WM_NAME fallback for windows that don't set _NET_WM_NAME
-        let prop = conn
+        let prop = x11
+            .conn
             .get_property(false, win, AtomEnum::WM_NAME, AtomEnum::STRING, 0, 1024)?
             .reply()?;
         Ok(String::from_utf8_lossy(&prop.value).to_string())
     }
 
-    fn window_process_name(
-        conn: &x11rb::rust_connection::RustConnection,
-        win: u32,
-    ) -> Result<String, Box<dyn Error>> {
+    fn window_process_name(x11: &X11, win: u32) -> Result<String, Box<dyn Error>> {
         use x11rb::protocol::xproto::{AtomEnum, ConnectionExt as _};
 
-        let net_wm_pid = conn.intern_atom(false, b"_NET_WM_PID")?.reply()?.atom;
-        let prop = conn
-            .get_property(false, win, net_wm_pid, AtomEnum::CARDINAL, 0, 1)?
+        let prop = x11
+            .conn
+            .get_property(false, win, x11.net_wm_pid, AtomEnum::CARDINAL, 0, 1)?
             .reply()?;
         let pid = prop.value32().and_then(|mut it| it.next()).unwrap_or(0);
         if pid == 0 {
@@ -221,10 +276,7 @@ mod linux_impl {
             .unwrap_or_default())
     }
 
-    fn window_rect(
-        conn: &x11rb::rust_connection::RustConnection,
-        win: u32,
-    ) -> Result<Rect, Box<dyn Error>> {
+    fn window_rect(conn: &RustConnection, win: u32) -> Result<Rect, Box<dyn Error>> {
         use x11rb::protocol::xproto::ConnectionExt as _;
 
         let g = conn.get_geometry(win)?.reply()?;

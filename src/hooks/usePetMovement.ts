@@ -34,6 +34,8 @@ export interface UsePetMovementResult {
 // ─── Internal constants ───────────────────────────────────────────────────────
 
 const CURSOR_POLL_MS = 50
+// While asleep the pet only needs to notice the cursor leaving, so poll less.
+const CURSOR_POLL_SLEEPING_MS = 250
 const CURSOR_MOVE_PX = 4
 const NEAR_LEAVE_FACTOR = 1.5
 const NEAR_ENTER_FACTOR = 0.7 // pet must be visibly close (not just within "near" zone) to stop and groom
@@ -135,8 +137,6 @@ export function usePetMovement({
   // eslint-disable-next-line react-hooks/purity
   const lastCursorMoveRef = useRef(Date.now())
   const animRef = useRef('idle')
-  const rafIdRef = useRef(0)
-  const pollTimerRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
   // Smooth movement accumulator (tracks fractional pixels to avoid losing small steps)
   const moveAccumX = useRef(0)
@@ -308,6 +308,9 @@ export function usePetMovement({
   useEffect(() => {
     if (!enabled) return
 
+    let timerId: ReturnType<typeof setTimeout> | undefined
+    let cancelled = false
+
     const poll = async () => {
       try {
         const pos = await invoke<Vec2>('get_cursor_pos')
@@ -325,26 +328,50 @@ export function usePetMovement({
       } catch {
         // Tauri backend unavailable — silently skip
       }
+      if (cancelled) return
+      const delay = stateRef.current === 'SLEEPING' ? CURSOR_POLL_SLEEPING_MS : CURSOR_POLL_MS
+      timerId = setTimeout(poll, delay)
     }
 
-    poll()
-    pollTimerRef.current = setInterval(poll, CURSOR_POLL_MS)
+    void poll()
     return () => {
-      if (pollTimerRef.current) clearInterval(pollTimerRef.current)
+      cancelled = true
+      clearTimeout(timerId)
     }
   }, [enabled])
 
-  // ── Main rAF movement loop ─────────────────────────────────────────────────
+  // ── Main movement loop ─────────────────────────────────────────────────────
+  // Runs on requestAnimationFrame only while WALKING, where smooth motion
+  // needs every display frame. In IDLE / NEAR_CURSOR / SLEEPING nothing moves,
+  // so the state machine is re-evaluated at the cursor-poll rate instead of
+  // 60–144 times a second.
   useEffect(() => {
     if (!enabled) return
 
     const win = getCurrentWindow()
-    // Timestamp of the previous rAF tick. Local to this effect so re-enabling
+    // Timestamp of the previous tick. Local to this effect so re-enabling
     // movement (e.g. after the bubble closes) never sees a huge stale gap.
     let lastTs: number | null = null
+    let rafId = 0
+    let timerId: ReturnType<typeof setTimeout> | undefined
+
+    const schedule = () => {
+      if (stateRef.current === 'WALKING') {
+        rafId = requestAnimationFrame(loop)
+      } else {
+        timerId = setTimeout(() => loop(performance.now()), CURSOR_POLL_MS)
+      }
+    }
 
     const loop = (timestamp: number) => {
-      rafIdRef.current = requestAnimationFrame(loop)
+      try {
+        step(timestamp)
+      } finally {
+        schedule()
+      }
+    }
+
+    const step = (timestamp: number) => {
       // Real elapsed time since the previous tick, so walking speed is the same
       // on 60 Hz and 144 Hz displays. Clamped so a stalled or throttled frame
       // can't teleport the pet.
@@ -642,8 +669,11 @@ export function usePetMovement({
       }
     }
 
-    rafIdRef.current = requestAnimationFrame(loop)
-    return () => cancelAnimationFrame(rafIdRef.current)
+    schedule()
+    return () => {
+      cancelAnimationFrame(rafId)
+      clearTimeout(timerId)
+    }
   }, [
     enabled,
     nearThreshold,
