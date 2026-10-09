@@ -18,28 +18,50 @@ jobs:
   collect:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version: 22
 
       - name: Run parser tests
         run: node --test scripts/metrics/parse-asset.test.mjs
 
+      # Snapshots live on the orphan `metrics` branch so main's history stays
+      # free of daily bot commits. On the first run the branch is created and
+      # seeded from the last snapshot commit that landed on main.
+      - name: Check out the metrics branch
+        run: |
+          git config --global user.name 'github-actions[bot]'
+          git config --global user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          if git ls-remote --exit-code --heads origin metrics >/dev/null; then
+            git fetch --depth=1 origin metrics
+            git worktree add --detach metrics-data FETCH_HEAD
+          else
+            git fetch --unshallow origin main
+            seed=$(git log -1 --format=%H --grep='^chore(metrics): refresh install snapshot' HEAD)
+            git worktree add --detach metrics-data HEAD
+            cd metrics-data
+            git checkout --orphan metrics
+            git rm -rfq .
+            if [ -n "$seed" ]; then
+              git archive "$seed" docs/metrics/snapshots docs/metrics/latest.json | tar -x --strip-components=2
+            fi
+          fi
+
       - name: Collect snapshot
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          METRICS_DIR: metrics-data
         run: node scripts/metrics/collect.mjs
 
       - name: Commit changes if any
+        working-directory: metrics-data
         run: |
-          git config user.name 'github-actions[bot]'
-          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add docs/metrics/
+          git add -A
           if git diff --cached --quiet; then
             echo 'No metrics changes to commit.'
             exit 0
           fi
           git commit -m "chore(metrics): refresh install snapshot"
-          git push
+          git push origin HEAD:refs/heads/metrics

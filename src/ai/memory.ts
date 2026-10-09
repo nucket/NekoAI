@@ -5,8 +5,7 @@ import { invoke } from '@tauri-apps/api/core'
 const PATTERNS: Array<{ key: string; regex: RegExp }> = [
   {
     key: 'name',
-    regex:
-      /(?:my name is|i['']m called|call me|me llamo|llámame)\s+([A-Za-záéíóúñÁÉÍÓÚÑ][a-záéíóúñA-ZÁÉÍÓÚÑa-z]{1,20})/i,
+    regex: /(?:my name is|i['']m called|call me|me llamo|llámame)\s+(\p{L}{2,21})/iu,
   },
   {
     key: 'project',

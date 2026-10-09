@@ -1,6 +1,6 @@
 # Metrics snapshot schema
 
-Each file under `snapshots/` is a JSON document produced by `scripts/metrics/collect.mjs`. `latest.json` is a copy of the most recent snapshot.
+Each file under `snapshots/` on the [`metrics` branch](https://github.com/nucket/NekoAI/tree/metrics) is a JSON document produced by `scripts/metrics/collect.mjs`. `latest.json` is a copy of the most recent snapshot.
 
 ```jsonc
 {
