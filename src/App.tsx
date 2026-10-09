@@ -15,11 +15,13 @@ import { createAIProvider, buildContextBlock } from './ai'
 import { loadFacts, extractAndSaveFacts } from './ai/memory'
 import { useDesktopContext } from './hooks/useDesktopContext'
 import { useMoodEngine } from './hooks/useMoodEngine'
-import { useIdleSequencer } from './hooks/useIdleSequencer'
+import { useIdleSequencer, type IdleSequencerCues } from './hooks/useIdleSequencer'
+import { usePetTriggers } from './hooks/usePetTriggers'
 import { useOnboarding } from './hooks/useOnboarding'
 import { IS_LINUX } from './utils/platform'
 import { workAreaOf } from './utils/monitor'
 import { resolveAnimation } from './pets/resolveAnimation'
+import { flashDurationMs, triggerAnimation } from './pets/triggers'
 import { describeSendError } from './ai/errors'
 import './App.css'
 
@@ -73,6 +75,7 @@ export default function App() {
   const [notificationAlert, setNotificationAlert] = useState(false)
   const notificationTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const [clickWakeAnim, setClickWakeAnim] = useState<string | null>(null)
+  const [aiThinking, setAiThinking] = useState(false)
   const clickWakeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const [edgeAnimOverride, setEdgeAnimOverride] = useState<string | null>(null)
   const edgeAnimTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -324,8 +327,19 @@ export default function App() {
   // ── Mood engine (updates store + emits animation overrides) ──────────────
   const { moodOverride } = useMoodEngine({ idleMinutes, appCategory, petState })
 
+  // ── Pet triggers (pet.json `triggers`) ─────────────────────────────────────
+  const { triggerAnim, fire: fireTrigger } = usePetTriggers({ petDef, idleMinutes, aiThinking })
+
+  const sequencerCues = useMemo<IdleSequencerCues>(() => {
+    const greet = triggerAnimation(petDef, 'on_cursor_near')
+    return {
+      greet: greet ? { anim: greet, durationMs: flashDurationMs(petDef?.animations[greet]) } : null,
+      wake: triggerAnimation(petDef, 'on_movement_start'),
+    }
+  }, [petDef])
+
   // ── Idle sequencer — nkosrc4 stop/groom/sleep state machine ──────────────
-  const idleAnim = useIdleSequencer(petState, availableAnimationsList)
+  const idleAnim = useIdleSequencer(petState, availableAnimationsList, sequencerCues)
 
   // ── AI send with persistent memory ────────────────────────────────────────
   const handleSendMessage = useCallback(
@@ -336,6 +350,7 @@ export default function App() {
         return 'Nyaa~ I need an API key to talk! Set one in Settings 🐾'
       }
 
+      setAiThinking(true)
       try {
         await invoke('save_message', { role: 'user', content: text })
 
@@ -362,13 +377,16 @@ export default function App() {
         await invoke('save_message', { role: 'assistant', content: reply })
         void extractAndSaveFacts(text)
 
+        fireTrigger('on_ai_response')
         return reply
       } catch (err) {
         console.error('[NekoAI] handleSendMessage error:', err)
         return describeSendError(err, cfg.provider)
+      } finally {
+        setAiThinking(false)
       }
     },
-    [petDef]
+    [petDef, fireTrigger]
   )
 
   // ── Preload recent history when the bubble opens ──────────────────────────
@@ -630,12 +648,14 @@ export default function App() {
       if (clickWakeTimerRef.current) clearTimeout(clickWakeTimerRef.current)
       clickWakeTimerRef.current = setTimeout(() => {
         setClickWakeAnim(null)
+        fireTrigger('on_chat_open')
         openBubble()
       }, 350)
     } else {
+      fireTrigger('on_chat_open')
       openBubble()
     }
-  }, [bubbleOpen, settingsOpen, openBubble, availableAnimationsList])
+  }, [bubbleOpen, settingsOpen, openBubble, availableAnimationsList, fireTrigger])
 
   const handleRightClick = useCallback(
     async (e: React.MouseEvent) => {
@@ -774,6 +794,7 @@ export default function App() {
                 hasAlert: !!animations['alert'],
                 edgeAnimOverride,
                 clickWakeAnim,
+                triggerAnim,
                 idleAnim,
                 moodOverride,
                 currentAnimation,

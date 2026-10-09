@@ -7,6 +7,7 @@ const base: ResolveAnimationArgs = {
   hasAlert: true,
   edgeAnimOverride: null,
   clickWakeAnim: null,
+  triggerAnim: null,
   idleAnim: null,
   moodOverride: null,
   currentAnimation: 'idle',
@@ -26,6 +27,7 @@ describe('resolveAnimation', () => {
       petState: 'WALKING' as const,
       currentAnimation: 'walk_left',
       clickWakeAnim: 'awaken',
+      triggerAnim: 'thinking',
       idleAnim: 'wash',
       moodOverride: 'yawn',
     }
@@ -38,17 +40,18 @@ describe('resolveAnimation', () => {
       ...base,
       edgeAnimOverride: 'edge',
       clickWakeAnim: 'click',
+      triggerAnim: 'trigger',
       idleAnim: 'idleSeq',
       moodOverride: 'mood',
     }
     expect(resolveAnimation(all)).toBe('edge')
-    expect(resolveAnimation({ ...all, edgeAnimOverride: null })).toBe('click')
-    expect(resolveAnimation({ ...all, edgeAnimOverride: null, clickWakeAnim: null })).toBe(
-      'idleSeq'
-    )
-    expect(
-      resolveAnimation({ ...all, edgeAnimOverride: null, clickWakeAnim: null, idleAnim: null })
-    ).toBe('mood')
+    const noEdge = { ...all, edgeAnimOverride: null }
+    expect(resolveAnimation(noEdge)).toBe('click')
+    const noClick = { ...noEdge, clickWakeAnim: null }
+    expect(resolveAnimation(noClick)).toBe('trigger')
+    const noTrigger = { ...noClick, triggerAnim: null }
+    expect(resolveAnimation(noTrigger)).toBe('idleSeq')
+    expect(resolveAnimation({ ...noTrigger, idleAnim: null })).toBe('mood')
     expect(resolveAnimation(base)).toBe('idle')
   })
 })

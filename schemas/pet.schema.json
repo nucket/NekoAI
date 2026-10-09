@@ -96,24 +96,69 @@
     },
     "triggers": {
       "type": "object",
-      "description": "Maps system events to animation names. Each value must match a key in 'animations'.",
+      "description": "Maps app events to animation names. Each value must match a key in 'animations'. See docs/creating-a-pet.md#triggers for when each one fires.",
       "additionalProperties": false,
       "properties": {
-        "on_cursor_near": { "$ref": "#/definitions/triggerValue" },
-        "on_chat_open": { "$ref": "#/definitions/triggerValue" },
-        "on_ai_thinking": { "$ref": "#/definitions/triggerValue" },
-        "on_ai_response": { "$ref": "#/definitions/triggerValue" },
-        "on_idle_3min": { "$ref": "#/definitions/triggerValue" },
-        "on_idle_5min": { "$ref": "#/definitions/triggerValue" },
-        "on_idle_6min": { "$ref": "#/definitions/triggerValue" },
-        "on_movement_start": { "$ref": "#/definitions/triggerValue" },
-        "on_happy": { "$ref": "#/definitions/triggerValue" },
-        "on_surprised": { "$ref": "#/definitions/triggerValue" },
-        "on_eating": { "$ref": "#/definitions/triggerValue" },
-        "on_edge_hit_right": { "$ref": "#/definitions/triggerValue" },
-        "on_edge_hit_left": { "$ref": "#/definitions/triggerValue" },
-        "on_edge_hit_up": { "$ref": "#/definitions/triggerValue" },
-        "on_edge_hit_down": { "$ref": "#/definitions/triggerValue" }
+        "on_cursor_near": {
+          "$ref": "#/definitions/triggerValue",
+          "description": "Played once when the pet settles next to the cursor, before it starts grooming."
+        },
+        "on_chat_open": {
+          "$ref": "#/definitions/triggerValue",
+          "description": "Flashed when the user clicks the pet to open the chat bubble."
+        },
+        "on_ai_thinking": {
+          "$ref": "#/definitions/triggerValue",
+          "description": "Held while an AI request is in flight."
+        },
+        "on_ai_response": {
+          "$ref": "#/definitions/triggerValue",
+          "description": "Flashed when the AI reply arrives (not on errors)."
+        },
+        "on_idle_3min": {
+          "$ref": "#/definitions/triggerValue",
+          "description": "OS idle (no keyboard/mouse) for 3 minutes. Looping animations are held while idle; others play once."
+        },
+        "on_idle_5min": {
+          "$ref": "#/definitions/triggerValue",
+          "description": "OS idle for 5 minutes. Looping animations are held while idle; others play once."
+        },
+        "on_idle_6min": {
+          "$ref": "#/definitions/triggerValue",
+          "description": "OS idle for 6 minutes. Looping animations are held while idle; others play once."
+        },
+        "on_movement_start": {
+          "$ref": "#/definitions/triggerValue",
+          "description": "Wake flash when the pet starts moving after a real rest. Defaults to 'awaken'."
+        },
+        "on_happy": {
+          "$ref": "#/definitions/triggerValue",
+          "description": "Reserved: not fired by the app yet."
+        },
+        "on_surprised": {
+          "$ref": "#/definitions/triggerValue",
+          "description": "Reserved: not fired by the app yet."
+        },
+        "on_eating": {
+          "$ref": "#/definitions/triggerValue",
+          "description": "Reserved: not fired by the app yet."
+        },
+        "on_edge_hit_right": {
+          "$ref": "#/definitions/triggerValue",
+          "description": "Scratch animation when the pet hits the right screen edge."
+        },
+        "on_edge_hit_left": {
+          "$ref": "#/definitions/triggerValue",
+          "description": "Scratch animation when the pet hits the left screen edge."
+        },
+        "on_edge_hit_up": {
+          "$ref": "#/definitions/triggerValue",
+          "description": "Scratch animation when the pet hits the top screen edge."
+        },
+        "on_edge_hit_down": {
+          "$ref": "#/definitions/triggerValue",
+          "description": "Scratch animation when the pet hits the bottom screen edge."
+        }
       }
     }
   },
