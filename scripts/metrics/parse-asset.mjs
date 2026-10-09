@@ -31,7 +31,9 @@ const PATTERNS = [
 const SKIP_PATTERNS = [
   /\.sig$/,
   /^latest\.json$/,
-  /^nekoai_(?:aarch64|x64)\.app\.tar\.gz$/, // Tauri updater bundle, not a user installer
+  // Tauri updater bundle, not a user installer. tauri-action >= 1.0 puts the
+  // version in the name (nekoai_0.4.0_aarch64.app.tar.gz).
+  /^nekoai_(?:[\d.]+_)?(?:aarch64|x64)\.app\.tar\.gz$/,
 ]
 
 export function parseAssetName(name) {
