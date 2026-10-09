@@ -106,24 +106,122 @@ fn exe_dir() -> PathBuf {
         .unwrap_or_else(|| PathBuf::from("."))
 }
 
+const APP_DIR: &str = "nekoai";
+const CONFIG_FILE: &str = "config.toml";
+const DB_FILE: &str = "memory.db";
+
+/// Platform-standard directory for config.toml:
+/// `$XDG_CONFIG_HOME` or `~/.config` on Linux, `%APPDATA%` (roaming) on
+/// Windows, `~/Library/Application Support` on macOS.
+fn config_dir() -> PathBuf {
+    dirs::config_dir()
+        .unwrap_or_else(|| home_dir().join(".config"))
+        .join(APP_DIR)
+}
+
+/// Platform-standard directory for memory.db: `$XDG_DATA_HOME` or
+/// `~/.local/share` on Linux, `%LOCALAPPDATA%` on Windows (a SQLite file
+/// shouldn't roam with the profile), `~/Library/Application Support` on macOS.
+fn data_dir() -> PathBuf {
+    dirs::data_local_dir()
+        .unwrap_or_else(|| home_dir().join(".local").join("share"))
+        .join(APP_DIR)
+}
+
+/// Where versions up to 0.3.x kept config.toml on every OS.
+fn legacy_config_dir() -> PathBuf {
+    std::env::var("XDG_CONFIG_HOME")
+        .map(PathBuf::from)
+        .unwrap_or_else(|_| home_dir().join(".config"))
+        .join(APP_DIR)
+}
+
+/// Where versions up to 0.3.x kept memory.db on every OS.
+fn legacy_data_dir() -> PathBuf {
+    std::env::var("XDG_DATA_HOME")
+        .map(PathBuf::from)
+        .unwrap_or_else(|_| home_dir().join(".local").join("share"))
+        .join(APP_DIR)
+}
+
 pub fn config_path() -> PathBuf {
     if is_portable() {
-        return exe_dir().join("data").join("config.toml");
+        return exe_dir().join("data").join(CONFIG_FILE);
     }
-    let base = std::env::var("XDG_CONFIG_HOME")
-        .map(PathBuf::from)
-        .unwrap_or_else(|_| home_dir().join(".config"));
-    base.join("nekoai").join("config.toml")
+    config_dir().join(CONFIG_FILE)
 }
 
 pub fn db_path() -> PathBuf {
     if is_portable() {
-        return exe_dir().join("data").join("memory.db");
+        return exe_dir().join("data").join(DB_FILE);
     }
-    let base = std::env::var("XDG_DATA_HOME")
-        .map(PathBuf::from)
-        .unwrap_or_else(|_| home_dir().join(".local").join("share"));
-    base.join("nekoai").join("memory.db")
+    data_dir().join(DB_FILE)
+}
+
+/// One-time move of config.toml and memory.db from the pre-0.4 locations
+/// (`~/.config/nekoai`, `~/.local/share/nekoai` on every OS) to the platform
+/// directories. Must run before anything opens the database or reads the
+/// config. A no-op in portable mode, on Linux (the paths are the same), and
+/// whenever the new location already has the file.
+pub fn migrate_legacy_paths() {
+    if is_portable() {
+        return;
+    }
+    let moves: [(PathBuf, PathBuf, &[&str]); 2] = [
+        (legacy_config_dir(), config_dir(), &[CONFIG_FILE]),
+        // The WAL / shared-memory files belong to the database; moving the
+        // .db without them could drop the last transactions.
+        (
+            legacy_data_dir(),
+            data_dir(),
+            &[DB_FILE, "memory.db-wal", "memory.db-shm"],
+        ),
+    ];
+    for (from, to, names) in moves {
+        match migrate_files(&from, &to, names) {
+            Ok(0) => {}
+            Ok(n) => eprintln!(
+                "[storage] moved {n} file(s) from {} to {}",
+                from.display(),
+                to.display()
+            ),
+            Err(e) => eprintln!(
+                "[storage] could not move {} to {}: {e}",
+                from.display(),
+                to.display()
+            ),
+        }
+    }
+}
+
+/// Moves `names` from `from` to `to` when the first name (the primary file)
+/// exists in `from` but not in `to`. Never overwrites, and removes `from`
+/// afterwards if it is left empty. Returns how many files were moved.
+fn migrate_files(from: &Path, to: &Path, names: &[&str]) -> std::io::Result<usize> {
+    let Some(primary) = names.first() else {
+        return Ok(0);
+    };
+    if from == to || !from.join(primary).exists() || to.join(primary).exists() {
+        return Ok(0);
+    }
+    std::fs::create_dir_all(to)?;
+    let mut moved = 0;
+    for name in names {
+        let src = from.join(name);
+        if !src.exists() {
+            continue;
+        }
+        let dst = to.join(name);
+        // rename fails across volumes (e.g. a redirected profile folder);
+        // fall back to copy + delete.
+        if std::fs::rename(&src, &dst).is_err() {
+            std::fs::copy(&src, &dst)?;
+            std::fs::remove_file(&src)?;
+        }
+        moved += 1;
+    }
+    let _ = std::fs::remove_dir(from); // only succeeds when empty
+    Ok(moved)
 }
 
 // ─── Config (TOML) ────────────────────────────────────────────────────────────
@@ -461,6 +559,58 @@ mod tests {
         let _ = std::fs::remove_dir_all(&dir);
         std::fs::create_dir_all(&dir).unwrap();
         dir.join("config.toml")
+    }
+
+    fn temp_dir(test: &str) -> PathBuf {
+        let dir = std::env::temp_dir().join(format!("nekoai-{test}-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&dir);
+        std::fs::create_dir_all(&dir).unwrap();
+        dir
+    }
+
+    const DB_NAMES: &[&str] = &["memory.db", "memory.db-wal", "memory.db-shm"];
+
+    #[test]
+    fn migration_moves_the_database_with_its_wal_files() {
+        let root = temp_dir("migrate-move");
+        let (from, to) = (root.join("old"), root.join("new"));
+        std::fs::create_dir_all(&from).unwrap();
+        std::fs::write(from.join("memory.db"), b"db").unwrap();
+        std::fs::write(from.join("memory.db-wal"), b"wal").unwrap();
+
+        assert_eq!(migrate_files(&from, &to, DB_NAMES).unwrap(), 2);
+        assert_eq!(std::fs::read(to.join("memory.db")).unwrap(), b"db");
+        assert_eq!(std::fs::read(to.join("memory.db-wal")).unwrap(), b"wal");
+        assert!(!to.join("memory.db-shm").exists());
+        // The emptied legacy directory is removed.
+        assert!(!from.exists());
+    }
+
+    #[test]
+    fn migration_never_overwrites_existing_data() {
+        let root = temp_dir("migrate-keep");
+        let (from, to) = (root.join("old"), root.join("new"));
+        std::fs::create_dir_all(&from).unwrap();
+        std::fs::create_dir_all(&to).unwrap();
+        std::fs::write(from.join("config.toml"), b"old").unwrap();
+        std::fs::write(to.join("config.toml"), b"new").unwrap();
+
+        assert_eq!(migrate_files(&from, &to, &["config.toml"]).unwrap(), 0);
+        assert_eq!(std::fs::read(to.join("config.toml")).unwrap(), b"new");
+        assert_eq!(std::fs::read(from.join("config.toml")).unwrap(), b"old");
+    }
+
+    #[test]
+    fn migration_is_a_no_op_without_legacy_data_or_when_paths_match() {
+        let root = temp_dir("migrate-noop");
+        let (from, to) = (root.join("old"), root.join("new"));
+        assert_eq!(migrate_files(&from, &to, DB_NAMES).unwrap(), 0);
+        assert!(!to.exists());
+
+        std::fs::create_dir_all(&from).unwrap();
+        std::fs::write(from.join("memory.db"), b"db").unwrap();
+        assert_eq!(migrate_files(&from, &from, DB_NAMES).unwrap(), 0);
+        assert!(from.join("memory.db").exists());
     }
 
     fn find_backups(path: &Path) -> Vec<PathBuf> {

@@ -188,7 +188,8 @@ pnpm tauri build         # Production build
 Configuration is auto-created on first run:
 
 ```toml
-# ~/.config/nekoai/config.toml  (auto-created on first run)
+# config.toml (auto-created on first run)
+# Linux: ~/.config/nekoai · Windows: %APPDATA%\nekoai · macOS: ~/Library/Application Support/nekoai
 
 provider   = "gemini"            # "anthropic" | "openai" | "gemini" | "nvidia" | "ollama"
 api_key    = "AIza..."           # Stored locally, never sent anywhere
@@ -208,7 +209,7 @@ max_tokens = 512                 # 256 (Short) | 512 (Medium, default) | 1024 (L
 NekoAI builds a persistent context for every conversation:
 
 - **Pet personality** — defined per-pet in `pet.json` via `system_prompt`
-- **User facts** — extracted automatically from conversations and stored in SQLite (`~/.local/share/nekoai/memory.db`). Includes name, current projects, preferred language, etc.
+- **User facts** — extracted automatically from conversations and stored in SQLite (`memory.db`: `~/.local/share/nekoai` on Linux, `%LOCALAPPDATA%\nekoai` on Windows, `~/Library/Application Support/nekoai` on macOS). Includes name, current projects, preferred language, etc.
 - **Conversation history** — last 20 messages sent as context on every turn; the speech bubble also shows your recent turns when reopened, so the pet never looks like it forgot
 - **Dynamic mood** — pet's current energy/happiness/curiosity subtly influences its tone
 
@@ -221,7 +222,7 @@ System prompt = pet personality
 Facts are extracted with pattern matching after each exchange and saved to the `user_facts` SQLite table. You can inspect them directly:
 
 ```bash
-sqlite3 ~/.local/share/nekoai/memory.db "SELECT * FROM user_facts;"
+sqlite3 ~/.local/share/nekoai/memory.db "SELECT * FROM user_facts;"   # Linux path; see above for others
 ```
 
 ### Supported AI providers

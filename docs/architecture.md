@@ -135,16 +135,22 @@ Extracted facts are upserted into the `user_facts` SQLite table.
 
 ### Storage
 
-Default paths (installed mode), the same on every OS:
+Default paths (installed mode), resolved with the `dirs` crate (`storage::config_path` /
+`storage::db_path`):
 
-| File            | Path                              |
-| --------------- | --------------------------------- |
-| SQLite database | `~/.local/share/nekoai/memory.db` |
-| Config          | `~/.config/nekoai/config.toml`    |
+| OS      | `config.toml` (settings, API keys)                 | `memory.db` (history, facts)                     |
+| ------- | -------------------------------------------------- | ------------------------------------------------ |
+| Linux   | `~/.config/nekoai/config.toml`                     | `~/.local/share/nekoai/memory.db`                |
+| Windows | `%APPDATA%\nekoai\config.toml`                     | `%LOCALAPPDATA%\nekoai\memory.db`                |
+| macOS   | `~/Library/Application Support/nekoai/config.toml` | `~/Library/Application Support/nekoai/memory.db` |
 
-`~` is `$HOME`, falling back to `%USERPROFILE%` on Windows. `$XDG_DATA_HOME` and
-`$XDG_CONFIG_HOME` override the `.local/share` and `.config` parts (`storage::db_path` /
-`storage::config_path`).
+On Linux, `$XDG_CONFIG_HOME` / `$XDG_DATA_HOME` override `~/.config` / `~/.local/share`. On
+Windows the database lives under `%LOCALAPPDATA%` so it doesn't roam with the profile.
+
+Versions up to 0.3.x used `~/.config/nekoai` and `~/.local/share/nekoai` on every OS.
+`storage::migrate_legacy_paths()` runs first thing in `run()` and moves `config.toml` and
+`memory.db` (with its `-wal` / `-shm` files) to the new location once. It never overwrites
+existing files and is a no-op on Linux, where the paths are unchanged.
 
 In **portable mode** (a `portable` marker file sits next to the executable), both files are
 redirected to a `data/` folder beside the exe — safe to run from a USB drive with no writes
@@ -201,7 +207,7 @@ CREATE TABLE user_facts (
 
 **Connection:** one process-wide `rusqlite::Connection` held behind `OnceLock<Mutex<Connection>>`. `journal_mode=WAL` allows concurrent reads; `synchronous=NORMAL` and `busy_timeout=5s` cover edge cases.
 
-Config file at `~/.config/nekoai/config.toml`:
+Config file (`config.toml`, see the table above):
 
 ```toml
 provider = "gemini"

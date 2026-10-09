@@ -169,8 +169,8 @@ Community pets live in `pets-community/` and are listed in the in-app gallery.
 
 NekoAI has no backend servers and no telemetry. All data stays on the user's machine:
 
-- API keys: `~/.config/nekoai/config.toml` (or `./data/config.toml` in portable mode)
-- Conversation history: `~/.local/share/nekoai/memory.db` (or `./data/memory.db` in portable mode)
+- API keys: `config.toml` in the platform config dir (`~/.config/nekoai`, `%APPDATA%\nekoai`, `~/Library/Application Support/nekoai`), or `./data/` in portable mode
+- Conversation history: `memory.db` in the platform data dir (`~/.local/share/nekoai`, `%LOCALAPPDATA%\nekoai`, `~/Library/Application Support/nekoai`), or `./data/` in portable mode
 - Pet size preference: persisted in `configStore.ts` via `save_config` command
 - The only outbound network requests are direct calls to the AI provider the user configures
 - In portable mode (a `portable` file beside the exe), all data stays in the same folder as the exe — nothing written to the home directory

@@ -2288,6 +2288,7 @@ name = "nekoai"
 version = "0.3.8"
 dependencies = [
  "cairo-rs",
+ "dirs 6.0.0",
  "evdev",
  "gtk",
  "image",
