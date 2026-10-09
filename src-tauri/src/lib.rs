@@ -648,7 +648,8 @@ pub fn run() {
 
             // Position near house before making visible to avoid flash at (100, 100).
             // Measured from the work area, which excludes the taskbar / dock on any
-            // edge (HouseWindow.tsx places the house the same way):
+            // edge (HouseWindow.tsx places the house the same way; sizes in
+            // src/constants/layout.ts):
             // pet(32) + gap(4) + house(64) + margin(8) = 108 logical px from the right,
             // house(64) + margin(8) = 72 logical px from the bottom (pet top = house top).
             if let Ok(Some(monitor)) = window.primary_monitor() {

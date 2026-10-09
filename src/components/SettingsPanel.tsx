@@ -1,9 +1,8 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { invoke } from '@tauri-apps/api/core'
-import { getCurrentWindow, currentMonitor } from '@tauri-apps/api/window'
-import { PhysicalPosition } from '@tauri-apps/api/dpi'
 import { useConfigStore } from '../store/configStore'
-import { workAreaOf } from '../utils/monitor'
+import { usePanelWindow } from '../hooks/usePanelWindow'
+import { SETTINGS_H, SETTINGS_W } from '../constants/layout'
 import { createAIProvider, buildContextBlock } from '../ai'
 import {
   DEFAULT_MAX_TOKENS,
@@ -13,12 +12,6 @@ import {
   type AIConfig,
   type MaxTokensPreset,
 } from '../ai/types'
-
-// ─── Layout constants ─────────────────────────────────────────────────────────
-
-const PANEL_W = 280
-const PANEL_H = 600
-const SPRITE_SIZE = 32
 
 const RESPONSE_LENGTH_OPTIONS: {
   key: MaxTokensPreset
@@ -113,7 +106,6 @@ export function SettingsPanel({ isOpen, onClose }: Props) {
     String(config.maxTokens ?? DEFAULT_MAX_TOKENS)
   )
   const customInputRef = useRef<HTMLInputElement>(null)
-  const [savedPos, setSavedPos] = useState<{ x: number; y: number } | null>(null)
 
   // ── Drafts for the free-text config fields ─────────────────────────────────
   // Typing must not write config.toml (and broadcast to every window) on each
@@ -233,66 +225,7 @@ export function SettingsPanel({ isOpen, onClose }: Props) {
   }, [isOpen])
 
   // ── Expand / collapse the Tauri window ────────────────────────────────────
-  useEffect(() => {
-    let cancelled = false
-    const win = getCurrentWindow()
-
-    async function expand() {
-      try {
-        const [pos, monitor, cursor] = await Promise.all([
-          win.outerPosition(),
-          currentMonitor(),
-          invoke<{ x: number; y: number }>('get_cursor_pos'),
-        ])
-        if (cancelled) return
-        setSavedPos({ x: pos.x, y: pos.y })
-
-        // Usable bounds of the active monitor (excludes the taskbar / dock)
-        const scale = monitor?.scaleFactor ?? window.devicePixelRatio ?? 1
-        const { x: monX, y: monY, width: monW, height: monH } = workAreaOf(monitor)
-
-        // Panel physical size
-        const panelPhysW = PANEL_W * scale
-        const panelPhysH = PANEL_H * scale
-
-        // Quadrant relative to the current monitor
-        const openBelow = cursor.y - monY < monH / 2
-        const openRight = cursor.x - monX < monW / 2
-
-        let x = cursor.x + (openRight ? 0 : -panelPhysW)
-        let y = cursor.y + (openBelow ? 0 : -panelPhysH)
-
-        // Clamp inside the monitor
-        x = Math.max(monX, Math.min(x, monX + monW - panelPhysW))
-        y = Math.max(monY, Math.min(y, monY + monH - panelPhysH))
-
-        await win.setPosition(new PhysicalPosition(Math.round(x), Math.round(y)))
-        await invoke('resize_window', { width: PANEL_W, height: PANEL_H })
-      } catch (err) {
-        console.error('[SettingsPanel] expand error:', err)
-      }
-    }
-
-    async function collapse() {
-      if (!savedPos) return
-      const sz = useConfigStore.getState().config.petSize ?? SPRITE_SIZE
-      const snap = { ...savedPos }
-      setSavedPos(null)
-      try {
-        await invoke('resize_window', { width: sz, height: sz })
-        if (!cancelled) await win.setPosition(new PhysicalPosition(snap.x, snap.y))
-      } catch (err) {
-        console.error('[SettingsPanel] collapse error:', err)
-      }
-    }
-
-    if (isOpen) expand()
-    else collapse()
-
-    return () => {
-      cancelled = true
-    }
-  }, [isOpen]) // eslint-disable-line react-hooks/exhaustive-deps
+  usePanelWindow(isOpen, SETTINGS_W, SETTINGS_H, 'SettingsPanel')
 
   // ── Escape key closes without saving ─────────────────────────────────────
   useEffect(() => {
@@ -706,7 +639,7 @@ const styles: Record<string, React.CSSProperties> = {
     width: '280px',
     // The Memory section can push the content past the fixed window height;
     // scroll inside the card instead of clipping it.
-    maxHeight: PANEL_H - 8,
+    maxHeight: SETTINGS_H - 8,
     overflowY: 'auto',
     scrollbarWidth: 'thin',
     scrollbarColor: '#444 transparent',

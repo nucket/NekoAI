@@ -6,21 +6,21 @@ export interface UsePetTriggersOptions {
   petDef: PetDefinition | null
   /** OS idle time from useDesktopContext. */
   idleMinutes: number
-  /** True while an AI request is in flight. */
-  aiThinking: boolean
 }
 
 /**
  * App-level pet triggers (see src/pets/triggers.ts for the full map).
  * Returns the animation they want on screen, in priority order:
- * one-shot flash > on_ai_thinking > on_idle_* — and `fire` for
- * event-style triggers.
+ * one-shot flash > on_ai_thinking > on_idle_* — plus `fire` for event-style
+ * triggers and `setAiThinking` for the chat to report an in-flight request.
  */
-export function usePetTriggers({ petDef, idleMinutes, aiThinking }: UsePetTriggersOptions): {
+export function usePetTriggers({ petDef, idleMinutes }: UsePetTriggersOptions): {
   triggerAnim: string | null
   fire: (event: TriggerEvent) => void
+  setAiThinking: (thinking: boolean) => void
 } {
   const [flash, setFlash] = useState<string | null>(null)
+  const [aiThinking, setAiThinking] = useState(false)
   const flashTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const fire = useCallback(
@@ -70,5 +70,6 @@ export function usePetTriggers({ petDef, idleMinutes, aiThinking }: UsePetTrigge
   return {
     triggerAnim: flash ?? thinkingAnim ?? idleFlash ?? (idleLoops ? idleAnim : null),
     fire,
+    setAiThinking,
   }
 }

@@ -2,10 +2,9 @@ import { useEffect, useState } from 'react'
 import { invoke } from '@tauri-apps/api/core'
 import { getCurrentWindow } from '@tauri-apps/api/window'
 import { useConfigStore } from './store/configStore'
+import { MENU_H, MENU_W } from './constants/layout'
 
-// Layout constants — keep in sync with the parent App's expectations
-const MENU_W = 190
-const MENU_H = 260
+// Height of the About view (the menu itself is MENU_W × MENU_H).
 const ABOUT_H = 340
 
 const PET_SIZES: { label: string; value: number }[] = [
