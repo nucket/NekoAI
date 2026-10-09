@@ -16,10 +16,12 @@ NekoAI is designed with privacy as a core principle.
   - OpenAI — `https://api.openai.com`
   - Google Gemini — `https://generativelanguage.googleapis.com`
   - NVIDIA NIM — `https://integrate.api.nvidia.com` (proxied through the Rust `nvidia_chat` command to bypass WebView CORS; the destination is unchanged)
-  - Ollama — `http://localhost:11434` (loopback only — never leaves your machine)
+  - Ollama — `http://localhost:11434` by default, or the base URL you set in Settings (called from the Rust `ollama_detect` / `ollama_chat` commands, not from the WebView)
 - **API keys stored locally** in `~/.config/nekoai/config.toml`. They are never transmitted anywhere except to the provider whose key it is.
-- **Conversation history stored locally** in a SQLite database at `~/.local/share/nekoai/memory.db` (Linux), `%APPDATA%\nekoai\memory.db` (Windows) or `~/Library/Application Support/nekoai/memory.db` (macOS). The `conversations` table auto-prunes to the most recent 200 rows / 30 days to bound disk growth. **Settings → Memory** lists everything the pet has learned about you and lets you forget individual facts, clear the conversation history, or forget everything (`delete_user_fact`, `clear_conversations`, `clear_user_facts`).
-- **First-launch Ollama detection.** On first run, NekoAI pings `http://localhost:11434/api/tags` once with an 800ms timeout to detect a local Ollama install. The request is loopback only — it cannot leave your machine. Once onboarding completes, this probe does not run again.
+- **Conversation history stored locally** in a SQLite database at `~/.local/share/nekoai/memory.db`.
+- **Where these files live.** The same two paths are used on every OS. `~` is `$HOME` (on Windows, `%USERPROFILE%` unless `HOME` is set), and `$XDG_CONFIG_HOME` / `$XDG_DATA_HOME` override the `.config` / `.local/share` parts. In portable mode both files go to a `data/` folder next to the executable.
+- **Bounded history.** The `conversations` table auto-prunes to the most recent 200 rows / 30 days to bound disk growth. **Settings → Memory** lists everything the pet has learned about you and lets you forget individual facts, clear the conversation history, or forget everything (`delete_user_fact`, `clear_conversations`, `clear_user_facts`).
+- **First-launch Ollama detection.** On first run, NekoAI asks the Rust `ollama_detect` command to call `http://localhost:11434/api/tags` once, with a 2.5 s timeout, to detect a local Ollama install. The request is loopback only — it cannot leave your machine. Once onboarding completes, this probe does not run again.
 
 ### Public install metrics — not telemetry
 
@@ -31,9 +33,8 @@ The Tauri WebView ships with a restrictive CSP defined in `src-tauri/tauri.conf.
 
 - The three AI provider APIs called via `fetch()` from the WebView (Anthropic, OpenAI, Gemini)
 - Tauri IPC (`ipc:` and `http://ipc.localhost`)
-- Ollama on loopback (`http://localhost:11434`, `http://127.0.0.1:11434`)
 
-NVIDIA NIM is intentionally absent from `connect-src` because that call is made from native Rust (`reqwest`), not from the WebView.
+NVIDIA NIM and Ollama are intentionally absent from `connect-src` because those calls are made from native Rust (`reqwest`), not from the WebView.
 
 Other directives: `default-src 'self'`, `object-src 'none'`, `base-uri 'self'`, `frame-ancestors 'none'` — standard hardening that blocks plugin injection, base-tag tampering, and clickjacking. `style-src 'self' 'unsafe-inline'` is required because React applies inline `style={...}` attributes throughout the app. The `devCsp` variant additionally allows `'unsafe-eval'` and the Vite HMR WebSocket on `ws://localhost:1420` and `ws://localhost:1421`; production builds never receive either relaxation.
 

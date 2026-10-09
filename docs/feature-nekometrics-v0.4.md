@@ -20,7 +20,7 @@ The metrics are surfaced through:
 
 Inspiration: [BongoCat](https://github.com/Externalizable/bongo-cat) — viral reactive desktop pet that animates its paws on keystrokes. We borrow the _spirit_ (idle desktop pet that visualises input activity) but keep our own art and architecture.
 
-> **Privacy non-negotiable**: counts only, no key codes, no clipboards, no screen contents, no network calls. All metric data stays in the local SQLite DB the app already uses (`~/.local/share/nekoai/memory.db` on Linux, `%APPDATA%\nekoai\memory.db` on Windows, `~/Library/Application Support/nekoai/memory.db` on macOS).
+> **Privacy non-negotiable**: counts only, no key codes, no clipboards, no screen contents, no network calls. All metric data stays in the local SQLite DB the app already uses (`~/.local/share/nekoai/memory.db` on every OS; `~` is `%USERPROFILE%` on Windows).
 
 ---
 
