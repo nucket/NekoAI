@@ -17,6 +17,8 @@ const REAL_ASSETS = [
 const SKIP_ASSETS = [
   'nekoai_aarch64.app.tar.gz',
   'nekoai_x64.app.tar.gz',
+  'nekoai_0.4.0_aarch64.app.tar.gz',
+  'nekoai_0.4.0_x64.app.tar.gz',
   'nekoai_0.1.0_x64-setup.exe.sig',
   'nekoai_0.1.0_amd64.AppImage.sig',
   'latest.json',
