@@ -237,7 +237,7 @@ The overlay captures all mouse/keyboard events when active. A dedicated Vite ent
 | Ellipse     | ○    | `E`      | Hollow ellipse; circle with Shift        |
 | Arrow       | →    | `A`      | Line with arrowhead                      |
 | Text        | T    | `T`      | Click to place, type, confirm with Enter |
-| Highlighter | 🖊   | `H`      | Semi-transparent wide stroke             |
+| Highlighter | 🖊    | `H`      | Semi-transparent wide stroke             |
 | Eraser      | ⌫    | `X`      | Erase drawn elements                     |
 
 **Toolbar properties (always visible):**
