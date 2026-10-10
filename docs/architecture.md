@@ -139,7 +139,7 @@ Extracted facts are upserted into the `user_facts` SQLite table.
 Default paths (installed mode), resolved with the `dirs` crate (`storage::config_path` /
 `storage::db_path`):
 
-| OS      | `config.toml` (settings, API keys)                 | `memory.db` (history, facts)                     |
+| OS      | `config.toml` (settings)                           | `memory.db` (history, facts)                     |
 | ------- | -------------------------------------------------- | ------------------------------------------------ |
 | Linux   | `~/.config/nekoai/config.toml`                     | `~/.local/share/nekoai/memory.db`                |
 | Windows | `%APPDATA%\nekoai\config.toml`                     | `%LOCALAPPDATA%\nekoai\memory.db`                |
@@ -209,9 +209,13 @@ Config file (`config.toml`, see the table above):
 
 ```toml
 provider = "gemini"
-api_key  = "AIza..."
 model    = "gemini-2.5-flash"
 ```
+
+The API key is not in this file: `secrets.rs` keeps it in the OS credential store — Windows Credential Manager, the macOS Keychain, or the Secret Service (GNOME Keyring / KWallet) on Linux. `get_config`, `patch_config` and
+the `config-updated` event send WebViews a `PublicConfig` (no key, plus `hasApiKey`), and `ai_chat` reads the
+key on the Rust side. Without a usable credential store, and in portable mode, the key falls back to
+`config.toml` (owner-only on Unix).
 
 Default is Gemini because Google AI Studio offers a free tier with no credit card. `configStore.ts` `DEFAULT_CONFIG` and `storage.rs` `AIConfig::default()` must always stay in sync.
 
@@ -261,7 +265,7 @@ After ollama_found | needs_setup:
   → user clicks CTA → dismiss() → setState('done') → cursor following re-enables
 ```
 
-`isConfigured(config)` helper: Ollama is always ready; every other provider needs a non-empty `apiKey`.
+`isConfigured(config)` helper: Ollama is always ready; every other provider needs a stored key (`hasApiKey`).
 
 ## Data flow diagram (chat turn)
 

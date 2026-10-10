@@ -191,12 +191,13 @@ Configuration is auto-created on first run:
 # config.toml (auto-created on first run)
 # Linux: ~/.config/nekoai · Windows: %APPDATA%\nekoai · macOS: ~/Library/Application Support/nekoai
 
-provider   = "gemini"            # "anthropic" | "openai" | "gemini" | "nvidia" | "ollama"
-api_key    = "AIza..."           # Stored locally, never sent anywhere
-model      = "gemini-2.5-flash"
-pet_size   = 64                  # pixels (32, 64, 96, or 128)
-max_tokens = 512                 # 256 (Short) | 512 (Medium, default) | 1024 (Long) | 32–4096 (Custom)
+provider  = "gemini"            # "anthropic" | "openai" | "gemini" | "nvidia" | "ollama"
+model     = "gemini-2.5-flash"
+petSize   = 64                  # pixels (32, 64, 96, or 128)
+maxTokens = 512                 # 256 (Short) | 512 (Medium, default) | 1024 (Long) | 32–4096 (Custom)
 ```
+
+The API key you enter in Settings is kept in your system's credential store (Windows Credential Manager, macOS Keychain, or GNOME Keyring / KWallet on Linux), not in this file.
 
 > 🪄 **New user?** NekoAI auto-detects a running Ollama instance and configures itself on first launch — no settings required. Otherwise it guides you to set up your preferred provider.
 

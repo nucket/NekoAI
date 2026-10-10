@@ -1,3 +1,4 @@
+use crate::secrets::{self, SecretStore};
 use rusqlite::{params, Connection};
 use serde::{Deserialize, Serialize};
 use std::io::{ErrorKind, Write};
@@ -70,6 +71,30 @@ impl Default for AIConfig {
             ollama_auto_detected: None,
             max_tokens: None,
             pet_size: None,
+        }
+    }
+}
+
+/// The config as the WebViews see it: the API key is never sent to them,
+/// only whether one is stored. Provider calls read the key on the Rust side.
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct PublicConfig {
+    #[serde(flatten)]
+    pub config: AIConfig,
+    pub has_api_key: bool,
+}
+
+impl From<AIConfig> for PublicConfig {
+    fn from(mut config: AIConfig) -> Self {
+        let has_api_key = config
+            .api_key
+            .as_deref()
+            .is_some_and(|k| !k.trim().is_empty());
+        config.api_key = None;
+        PublicConfig {
+            config,
+            has_api_key,
         }
     }
 }
@@ -226,12 +251,78 @@ fn migrate_files(from: &Path, to: &Path, names: &[&str]) -> std::io::Result<usiz
 
 // ─── Config (TOML) ────────────────────────────────────────────────────────────
 
-pub fn read_config() -> AIConfig {
-    read_config_from(&config_path())
+/// The full config, API key included (from the OS credential store, or from
+/// the file when no store is available). Never send this to a WebView; use
+/// `PublicConfig`.
+pub fn load_config() -> AIConfig {
+    load_config_with(&config_path(), secrets::os_store())
 }
 
-pub fn write_config(config: &AIConfig) -> Result<(), String> {
-    write_config_to(&config_path(), config)
+/// Saves the config, putting the API key in the OS credential store rather
+/// than in config.toml when one is available. `api_key: None` removes it.
+pub fn save_config(config: &AIConfig) -> Result<(), String> {
+    save_config_with(&config_path(), secrets::os_store(), config)
+}
+
+fn non_empty(key: Option<&str>) -> Option<&str> {
+    key.map(str::trim).filter(|k| !k.is_empty())
+}
+
+fn load_config_with(path: &Path, store: Option<&dyn SecretStore>) -> AIConfig {
+    let mut config = read_config_from(path);
+    let Some(store) = store else {
+        return config;
+    };
+
+    if let Some(key) = non_empty(config.api_key.as_deref()).map(str::to_string) {
+        // A key still in the file: written by a version before the credential
+        // store, or by the file fallback. Move it into the store and strip it
+        // from the file; if the store is unavailable, keep using the file.
+        if store.set(&key).is_ok() {
+            let mut on_disk = config.clone();
+            on_disk.api_key = None;
+            if let Err(e) = write_config_to(path, &on_disk) {
+                eprintln!(
+                    "[storage] API key moved to the keychain, but config.toml kept a copy: {e}"
+                );
+            }
+        }
+        config.api_key = Some(key);
+        return config;
+    }
+
+    match store.get() {
+        Ok(key) => config.api_key = key,
+        Err(e) => eprintln!("[storage] credential store unavailable: {e}"),
+    }
+    config
+}
+
+fn save_config_with(
+    path: &Path,
+    store: Option<&dyn SecretStore>,
+    config: &AIConfig,
+) -> Result<(), String> {
+    let mut on_disk = config.clone();
+    if let Some(store) = store {
+        match non_empty(config.api_key.as_deref()) {
+            Some(key) => match store.set(key) {
+                Ok(()) => on_disk.api_key = None,
+                // No usable credential store (e.g. no Secret Service running):
+                // keep the key in config.toml, which is owner-only on Unix.
+                Err(e) => eprintln!(
+                    "[storage] credential store unavailable, keeping the key in config.toml: {e}"
+                ),
+            },
+            None => {
+                on_disk.api_key = None;
+                if let Err(e) = store.delete() {
+                    eprintln!("[storage] could not remove the stored API key: {e}");
+                }
+            }
+        }
+    }
+    write_config_to(path, &on_disk)
 }
 
 /// A missing file yields the defaults. A file that exists but can't be read or
@@ -279,7 +370,16 @@ fn write_config_to(path: &Path, config: &AIConfig) -> Result<(), String> {
     }
     let text = toml::to_string(config).map_err(|e| e.to_string())?;
     let tmp = path.with_extension("toml.tmp");
-    let mut file = std::fs::File::create(&tmp).map_err(|e| e.to_string())?;
+    let mut options = std::fs::OpenOptions::new();
+    options.write(true).create(true).truncate(true);
+    // Owner-only on Unix: the file can hold an API key when no credential
+    // store is available (and always in portable mode).
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::OpenOptionsExt;
+        options.mode(0o600);
+    }
+    let mut file = options.open(&tmp).map_err(|e| e.to_string())?;
     file.write_all(text.as_bytes()).map_err(|e| e.to_string())?;
     file.sync_all().map_err(|e| e.to_string())?;
     drop(file);
@@ -296,8 +396,8 @@ static CONFIG_LOCK: Mutex<()> = Mutex::new(());
 /// window's edits.
 pub fn patch_config(patch: &serde_json::Value) -> Result<AIConfig, String> {
     let _guard = CONFIG_LOCK.lock().unwrap_or_else(|p| p.into_inner());
-    let config = merge_config(&read_config(), patch)?;
-    write_config(&config)?;
+    let config = merge_config(&load_config(), patch)?;
+    save_config(&config)?;
     Ok(config)
 }
 
@@ -309,6 +409,10 @@ fn merge_config(current: &AIConfig, patch: &serde_json::Value) -> Result<AIConfi
     let mut merged = serde_json::to_value(current).map_err(|e| e.to_string())?;
     let target = merged.as_object_mut().ok_or("config is not an object")?;
     for (key, value) in fields {
+        // Read-only view field from PublicConfig, not part of the stored config.
+        if key == "hasApiKey" {
+            continue;
+        }
         if value.is_null() {
             target.remove(key);
         } else {
@@ -319,7 +423,7 @@ fn merge_config(current: &AIConfig, patch: &serde_json::Value) -> Result<AIConfi
     // serde drops unknown keys on deserialize; spot them by re-serializing.
     let known = serde_json::to_value(&config).map_err(|e| e.to_string())?;
     for (key, value) in fields {
-        if !value.is_null() && known.get(key).is_none() {
+        if key != "hasApiKey" && !value.is_null() && known.get(key).is_none() {
             return Err(format!("unknown config field: {key}"));
         }
     }
@@ -672,6 +776,103 @@ mod tests {
         assert_eq!(read.provider, "anthropic");
         assert_eq!(read.api_key.as_deref(), Some("sk-test"));
         assert!(!path.with_extension("toml.tmp").exists());
+    }
+
+    fn keyed_config() -> AIConfig {
+        AIConfig {
+            provider: "openai".into(),
+            api_key: Some("sk-secret".into()),
+            ..AIConfig::default()
+        }
+    }
+
+    fn file_has_key(path: &Path) -> bool {
+        std::fs::read_to_string(path).unwrap().contains("sk-secret")
+    }
+
+    #[test]
+    fn a_plaintext_key_moves_to_the_credential_store() {
+        let path = temp_config("keychain-migrate");
+        write_config_to(&path, &keyed_config()).unwrap();
+        let store = secrets::MemoryStore::new();
+
+        let loaded = load_config_with(&path, Some(&store));
+        assert_eq!(loaded.api_key.as_deref(), Some("sk-secret"));
+        assert_eq!(store.current().as_deref(), Some("sk-secret"));
+        assert!(!file_has_key(&path));
+        // The file keeps everything else.
+        assert_eq!(read_config_from(&path).provider, "openai");
+    }
+
+    #[test]
+    fn saving_keeps_the_key_out_of_the_file_and_none_removes_it() {
+        let path = temp_config("keychain-save");
+        let store = secrets::MemoryStore::new();
+
+        save_config_with(&path, Some(&store), &keyed_config()).unwrap();
+        assert!(!file_has_key(&path));
+        assert_eq!(
+            load_config_with(&path, Some(&store)).api_key.as_deref(),
+            Some("sk-secret")
+        );
+
+        let cleared = AIConfig {
+            api_key: None,
+            ..keyed_config()
+        };
+        save_config_with(&path, Some(&store), &cleared).unwrap();
+        assert_eq!(store.current(), None);
+        assert_eq!(load_config_with(&path, Some(&store)).api_key, None);
+    }
+
+    #[test]
+    fn without_a_usable_store_the_key_stays_in_the_file() {
+        let path = temp_config("keychain-fallback");
+        let broken = secrets::MemoryStore::broken();
+        save_config_with(&path, Some(&broken), &keyed_config()).unwrap();
+        assert!(file_has_key(&path));
+        assert_eq!(
+            load_config_with(&path, Some(&broken)).api_key.as_deref(),
+            Some("sk-secret")
+        );
+
+        // Portable mode: no store at all.
+        let path = temp_config("keychain-portable");
+        save_config_with(&path, None, &keyed_config()).unwrap();
+        assert!(file_has_key(&path));
+        assert_eq!(
+            load_config_with(&path, None).api_key.as_deref(),
+            Some("sk-secret")
+        );
+    }
+
+    #[test]
+    fn public_config_never_carries_the_key() {
+        let public = PublicConfig::from(keyed_config());
+        assert!(public.has_api_key);
+        let json = serde_json::to_value(&public).unwrap();
+        assert!(json.get("apiKey").is_none());
+        assert_eq!(json["hasApiKey"], true);
+        assert_eq!(json["provider"], "openai");
+        assert!(!PublicConfig::from(AIConfig::default()).has_api_key);
+    }
+
+    #[test]
+    fn patches_may_echo_has_api_key() {
+        let patch = serde_json::json!({ "hasApiKey": true, "model": "gpt-4o" });
+        let merged = merge_config(&keyed_config(), &patch).unwrap();
+        assert_eq!(merged.model, "gpt-4o");
+        assert_eq!(merged.api_key.as_deref(), Some("sk-secret"));
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn config_file_is_owner_only() {
+        use std::os::unix::fs::PermissionsExt;
+        let path = temp_config("perms");
+        write_config_to(&path, &keyed_config()).unwrap();
+        let mode = std::fs::metadata(&path).unwrap().permissions().mode();
+        assert_eq!(mode & 0o777, 0o600);
     }
 
     #[test]

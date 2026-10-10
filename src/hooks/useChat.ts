@@ -22,7 +22,7 @@ export function useChat({ petDef, onThinkingChange, onResponse }: UseChatOptions
     async (text: string): Promise<string> => {
       const { config: cfg } = useConfigStore.getState()
 
-      if (!cfg.apiKey && cfg.provider !== 'ollama') {
+      if (!cfg.hasApiKey && cfg.provider !== 'ollama') {
         return 'Nyaa~ I need an API key to talk! Set one in Settings 🐾'
       }
 

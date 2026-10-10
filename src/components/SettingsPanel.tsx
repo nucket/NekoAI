@@ -57,10 +57,11 @@ const DEFAULT_OLLAMA_URL = 'http://localhost:11434'
 
 type DraftField = 'apiKey' | 'model' | 'baseUrl'
 
-// What a draft input shows for the stored config value.
+// What a draft input shows for the stored config value. The API key is never
+// sent to the WebView, so its input starts empty and only ever holds a new key.
 function storedDraftValue(config: AIConfig, field: DraftField): string {
   if (field === 'model') return config.model
-  if (field === 'apiKey') return config.apiKey ?? ''
+  if (field === 'apiKey') return ''
   return config.baseUrl ?? DEFAULT_OLLAMA_URL
 }
 
@@ -119,11 +120,11 @@ export function SettingsPanel({ isOpen, onClose }: Props) {
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setDrafts({
-      apiKey: config.apiKey ?? '',
+      apiKey: '',
       model: config.model,
       baseUrl: config.baseUrl ?? DEFAULT_OLLAMA_URL,
     })
-  }, [config.apiKey, config.model, config.baseUrl])
+  }, [config.hasApiKey, config.model, config.baseUrl])
 
   // ── Memory (learned facts + chat history) ──────────────────────────────────
   const [facts, setFacts] = useState<Record<string, string>>({})
@@ -273,13 +274,18 @@ export function SettingsPanel({ isOpen, onClose }: Props) {
     (field: DraftField) => {
       const value = drafts[field].trim()
       if (value === storedDraftValue(config, field)) return
+      // An empty key input means "keep the stored key"; removing it is the
+      // explicit Remove button.
       if (field === 'model' && !value) {
         // A model is required — snap back instead of saving an empty one.
         setDrafts((d) => ({ ...d, model: config.model }))
         return
       }
-      // An emptied API key / base URL is cleared (null) rather than stored as ''.
+      // An emptied base URL is cleared (null) rather than stored as ''.
       void updateConfig({ [field]: value || null })
+      // Once handed to the backend the key leaves the WebView; the input goes
+      // back to the "saved" placeholder.
+      if (field === 'apiKey') setDrafts((d) => ({ ...d, apiKey: '' }))
     },
     [drafts, config, updateConfig]
   )
@@ -327,7 +333,7 @@ export function SettingsPanel({ isOpen, onClose }: Props) {
   if (!isOpen) return null
 
   const isOllama = config.provider === 'ollama'
-  const hasCredentials = isOllama || !!config.apiKey
+  const hasCredentials = isOllama || !!config.hasApiKey
   const status: 'connected' | 'untested' | 'disconnected' = !hasCredentials
     ? 'disconnected'
     : testStatus === 'ok'
@@ -398,7 +404,11 @@ export function SettingsPanel({ isOpen, onClose }: Props) {
                 onChange={(e) => setDrafts((d) => ({ ...d, apiKey: e.target.value }))}
                 onBlur={() => commitDraft('apiKey')}
                 onKeyDown={blurOnEnter}
-                placeholder={PROVIDER_DEFAULTS[config.provider]?.placeholder ?? ''}
+                placeholder={
+                  config.hasApiKey
+                    ? 'Saved in your system keychain — type to replace'
+                    : (PROVIDER_DEFAULTS[config.provider]?.placeholder ?? '')
+                }
                 autoComplete="off"
               />
               <button
@@ -408,6 +418,15 @@ export function SettingsPanel({ isOpen, onClose }: Props) {
               >
                 {showKey ? '🙈' : '👁'}
               </button>
+              {config.hasApiKey && (
+                <button
+                  style={styles.eyeBtn}
+                  onClick={() => void updateConfig({ apiKey: null })}
+                  title="Remove the saved API key"
+                >
+                  🗑
+                </button>
+              )}
             </div>
           </>
         )}
