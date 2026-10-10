@@ -17,11 +17,11 @@ NekoAI is designed with privacy as a core principle.
   - Google Gemini — `https://generativelanguage.googleapis.com`
   - NVIDIA NIM — `https://integrate.api.nvidia.com`
   - Ollama — `http://localhost:11434` by default, or the `http://` / `https://` base URL you set in Settings
-- **API keys stored locally** in `config.toml`. They are never transmitted anywhere except to the provider whose key it is.
+- **API keys stored locally** in the OS credential store — Windows Credential Manager, the macOS Keychain, or the Secret Service (GNOME Keyring / KWallet) on Linux, not in `config.toml`. They are only ever sent to the provider whose key it is, from the app's native side; the WebView never receives them (it only learns whether a key is saved). If no credential store is available (e.g. a Linux session without a Secret Service) and in portable mode, the key stays in `config.toml`, which is created owner-only (`0600`) on Linux and macOS. A key found in `config.toml` from an older version is moved to the credential store on first launch.
 - **Conversation history stored locally** in a SQLite database, `memory.db`.
 - **Where these files live.** In the platform's standard app directories (on Linux, `$XDG_CONFIG_HOME` / `$XDG_DATA_HOME` override `~/.config` / `~/.local/share`). In portable mode both files go to a `data/` folder next to the executable. Versions up to 0.3.x used the Linux paths on every OS; the first launch of a newer version moves the files over.
 
-| OS      | `config.toml` (settings, API keys)                 | `memory.db` (history, facts)                     |
+| OS      | `config.toml` (settings)                           | `memory.db` (history, facts)                     |
 | ------- | -------------------------------------------------- | ------------------------------------------------ |
 | Linux   | `~/.config/nekoai/config.toml`                     | `~/.local/share/nekoai/memory.db`                |
 | Windows | `%APPDATA%\nekoai\config.toml`                     | `%LOCALAPPDATA%\nekoai\memory.db`                |

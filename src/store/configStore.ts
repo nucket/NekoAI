@@ -26,7 +26,7 @@ interface ConfigStore {
 }
 
 export function isConfigured(config: AIConfig): boolean {
-  return config.provider === 'ollama' ? true : !!config.apiKey
+  return config.provider === 'ollama' ? true : !!config.hasApiKey
 }
 
 // Mirror of `AIConfig::default()` in src-tauri/src/storage.rs — keep in sync.
@@ -43,6 +43,12 @@ function applyPatch(config: AIConfig, patch: ConfigPatch): AIConfig {
   for (const [key, value] of Object.entries(patch)) {
     if (value === null) delete next[key]
     else if (value !== undefined) next[key] = value
+  }
+  // The key itself is never kept in the store (the backend holds it); only
+  // whether there is one.
+  if ('apiKey' in patch) {
+    next.hasApiKey = !!patch.apiKey
+    delete next.apiKey
   }
   return next as AIConfig
 }

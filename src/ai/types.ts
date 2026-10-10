@@ -47,7 +47,12 @@ export interface AIProvider {
 
 export type AIConfig = {
   provider: 'anthropic' | 'openai' | 'ollama' | 'gemini' | 'nvidia'
+  // Write-only from the WebView's point of view: send it in a patch to store
+  // a new key (or null to remove it). The backend keeps the key in the OS
+  // credential store and never sends it back — it reports `hasApiKey`.
   apiKey?: string
+  /** Read-only: whether an API key is stored. Set by the backend. */
+  hasApiKey?: boolean
   model: string
   baseUrl?: string
   petSize?: number

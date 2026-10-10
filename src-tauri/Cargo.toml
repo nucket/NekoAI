@@ -29,6 +29,9 @@ rusqlite = { version = "0.40", features = ["bundled"] }
 reqwest = { version = "0.13", default-features = false, features = ["json", "native-tls", "charset", "http2", "system-proxy"] }
 toml = "1"
 dirs = "6"
+# API key storage: Windows Credential Manager, macOS Keychain, Secret Service on
+# Linux (each backend only builds on its own OS).
+keyring = { version = "3.6", features = ["apple-native", "windows-native", "sync-secret-service", "crypto-rust"] }
 
 [target.'cfg(target_os = "linux")'.dependencies]
 x11rb = { version = "0.14", features = ["screensaver"] }

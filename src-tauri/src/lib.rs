@@ -15,8 +15,9 @@ use tauri::{
 mod ai;
 mod cursor_tracker;
 mod desktop_monitor;
+mod secrets;
 mod storage;
-use storage::{AIConfig, StoredMessage};
+use storage::{AIConfig, PublicConfig, StoredMessage};
 
 /// Wraps the shutdown sender for the notification monitor thread so it can be
 /// signalled from the Tauri RunEvent::Exit handler. The Option lets the
@@ -293,17 +294,25 @@ async fn panel_action(app: tauri::AppHandle, action: String) -> Result<(), Strin
 
 // ─── Config commands ──────────────────────────────────────────────────────────
 
-#[tauri::command]
-fn get_config() -> AIConfig {
-    storage::read_config()
-}
+// The WebViews only ever receive `PublicConfig`: the API key stays on the
+// Rust side (OS credential store) and is read by `ai_chat` itself.
 
 #[tauri::command]
-fn save_config(app: tauri::AppHandle, config: AIConfig) -> Result<(), String> {
-    storage::write_config(&config)?;
+fn get_config() -> PublicConfig {
+    storage::load_config().into()
+}
+
+/// Replaces the whole config. A config without `apiKey` keeps the stored key
+/// (WebViews never have it); clear it through `patch_config` with `null`.
+#[tauri::command]
+fn save_config(app: tauri::AppHandle, mut config: AIConfig) -> Result<(), String> {
+    if config.api_key.is_none() {
+        config.api_key = storage::load_config().api_key;
+    }
+    storage::save_config(&config)?;
     // Notify all windows (main, panel, house) with the new config so each
     // WebView's configStore adopts it.
-    app.emit("config-updated", config).ok();
+    app.emit("config-updated", PublicConfig::from(config)).ok();
     Ok(())
 }
 
@@ -312,8 +321,8 @@ fn save_config(app: tauri::AppHandle, config: AIConfig) -> Result<(), String> {
 /// windows send only the fields they changed, so a stale copy in one window
 /// can no longer overwrite another window's edits.
 #[tauri::command]
-fn patch_config(app: tauri::AppHandle, patch: serde_json::Value) -> Result<AIConfig, String> {
-    let config = storage::patch_config(&patch)?;
+fn patch_config(app: tauri::AppHandle, patch: serde_json::Value) -> Result<PublicConfig, String> {
+    let config = PublicConfig::from(storage::patch_config(&patch)?);
     app.emit("config-updated", config.clone()).ok();
     Ok(config)
 }
@@ -368,8 +377,17 @@ fn clear_user_facts() -> Result<u32, String> {
 // timeout, structured errors, and no CORS or third-party hosts in the
 // WebView's CSP.
 
+/// The API key comes from the request when Settings is testing one that was
+/// just typed, and otherwise from the credential store.
 #[tauri::command]
-async fn ai_chat(request: ai::ChatRequest) -> Result<String, ai::AiError> {
+async fn ai_chat(mut request: ai::ChatRequest) -> Result<String, ai::AiError> {
+    if request
+        .api_key
+        .as_deref()
+        .is_none_or(|k| k.trim().is_empty())
+    {
+        request.api_key = storage::load_config().api_key;
+    }
     ai::chat(request).await
 }
 
