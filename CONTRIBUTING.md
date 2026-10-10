@@ -83,11 +83,12 @@ cargo clippy               # Lint Rust code (from src-tauri/)
 nekoai/
 ├── src/                        # TypeScript/React frontend
 │   ├── pets/PetRenderer.tsx    # Sprite animation engine
-│   ├── ai/providers/           # Anthropic, OpenAI, Ollama adapters
+│   ├── ai/                     # ai_chat wrapper, prompt builder, memory, errors
 │   ├── components/             # SpeechBubble, SettingsPanel
 │   └── hooks/usePetMovement.ts # Movement state machine
 ├── src-tauri/src/              # Rust backend
 │   ├── lib.rs                  # App setup, tray, all Tauri commands
+│   ├── ai.rs                   # All AI provider HTTP calls (behind ai_chat)
 │   ├── main.rs                 # App entry (calls lib::run())
 │   ├── desktop_monitor.rs      # OS window detection, idle time, session type
 │   ├── cursor_tracker.rs       # Wayland cursor fallback (evdev /dev/input reader)
