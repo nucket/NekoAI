@@ -11,12 +11,12 @@
 NekoAI is designed with privacy as a core principle.
 
 - **No telemetry in the app.** No analytics, no crash reports, no background reporting. The only outbound network calls from the app are the AI provider calls listed below and a single loopback probe for Ollama on first launch.
-- **AI providers** — calls go directly from your machine to the provider you select. NekoAI has no proxy, no relay, and no infrastructure of its own.
+- **AI providers** — calls go directly from your machine to the provider you select. NekoAI has no proxy, no relay, and no infrastructure of its own. Every call is made by the app's native side (the Rust `ai_chat` command), never by the WebView.
   - Anthropic Claude — `https://api.anthropic.com`
   - OpenAI — `https://api.openai.com`
   - Google Gemini — `https://generativelanguage.googleapis.com`
-  - NVIDIA NIM — `https://integrate.api.nvidia.com` (proxied through the Rust `nvidia_chat` command to bypass WebView CORS; the destination is unchanged)
-  - Ollama — `http://localhost:11434` by default, or the base URL you set in Settings (called from the Rust `ollama_detect` / `ollama_chat` commands, not from the WebView)
+  - NVIDIA NIM — `https://integrate.api.nvidia.com`
+  - Ollama — `http://localhost:11434` by default, or the `http://` / `https://` base URL you set in Settings
 - **API keys stored locally** in `config.toml`. They are never transmitted anywhere except to the provider whose key it is.
 - **Conversation history stored locally** in a SQLite database, `memory.db`.
 - **Where these files live.** In the platform's standard app directories (on Linux, `$XDG_CONFIG_HOME` / `$XDG_DATA_HOME` override `~/.config` / `~/.local/share`). In portable mode both files go to a `data/` folder next to the executable. Versions up to 0.3.x used the Linux paths on every OS; the first launch of a newer version moves the files over.
@@ -36,12 +36,7 @@ The repository publishes daily snapshots of public GitHub download counts on the
 
 ## Web Content Security Policy
 
-The Tauri WebView ships with a restrictive CSP defined in `src-tauri/tauri.conf.json`. The `connect-src` directive enumerates exactly the network endpoints the WebView is allowed to reach:
-
-- The three AI provider APIs called via `fetch()` from the WebView (Anthropic, OpenAI, Gemini)
-- Tauri IPC (`ipc:` and `http://ipc.localhost`)
-
-NVIDIA NIM and Ollama are intentionally absent from `connect-src` because those calls are made from native Rust (`reqwest`), not from the WebView.
+The Tauri WebView ships with a restrictive CSP defined in `src-tauri/tauri.conf.json`. Its `connect-src` allows only the app itself and Tauri IPC (`'self'`, `ipc:`, `http://ipc.localhost`): no third-party host at all. AI provider calls are made from native Rust (`reqwest`, in `src-tauri/src/ai.rs`), so the WebView needs no network access of its own.
 
 Other directives: `default-src 'self'`, `object-src 'none'`, `base-uri 'self'`, `frame-ancestors 'none'` — standard hardening that blocks plugin injection, base-tag tampering, and clickjacking. `style-src 'self' 'unsafe-inline'` is required because React applies inline `style={...}` attributes throughout the app. The `devCsp` variant additionally allows `'unsafe-eval'` and the Vite HMR WebSocket on `ws://localhost:1420` and `ws://localhost:1421`; production builds never receive either relaxation.
 

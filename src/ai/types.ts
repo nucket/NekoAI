@@ -5,7 +5,8 @@
 //     staying fast on cloud providers and acceptable on local models
 // Users can override per-session via Settings → Response length (Short / Medium
 // / Long). Each provider reads `config.maxTokens ?? DEFAULT_MAX_TOKENS`.
-// Keep in sync with `DEFAULT_MAX_TOKENS` in src-tauri/src/lib.rs (NVIDIA/Ollama).
+// Keep in sync with `DEFAULT_MAX_TOKENS` in src-tauri/src/ai.rs (used when a
+// request carries no maxTokens).
 export const DEFAULT_MAX_TOKENS = 512
 
 // Named presets surfaced in the Settings UI. The numeric value is what reaches

@@ -127,7 +127,8 @@ Extracted facts are upserted into the `user_facts` SQLite table.
 | `delete_user_fact` / `clear_user_facts`  | Forget one fact / all facts (Settings → Memory)                     |
 | `get_active_window`                      | Foreground window title + process name                              |
 | `get_idle_millis`                        | OS-wide idle time in milliseconds                                   |
-| `nvidia_chat`                            | Native HTTP call to NVIDIA NIM API (bypasses WebView CORS)          |
+| `ai_chat`                                | Send a chat turn to the configured AI provider (`ai.rs`)            |
+| `ollama_detect`                          | List models of a local Ollama daemon (onboarding)                   |
 | `open_url`                               | Open a URL or mailto link via the system browser                    |
 | `autostart_status`                       | Launch-at-login state (`null` in portable mode)                     |
 | `enable_autostart` / `disable_autostart` | Launch-at-login (Settings → "Start NekoAI with the system")         |
@@ -179,12 +180,9 @@ The WebView runs with a strict CSP defined in `src-tauri/tauri.conf.json` (`app.
 | ------------------------------------------- | ------------------------------------ |
 | `'self'`                                    | `pet.json`, `manifest.json`, sprites |
 | `ipc:` / `http://ipc.localhost`             | Tauri IPC (`invoke()`)               |
-| `https://api.anthropic.com`                 | Anthropic provider                   |
-| `https://api.openai.com`                    | OpenAI provider                      |
-| `https://generativelanguage.googleapis.com` | Gemini provider                      |
 | `ws://localhost:1420` + `1421` _(dev only)_ | Vite HMR WebSocket                   |
 
-NVIDIA NIM and Ollama are intentionally absent from `connect-src` — they are reached from native Rust via `nvidia_chat` and `ollama_detect` / `ollama_chat`, so the WebView never touches `integrate.api.nvidia.com` or the Ollama daemon. If you add a new provider that calls `fetch()` directly, append its host to `connect-src` (and to `devCsp`).
+No AI provider is listed: all five are reached from native Rust through `ai_chat` (`src-tauri/src/ai.rs`), and Ollama detection through `ollama_detect`. Add a new provider there, not as a WebView `fetch()`, so `connect-src` can stay limited to IPC.
 
 ```sql
 CREATE TABLE conversations (
@@ -248,7 +246,7 @@ config loaded
      │
      ├─ onboardingCompleted=true OR isConfigured(config)=true → done (silent stamp if needed)
      │
-     └─ detecting: OllamaProvider.detect() → Rust ollama_detect (2.5 s timeout, GET /api/tags)
+     └─ detecting: detectOllama() → Rust ollama_detect (2.5 s timeout, GET /api/tags)
               │
               ├─ ok + models ≥ 1 → applyOllamaAutoConfig(models[0])
               │                     setState('ollama_found')
@@ -281,7 +279,7 @@ App.handleSendMessage(text)
         │                                       ─┘
         ├─ buildContextBlock(petName, facts, mood)
         ├─ provider.sendMessage(history, systemPrompt)
-        │        └─ fetch() to AI API
+        │        └─ invoke('ai_chat') → Rust (reqwest) → AI API
         ├─ invoke('save_message', assistant)
         └─ extractAndSaveFacts(text, reply)  ← fire and forget
 ```

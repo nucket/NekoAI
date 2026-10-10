@@ -1,27 +1,33 @@
 export type { AIProvider, AIConfig, Message } from './types'
 
+import { invoke } from '@tauri-apps/api/core'
 import { DEFAULT_MAX_TOKENS, MAX_TOKENS_PRESETS, type AIProvider, type AIConfig } from './types'
-import { AnthropicProvider } from './providers/anthropic'
-import { OpenAIProvider } from './providers/openai'
-import { OllamaProvider } from './providers/ollama'
-import { GeminiProvider } from './providers/gemini'
-import { NvidiaProvider } from './providers/nvidia'
+import { toAiError } from './errors'
 
+/**
+ * A chat client for the configured provider. Every provider call is made by
+ * the Rust `ai_chat` command (src-tauri/src/ai.rs), so the WebView never
+ * talks to a provider directly; failures reject with an `AiRequestError`.
+ */
 export function createAIProvider(config: AIConfig): AIProvider {
-  const tokens = config.maxTokens
-  switch (config.provider) {
-    case 'anthropic':
-      return new AnthropicProvider(config.apiKey ?? '', config.model, tokens)
-    case 'openai':
-      return new OpenAIProvider(config.apiKey ?? '', config.model, tokens)
-    case 'ollama':
-      return new OllamaProvider(config.model, config.baseUrl, tokens)
-    case 'gemini':
-      return new GeminiProvider(config.apiKey ?? '', config.model, tokens)
-    case 'nvidia':
-      return new NvidiaProvider(config.apiKey ?? '', config.model, tokens)
-    default:
-      throw new Error(`Unknown AI provider: ${(config as AIConfig).provider}`)
+  return {
+    async sendMessage(messages, systemPrompt) {
+      try {
+        return await invoke<string>('ai_chat', {
+          request: {
+            provider: config.provider,
+            apiKey: config.apiKey,
+            model: config.model,
+            baseUrl: config.baseUrl,
+            messages,
+            systemPrompt,
+            maxTokens: config.maxTokens,
+          },
+        })
+      } catch (err) {
+        throw toAiError(err)
+      }
+    },
   }
 }
 

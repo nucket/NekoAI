@@ -12,6 +12,7 @@ use tauri::{
     Emitter, Manager, RunEvent,
 };
 
+mod ai;
 mod cursor_tracker;
 mod desktop_monitor;
 mod storage;
@@ -361,179 +362,21 @@ fn clear_user_facts() -> Result<u32, String> {
     storage::clear_user_facts()
 }
 
-// ─── Shared HTTP client ──────────────────────────────────────────────────────
-
-/// One `reqwest::Client` for every provider call, so connections and TLS
-/// sessions are pooled instead of rebuilt per request. Timeouts are set per
-/// request, since the Ollama probe and chat calls need different limits.
-fn http_client() -> &'static reqwest::Client {
-    static CLIENT: std::sync::OnceLock<reqwest::Client> = std::sync::OnceLock::new();
-    CLIENT.get_or_init(reqwest::Client::new)
-}
-
-// ─── NVIDIA NIM proxy (bypasses WebView CORS) ────────────────────────────────
-
-// Mirror of `DEFAULT_MAX_TOKENS` in src/ai/types.ts — keep both in sync.
-// NIM and Ollama live on the Rust side because of CORS, so the JS constant
-// cannot reach them without a duplicate. Callers pass `max_tokens` per-request
-// (from `config.maxTokens`); this is the fallback when `None` is supplied.
-const DEFAULT_MAX_TOKENS: u32 = 512;
-
-#[derive(serde::Deserialize)]
-struct NimMessage {
-    role: String,
-    content: String,
-}
-
-#[tauri::command]
-async fn nvidia_chat(
-    api_key: String,
-    model: String,
-    messages: Vec<NimMessage>,
-    max_tokens: Option<u32>,
-) -> Result<String, String> {
-    let body = serde_json::json!({
-        "model": model,
-        "max_tokens": max_tokens.unwrap_or(DEFAULT_MAX_TOKENS),
-        "messages": messages.iter().map(|m| serde_json::json!({
-            "role": m.role,
-            "content": m.content,
-        })).collect::<Vec<_>>(),
-    });
-
-    let resp = http_client()
-        .post("https://integrate.api.nvidia.com/v1/chat/completions")
-        .timeout(std::time::Duration::from_secs(30))
-        .header("authorization", format!("Bearer {}", api_key))
-        .json(&body)
-        .send()
-        .await
-        .map_err(|e| format!("NVIDIA NIM request failed: {e}"))?;
-
-    if !resp.status().is_success() {
-        let status = resp.status();
-        let text = resp.text().await.unwrap_or_default();
-        return Err(format!("NVIDIA NIM API error: {status} — {text}"));
-    }
-
-    let data: serde_json::Value = resp
-        .json()
-        .await
-        .map_err(|e| format!("NVIDIA NIM parse error: {e}"))?;
-
-    data["choices"][0]["message"]["content"]
-        .as_str()
-        .map(str::to_string)
-        .ok_or_else(|| "NVIDIA NIM: unexpected response format".to_string())
-}
-
-// ─── Ollama proxy (bypasses WebView CORS) ────────────────────────────────────
+// ─── AI providers ────────────────────────────────────────────────────────────
 //
-// Ollama's daemon enforces a per-Origin CORS allowlist. Its default whitelist
-// covers `http://localhost:*` and `http://127.0.0.1:*`, which matches the dev
-// server (`http://localhost:1420`) but NOT the production webview origin
-// (`http://tauri.localhost` on Windows). A direct browser-side `fetch()` from
-// the installed app is silently rejected with 403, so detection and chat both
-// happen Rust-side via `reqwest`, which sends no `Origin` header.
-//
-// Same pattern as `nvidia_chat` above.
-
-#[derive(serde::Deserialize)]
-struct OllamaMessage {
-    role: String,
-    content: String,
-}
+// Every provider call goes through Rust (see ai.rs): one pooled client, one
+// timeout, structured errors, and no CORS or third-party hosts in the
+// WebView's CSP.
 
 #[tauri::command]
-async fn ollama_detect(base_url: Option<String>) -> Result<Vec<String>, String> {
-    let url = format!(
-        "{}/api/tags",
-        base_url.unwrap_or_else(|| "http://localhost:11434".to_string())
-    );
-
-    let resp = http_client()
-        .get(&url)
-        .timeout(std::time::Duration::from_millis(2500))
-        .send()
-        .await
-        .map_err(|e| format!("Ollama request failed: {e}"))?;
-
-    if !resp.status().is_success() {
-        return Err(format!("Ollama API error: {}", resp.status()));
-    }
-
-    let data: serde_json::Value = resp
-        .json()
-        .await
-        .map_err(|e| format!("Ollama parse error: {e}"))?;
-
-    let models = data["models"]
-        .as_array()
-        .map(|arr| {
-            arr.iter()
-                .filter_map(|m| m["name"].as_str().map(str::to_string))
-                .filter(|s| !s.is_empty())
-                .collect::<Vec<_>>()
-        })
-        .unwrap_or_default();
-
-    Ok(models)
+async fn ai_chat(request: ai::ChatRequest) -> Result<String, ai::AiError> {
+    ai::chat(request).await
 }
 
+/// Lists the models of a running Ollama daemon; used by first-run onboarding.
 #[tauri::command]
-async fn ollama_chat(
-    base_url: Option<String>,
-    model: String,
-    messages: Vec<OllamaMessage>,
-    system_prompt: String,
-    max_tokens: Option<u32>,
-) -> Result<String, String> {
-    let url = format!(
-        "{}/api/chat",
-        base_url.unwrap_or_else(|| "http://localhost:11434".to_string())
-    );
-
-    let mut full_messages = vec![serde_json::json!({
-        "role": "system",
-        "content": system_prompt,
-    })];
-    full_messages.extend(messages.iter().map(|m| {
-        serde_json::json!({
-            "role": m.role,
-            "content": m.content,
-        })
-    }));
-
-    let body = serde_json::json!({
-        "model": model,
-        "stream": false,
-        "options": { "num_predict": max_tokens.unwrap_or(DEFAULT_MAX_TOKENS) },
-        "messages": full_messages,
-    });
-
-    let resp = http_client()
-        .post(&url)
-        .timeout(std::time::Duration::from_secs(60))
-        .json(&body)
-        .send()
-        .await
-        .map_err(|e| format!("Ollama request failed: {e}"))?;
-
-    if !resp.status().is_success() {
-        let status = resp.status();
-        let text = resp.text().await.unwrap_or_default();
-        return Err(format!("Ollama API error: {status} — {text}"));
-    }
-
-    let data: serde_json::Value = resp
-        .json()
-        .await
-        .map_err(|e| format!("Ollama parse error: {e}"))?;
-
-    data["message"]["content"]
-        .as_str()
-        .map(str::to_string)
-        .ok_or_else(|| "Ollama: unexpected response format".to_string())
+async fn ollama_detect(base_url: Option<String>) -> Result<Vec<String>, ai::AiError> {
+    ai::ollama_models(base_url.as_deref()).await
 }
 
 // ─── Desktop monitor commands ─────────────────────────────────────────────────
@@ -829,9 +672,8 @@ pub fn run() {
             enable_autostart,
             disable_autostart,
             open_url,
-            nvidia_chat,
+            ai_chat,
             ollama_detect,
-            ollama_chat,
         ])
         .build(tauri::generate_context!())
         .expect("error while building tauri application")

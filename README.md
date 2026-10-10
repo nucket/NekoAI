@@ -283,6 +283,7 @@ NekoAI/
 │   │   └── default.json         # Window permissions (main, panel, house)
 │   └── src/
 │       ├── lib.rs               # App setup, tray, Tauri commands, resize_window
+│       ├── ai.rs                # All AI provider calls (Anthropic, OpenAI, Gemini, NIM, Ollama)
 │       ├── desktop_monitor.rs   # Active window & idle time (Windows + Linux/X11)
 │       ├── cursor_tracker.rs    # Wayland cursor fallback — reads /dev/input via evdev
 │       └── storage.rs           # SQLite: conversation history, user facts, config
@@ -293,10 +294,11 @@ NekoAI/
 │   ├── PanelWindow.tsx          # Context menu / settings panel (window "panel")
 │   ├── main.tsx                 # Entry point — routes to App / HouseWindow / PanelWindow
 │   ├── ai/
-│   │   ├── index.ts             # Provider factory, system prompt builder
+│   │   ├── index.ts             # ai_chat client, system prompt builder
 │   │   ├── memory.ts            # Fact extraction & persistence (SQLite IPC)
 │   │   ├── types.ts             # AIProvider interface, Message type
-│   │   └── providers/           # anthropic.ts · openai.ts · gemini.ts · ollama.ts · nvidia.ts
+│   │   ├── errors.ts            # AiRequestError + user-facing error messages
+│   │   └── ollama.ts            # Local Ollama detection (onboarding)
 │   ├── components/
 │   │   ├── SpeechBubble.tsx     # Animated chat bubble — scramble text, sprite-anchored, preloads recent history
 │   │   ├── SettingsPanel.tsx    # Settings panel (API key, model, pet size)
@@ -332,11 +334,11 @@ NekoAI uses a Tauri command (`resize_window`) to bypass OS-level restrictions wh
 
 This allows the speech bubble, settings panel, pet selector, and context menu to dynamically expand/collapse without the user seeing the resize handles.
 
-### NVIDIA NIM — Rust-side HTTP proxy
+### AI providers — all calls from Rust
 
-NVIDIA's `integrate.api.nvidia.com` endpoint is designed for server-to-server usage and does not send CORS headers. Unlike the other providers (Anthropic, OpenAI, Gemini) which explicitly support browser CORS, a direct `fetch()` from Tauri's WebView would be silently blocked.
+Every provider (Anthropic, OpenAI, Gemini, NVIDIA NIM, Ollama) is called from native Rust by one `ai_chat` Tauri command (`src-tauri/src/ai.rs`), using a single pooled `reqwest` client. The frontend sends `invoke('ai_chat', { request })` and gets back the reply or a structured error (`auth`, `rate_limit`, `network`, `timeout`, `empty`, …).
 
-NekoAI works around this with a dedicated `nvidia_chat` Tauri command (`lib.rs`) that makes the HTTP request from native Rust via `reqwest`, completely bypassing the WebView's CORS enforcement. The TypeScript provider uses `invoke('nvidia_chat', ...)` instead of `fetch`. This keeps the same `AIProvider` interface for all providers while letting NVIDIA NIM work correctly.
+This sidesteps CORS (NVIDIA NIM sends no CORS headers, and Ollama rejects the packaged app's origin), gives every provider the same timeout, parsing and error handling, and lets the WebView's CSP allow no third-party hosts at all.
 
 ### Cursor Tracking on Wayland (Linux)
 

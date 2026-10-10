@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { useConfigStore, isConfigured } from '../store/configStore'
-import { OllamaProvider } from '../ai/providers/ollama'
+import { detectOllama } from '../ai/ollama'
 
 // First-launch onboarding orchestrator.
 //
@@ -48,7 +48,7 @@ export function useOnboarding(): UseOnboardingResult {
       }
 
       setState('detecting')
-      const result = await OllamaProvider.detect()
+      const result = await detectOllama()
       if (result.ok && result.models.length > 0) {
         const model = result.models[0]
         await applyOllamaAutoConfig(model)
