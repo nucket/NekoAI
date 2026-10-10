@@ -119,7 +119,9 @@ impl AiError {
     }
 }
 
-/// A provider HTTP call, before it is sent.
+/// A provider HTTP call, before it is sent. Carries no secret: the API key
+/// is attached separately (see [`credential`]) so it can only ever go to an
+/// `https://` endpoint.
 #[derive(Debug)]
 pub struct HttpRequest {
     pub url: String,
@@ -190,6 +192,20 @@ fn api_key(req: &ChatRequest) -> Result<&str, AiError> {
         })
 }
 
+/// The auth header for `req`'s provider, or `None` for Ollama (no key).
+/// Gemini takes its key in `x-goog-api-key`, not the `?key=` query string,
+/// so it never lands in URLs, logs or error messages.
+pub fn credential(req: &ChatRequest) -> Result<Option<(&'static str, String)>, AiError> {
+    Ok(match req.provider {
+        Provider::Anthropic => Some(("x-api-key", api_key(req)?.to_string())),
+        Provider::Openai | Provider::Nvidia => {
+            Some(("authorization", format!("Bearer {}", api_key(req)?)))
+        }
+        Provider::Gemini => Some(("x-goog-api-key", api_key(req)?.to_string())),
+        Provider::Ollama => None,
+    })
+}
+
 // ─── Request building ────────────────────────────────────────────────────────
 
 /// Chat messages in the OpenAI-style `[{role, content}]` shape, with the
@@ -212,11 +228,7 @@ pub fn build_request(req: &ChatRequest) -> Result<HttpRequest, AiError> {
     let request = match req.provider {
         Provider::Anthropic => HttpRequest {
             url: "https://api.anthropic.com/v1/messages".into(),
-            headers: vec![
-                json_ct,
-                ("x-api-key", api_key(req)?.to_string()),
-                ("anthropic-version", "2023-06-01".into()),
-            ],
+            headers: vec![json_ct, ("anthropic-version", "2023-06-01".into())],
             body: json!({
                 "model": model,
                 "max_tokens": max_tokens,
@@ -228,10 +240,7 @@ pub fn build_request(req: &ChatRequest) -> Result<HttpRequest, AiError> {
         },
         Provider::Openai => HttpRequest {
             url: "https://api.openai.com/v1/chat/completions".into(),
-            headers: vec![
-                json_ct,
-                ("authorization", format!("Bearer {}", api_key(req)?)),
-            ],
+            headers: vec![json_ct],
             // `max_tokens` is rejected (HTTP 400) by the o-series / gpt-5
             // reasoning models; `max_completion_tokens` works on all current
             // chat models.
@@ -254,9 +263,7 @@ pub fn build_request(req: &ChatRequest) -> Result<HttpRequest, AiError> {
                 url: format!(
                     "https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent"
                 ),
-                // In a header, not the `?key=` query string, so the key never
-                // lands in URLs, logs or error messages.
-                headers: vec![json_ct, ("x-goog-api-key", api_key(req)?.to_string())],
+                headers: vec![json_ct],
                 body: json!({
                     "system_instruction": { "parts": [{ "text": req.system_prompt }] },
                     "contents": req.messages.iter().map(|m| json!({
@@ -270,10 +277,7 @@ pub fn build_request(req: &ChatRequest) -> Result<HttpRequest, AiError> {
         }
         Provider::Nvidia => HttpRequest {
             url: "https://integrate.api.nvidia.com/v1/chat/completions".into(),
-            headers: vec![
-                json_ct,
-                ("authorization", format!("Bearer {}", api_key(req)?)),
-            ],
+            headers: vec![json_ct],
             body: json!({
                 "model": model,
                 "max_tokens": max_tokens,
@@ -417,6 +421,7 @@ fn transport_error(provider: Provider, e: &reqwest::Error) -> AiError {
 pub async fn chat(req: ChatRequest) -> Result<String, AiError> {
     let provider = req.provider;
     let http = build_request(&req)?;
+    let auth = credential(&req)?;
 
     let mut builder = http_client()
         .post(&http.url)
@@ -424,6 +429,17 @@ pub async fn chat(req: ChatRequest) -> Result<String, AiError> {
         .json(&http.body);
     for (name, value) in &http.headers {
         builder = builder.header(*name, value);
+    }
+    if let Some((name, value)) = auth {
+        // Every keyed provider has a fixed https endpoint; refuse anything
+        // else rather than send a key in clear text.
+        if !http.url.starts_with("https://") {
+            return Err(AiError::new(
+                ErrorKind::InvalidRequest,
+                format!("{} requires an https endpoint", provider.label()),
+            ));
+        }
+        builder = builder.header(name, value);
     }
 
     let resp = builder
@@ -511,6 +527,42 @@ mod tests {
             .map(|(_, v)| v.as_str())
     }
 
+    fn auth(provider: Provider) -> Option<(&'static str, String)> {
+        credential(&request(provider, "m")).unwrap()
+    }
+
+    #[test]
+    fn each_provider_authenticates_with_its_own_header() {
+        assert_eq!(
+            auth(Provider::Anthropic),
+            Some(("x-api-key", "sk-test".into()))
+        );
+        assert_eq!(
+            auth(Provider::Openai),
+            Some(("authorization", "Bearer sk-test".into()))
+        );
+        assert_eq!(
+            auth(Provider::Nvidia),
+            Some(("authorization", "Bearer sk-test".into()))
+        );
+        assert_eq!(
+            auth(Provider::Gemini),
+            Some(("x-goog-api-key", "sk-test".into()))
+        );
+        assert_eq!(auth(Provider::Ollama), None);
+        // Keyed providers all target https; the key never sits in the request.
+        for p in [
+            Provider::Anthropic,
+            Provider::Openai,
+            Provider::Nvidia,
+            Provider::Gemini,
+        ] {
+            let http = build_request(&request(p, "m")).unwrap();
+            assert!(http.url.starts_with("https://"));
+            assert!(!format!("{http:?}").contains("sk-test"));
+        }
+    }
+
     #[test]
     fn gemini_sends_the_key_in_a_header_and_disables_flash_thinking() {
         let http = build_request(&request(Provider::Gemini, "gemini-2.5-flash")).unwrap();
@@ -518,7 +570,6 @@ mod tests {
         assert!(http
             .url
             .ends_with("/models/gemini-2.5-flash:generateContent"));
-        assert_eq!(header(&http, "x-goog-api-key"), Some("sk-test"));
         let thinking = &http.body["generationConfig"]["thinkingConfig"];
         assert_eq!(thinking["thinkingBudget"], 0);
         assert_eq!(http.body["contents"][1]["role"], "model");
@@ -534,7 +585,6 @@ mod tests {
     #[test]
     fn openai_style_providers_put_the_system_prompt_first() {
         let http = build_request(&request(Provider::Openai, "gpt-4o-mini")).unwrap();
-        assert_eq!(header(&http, "authorization"), Some("Bearer sk-test"));
         assert_eq!(http.body["max_completion_tokens"], 256);
         assert_eq!(http.body["messages"][0]["role"], "system");
         assert_eq!(http.body["messages"][2]["role"], "assistant");
@@ -546,7 +596,6 @@ mod tests {
     #[test]
     fn anthropic_uses_its_own_headers_and_system_field() {
         let http = build_request(&request(Provider::Anthropic, "claude-haiku-4-5")).unwrap();
-        assert_eq!(header(&http, "x-api-key"), Some("sk-test"));
         assert_eq!(header(&http, "anthropic-version"), Some("2023-06-01"));
         assert_eq!(http.body["system"], "be a cat");
         assert_eq!(http.body["messages"].as_array().unwrap().len(), 2);
@@ -556,7 +605,7 @@ mod tests {
     fn cloud_providers_need_a_key_and_models_are_validated() {
         let mut req = request(Provider::Openai, "gpt-4o-mini");
         req.api_key = Some("  ".into());
-        assert_eq!(build_request(&req).unwrap_err().kind, ErrorKind::Auth);
+        assert_eq!(credential(&req).unwrap_err().kind, ErrorKind::Auth);
 
         let bad = request(Provider::Gemini, "x?key=steal#");
         assert_eq!(
