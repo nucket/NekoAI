@@ -30,7 +30,15 @@ export default defineConfig(async () => {
         // Dev: serve every file under pets/ at /pets/<path>
         configureServer(server) {
           server.middlewares.use('/pets', (req, res, next) => {
-            const filePath = path.join(petsDir, decodeURIComponent((req.url ?? '').split('?')[0]))
+            let requested: string
+            try {
+              requested = decodeURIComponent((req.url ?? '').split('?')[0])
+            } catch {
+              return next()
+            }
+            // Only files inside pets/: `..` segments must not escape it.
+            const filePath = path.resolve(petsDir, '.' + path.sep + requested)
+            if (!filePath.startsWith(petsDir + path.sep)) return next()
             if (existsSync(filePath) && statSync(filePath).isFile()) {
               const ext = path.extname(filePath).toLowerCase()
               res.setHeader('Content-Type', MIME[ext] ?? 'application/octet-stream')

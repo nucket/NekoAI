@@ -211,6 +211,18 @@ fn quit_app(app: tauri::AppHandle) {
 // a panel is showing. For context-menu / settings / pet-selector we spawn a
 // separate `panel` window so the pet can keep following the cursor freely.
 
+/// The routes `PanelWindow` renders. Anything else is refused rather than
+/// put into the panel's URL or navigation script.
+const PANEL_ROUTES: &[&str] = &["context-menu"];
+
+fn panel_route(route: &str) -> Result<&'static str, String> {
+    PANEL_ROUTES
+        .iter()
+        .copied()
+        .find(|r| *r == route)
+        .ok_or_else(|| format!("unknown panel route: {route:?}"))
+}
+
 #[tauri::command]
 async fn open_panel_window(
     app: tauri::AppHandle,
@@ -220,14 +232,18 @@ async fn open_panel_window(
     height: f64,
     route: String,
 ) -> Result<(), String> {
+    let route = panel_route(&route)?;
+
     // If an existing panel window is around, reposition + resize and show it.
     if let Some(win) = app.get_webview_window("panel") {
         win.set_size(tauri::LogicalSize::new(width, height))
             .map_err(|e| e.to_string())?;
         win.set_position(tauri::PhysicalPosition::new(x as i32, y as i32))
             .map_err(|e| e.to_string())?;
-        // Navigate in case the requested route changed
-        win.eval(format!("window.location.hash = '{}'", route)).ok();
+        // Navigate in case the requested route changed. The route is an
+        // allow-listed constant; quoting it as JSON keeps it a string literal.
+        let hash = serde_json::to_string(route).map_err(|e| e.to_string())?;
+        win.eval(format!("window.location.hash = {hash}")).ok();
         win.show().map_err(|e| e.to_string())?;
         win.set_focus().ok();
         return Ok(());
@@ -268,11 +284,28 @@ async fn resize_panel_window(app: tauri::AppHandle, width: f64, height: f64) -> 
     Ok(())
 }
 
+/// Schemes `open_url` hands to the OS. The UI only links to web pages and a
+/// contact address; anything else (`file:`, custom protocol handlers, ...)
+/// could start a local program, so it is refused.
+const EXTERNAL_URL_SCHEMES: &[&str] = &["https", "mailto"];
+
+fn external_url(raw: &str) -> Result<url::Url, String> {
+    let url = url::Url::parse(raw.trim()).map_err(|e| format!("invalid URL: {e}"))?;
+    if !EXTERNAL_URL_SCHEMES.contains(&url.scheme()) {
+        return Err(format!("refusing to open a {}: URL", url.scheme()));
+    }
+    if url.scheme() == "https" && url.host_str().is_none_or(str::is_empty) {
+        return Err("invalid URL: missing host".into());
+    }
+    Ok(url)
+}
+
 #[tauri::command]
 async fn open_url(app: tauri::AppHandle, url: String) -> Result<(), String> {
     use tauri_plugin_opener::OpenerExt;
+    let url = external_url(&url)?;
     app.opener()
-        .open_url(url, None::<&str>)
+        .open_url(url.as_str(), None::<&str>)
         .map_err(|e| e.to_string())?;
     Ok(())
 }
@@ -711,7 +744,39 @@ pub fn run() {
 
 #[cfg(test)]
 mod tests {
-    use super::bundled_pets;
+    use super::{bundled_pets, external_url, panel_route};
+
+    #[test]
+    fn only_known_panel_routes_are_accepted() {
+        assert_eq!(panel_route("context-menu"), Ok("context-menu"));
+        for bad in ["", "settings", "context-menu'", "x'; alert(1); '"] {
+            assert!(panel_route(bad).is_err(), "{bad:?} should be refused");
+        }
+    }
+
+    #[test]
+    fn open_url_only_allows_web_and_mail_links() {
+        for ok in [
+            "https://nekoai.dev/",
+            "https://github.com/nucket/nekoai",
+            "https://console.anthropic.com/settings/keys",
+            "mailto:hi@nekoai.dev",
+        ] {
+            assert!(external_url(ok).is_ok(), "{ok:?} should be allowed");
+        }
+        for bad in [
+            "http://example.com/",
+            "file:///C:/Windows/System32/calc.exe",
+            "ms-settings:privacy",
+            "javascript:alert(1)",
+            "\\\\server\\share",
+            "C:\\Windows\\notepad.exe",
+            "https://",
+            "not a url",
+        ] {
+            assert!(external_url(bad).is_err(), "{bad:?} should be refused");
+        }
+    }
 
     #[test]
     fn bundled_pet_manifest_parses() {
