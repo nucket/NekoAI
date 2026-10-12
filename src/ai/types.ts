@@ -64,6 +64,8 @@ export type AIConfig = {
   // Stored as a number (not a preset key) so future custom values fit without
   // a schema change.
   maxTokens?: number
+  // UI language. `undefined` follows the system language (see src/i18n).
+  language?: 'en' | 'es'
 }
 
 export type Message = {

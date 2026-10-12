@@ -1,0 +1,112 @@
+// English strings — the source dictionary. Every other locale must provide
+// the same keys (enforced by the `Dictionary` type in ./index.ts) and the
+// same `{placeholders}` (checked in i18n.test.ts).
+export const en = {
+  'common.close': 'Close',
+  'common.gotIt': 'Got it',
+
+  // ── Settings panel ────────────────────────────────────────────────────────
+  'settings.title': '⚙ Settings',
+  'settings.status.connected': '🟢 AI connected',
+  'settings.status.untested': '🟡 Not verified',
+  'settings.status.disconnected': '🔴 AI disconnected',
+  'settings.provider': 'AI Provider',
+  'settings.model': 'Model',
+  'settings.apiKey': 'API Key',
+  'settings.apiKey.saved': 'Saved in your system keychain — type to replace',
+  'settings.apiKey.show': 'Show',
+  'settings.apiKey.hide': 'Hide',
+  'settings.apiKey.remove': 'Remove the saved API key',
+  'settings.baseUrl': 'Base URL',
+  'settings.help.getKey': 'Get an API key',
+  'settings.help.getFreeKey': 'Get a free API key',
+  'settings.help.downloadOllama': 'Download Ollama',
+  'settings.userName': 'Your name (optional)',
+  'settings.userName.placeholder': 'e.g. Alex',
+  'settings.language': 'Language',
+  'settings.language.auto': 'Automatic (system)',
+  'settings.autostart': 'Start NekoAI with the system',
+  'settings.autostart.portable': '(portable mode)',
+  'settings.autostart.portableHint': 'Not available in portable mode',
+  'settings.autostart.readError': "Couldn't read autostart status: {error}",
+  'settings.length': 'Response length',
+  'settings.length.short': '~1 paragraph · faster',
+  'settings.length.medium': '~3 paragraphs · recommended',
+  'settings.length.long': '~6 paragraphs · may take longer',
+  'settings.length.custom': 'Custom · {tokens} tokens',
+  'settings.length.customAria': 'Custom response length in tokens',
+  'settings.test': 'Test connection',
+  'settings.testing': 'Testing…',
+  'settings.memory': 'Memory',
+  'settings.memory.empty': 'Nothing learned about you yet.',
+  'settings.memory.forget': 'Forget {fact}',
+  'settings.memory.forgetError': 'Couldn\'t forget "{fact}": {error}',
+  'settings.memory.clearHistory': 'Clear chat history',
+  'settings.memory.clearHistoryHint': 'Delete the stored conversation; learned facts are kept',
+  'settings.memory.forgetAll': 'Forget everything',
+  'settings.memory.forgetAllHint': 'Delete the conversation and everything learned about you',
+  'settings.memory.confirm': 'Click to confirm',
+  'settings.memory.allForgotten': 'Everything forgotten.',
+  'settings.memory.historyCleared': 'Chat history cleared.',
+  'settings.memory.clearError': "Couldn't clear memory: {error}",
+  'settings.fact.name': 'Name',
+  'settings.fact.project': 'Project',
+  'settings.fact.language': 'Language',
+  'settings.quit': 'Quit NekoAI',
+
+  // ── Context menu + About ──────────────────────────────────────────────────
+  'menu.selectPet': '🐾 Select Pet',
+  'menu.mode': 'Mode',
+  'menu.mode.buddy': 'Buddy',
+  'menu.mode.buddyHint': 'Follow mouse cursor',
+  'menu.mode.wanderer': 'Wanderer',
+  'menu.mode.wandererHint': 'Wander freely',
+  'menu.size': 'Size',
+  'menu.about': 'ℹ About NekoAI',
+  'menu.quit': '✕ Quit NekoAI',
+  'about.back': '← Back',
+  'about.tagline': 'Desktop AI Companion • v{version}',
+  'about.website': 'Website',
+  'about.contact': 'Contact',
+  'about.creator': 'Creator',
+  'about.star': '⭐ Star on GitHub',
+
+  // ── Pet selector + house ──────────────────────────────────────────────────
+  'pets.title': 'Select Pet',
+  'pets.spritesNeeded': 'sprites needed',
+  'house.hint': 'Click to bring pet home',
+
+  // ── Chat bubble ───────────────────────────────────────────────────────────
+  'chat.label': 'NekoAI chat',
+  'chat.close': 'Close chat',
+  'chat.thinking': 'Thinking',
+  'chat.placeholder': 'Say something…',
+  'chat.send': 'Send message',
+  'chat.needsKey': 'Nyaa~ I need an API key to talk! Set one in Settings 🐾',
+
+  // ── Errors (pet voice) ────────────────────────────────────────────────────
+  'error.timeout': "I'm taking too long to think — try again in a moment. ⏳",
+  'error.empty':
+    "I couldn't come up with an answer — try rephrasing, or pick a longer response length in Settings. 💭",
+  'error.networkOllama': "I can't reach Ollama — make sure it's running. 🐾",
+  'error.network': "I can't reach the internet right now — check your connection. 🐾",
+  'error.auth': 'My API key looks invalid — open Settings to fix it. 🔑',
+  'error.rateLimit': "I've hit the usage limit for now — try again in a little while. 😿",
+  'error.invalidRequest':
+    'Something in my AI settings looks off (URL or model name) — open Settings to check. ⚙',
+  'error.generic': 'Sorry, something went wrong. 😿',
+
+  // ── Onboarding + notices ──────────────────────────────────────────────────
+  'onboarding.ollamaFound':
+    'Hello! I detected Ollama running and automatically set myself up to use {model}. You can change this in Settings, and right-click me anytime for the menu. Ask me anything!',
+  'onboarding.localModel': 'your local model',
+  'onboarding.needsSetup':
+    "Hello! I'm your new desktop pet. To chat with you, I need to be connected to an AI engine. Will you help me set one up? You can also right-click me anytime for the menu.",
+  'onboarding.openSettings': 'Open Settings',
+  'onboarding.configure': '⚙ Configure AI',
+  'onboarding.later': 'Later',
+  'wayland.notice':
+    "Heads-up — I'm on Wayland, so I can't follow your mouse around the desktop. I'll roam on my own instead! To let me follow your cursor, add yourself to the `input` group and log out / back in:",
+  'wayland.copy': '📋 Copy fix command',
+  'wayland.copied': '✓ Copied — log out and back in for it to take effect.',
+} as const

@@ -72,6 +72,8 @@ export function buildContextBlock({
     parts.push(`Your current mood: ${moodDesc}. Let this subtly color your tone.`)
   }
 
+  // The UI may be in English or Spanish, but replies follow the user.
+  parts.push("Reply in the language of the user's latest message.")
   parts.push(describeLength(maxTokens ?? DEFAULT_MAX_TOKENS))
   parts.push('Reply in plain text only — the speech bubble cannot render markdown.')
 

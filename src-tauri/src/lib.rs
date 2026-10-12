@@ -495,6 +495,71 @@ fn show_window(app: &tauri::AppHandle) {
     }
 }
 
+// ─── Tray labels ──────────────────────────────────────────────────────────────
+// The tray follows the UI language. The WebView resolves it (config.language,
+// else the system language; see src/i18n) and sends it with set_tray_locale;
+// until then the tray shows English.
+
+struct TrayLabels {
+    show_hide: &'static str,
+    settings: &'static str,
+    select_pet: &'static str,
+    about: &'static str,
+    quit: &'static str,
+}
+
+fn tray_labels(locale: &str) -> TrayLabels {
+    match locale {
+        "es" => TrayLabels {
+            show_hide: "Mostrar/ocultar NekoAI",
+            settings: "Ajustes",
+            select_pet: "Elegir mascota",
+            about: "Acerca de NekoAI",
+            quit: "Salir",
+        },
+        _ => TrayLabels {
+            show_hide: "Show/Hide NekoAI",
+            settings: "Settings",
+            select_pet: "Select Pet",
+            about: "About NekoAI",
+            quit: "Quit",
+        },
+    }
+}
+
+fn about_label(labels: &TrayLabels) -> String {
+    format!("{} v{}", labels.about, env!("CARGO_PKG_VERSION"))
+}
+
+/// The tray items whose text follows the UI language.
+struct TrayMenu {
+    show_hide: MenuItem<tauri::Wry>,
+    settings: MenuItem<tauri::Wry>,
+    select_pet: Submenu<tauri::Wry>,
+    about: MenuItem<tauri::Wry>,
+    quit: MenuItem<tauri::Wry>,
+}
+
+impl TrayMenu {
+    fn relabel(&self, labels: &TrayLabels) -> tauri::Result<()> {
+        self.show_hide.set_text(labels.show_hide)?;
+        self.settings.set_text(labels.settings)?;
+        self.select_pet.set_text(labels.select_pet)?;
+        self.about.set_text(about_label(labels))?;
+        self.quit.set_text(labels.quit)
+    }
+}
+
+#[tauri::command]
+fn set_tray_locale(app: tauri::AppHandle, locale: String) -> Result<(), String> {
+    match app.try_state::<TrayMenu>() {
+        Some(menu) => menu
+            .relabel(&tray_labels(&locale))
+            .map_err(|e| e.to_string()),
+        None => Ok(()),
+    }
+}
+
 // ─── Bundled pets (tray "Select Pet" submenu) ─────────────────────────────────
 // The tray reads the same pets/manifest.json as the frontend PetSelector, so
 // the two lists can't drift apart. Embedded at compile time: the file lives
@@ -611,9 +676,10 @@ pub fn run() {
             app.manage(CursorTrackerState(cursor_tracker::CursorTracker::start()));
 
             // ── Tray menu ──────────────────────────────────────────────────
+            let labels = tray_labels("en");
             let show_hide =
-                MenuItem::with_id(app, "show_hide", "Show/Hide NekoAI", true, None::<&str>)?;
-            let settings = MenuItem::with_id(app, "settings", "Settings", true, None::<&str>)?;
+                MenuItem::with_id(app, "show_hide", labels.show_hide, true, None::<&str>)?;
+            let settings = MenuItem::with_id(app, "settings", labels.settings, true, None::<&str>)?;
             // One item per manifest entry; the id carries the pet id after
             // PET_MENU_PREFIX so the menu handler needs no per-pet arms.
             let mut pet_items = Vec::new();
@@ -630,21 +696,22 @@ pub fn run() {
                 .iter()
                 .map(|item| item as &dyn IsMenuItem<tauri::Wry>)
                 .collect();
-            let select_pet = Submenu::with_items(app, "Select Pet", true, &pet_refs)?;
+            let select_pet = Submenu::with_items(app, labels.select_pet, true, &pet_refs)?;
             let sep = PredefinedMenuItem::separator(app)?;
-            let about = MenuItem::with_id(
-                app,
-                "about",
-                &format!("About NekoAI v{}", env!("CARGO_PKG_VERSION")),
-                true,
-                None::<&str>,
-            )?;
-            let quit = MenuItem::with_id(app, "quit", "Quit", true, None::<&str>)?;
+            let about = MenuItem::with_id(app, "about", about_label(&labels), true, None::<&str>)?;
+            let quit = MenuItem::with_id(app, "quit", labels.quit, true, None::<&str>)?;
 
             let menu = Menu::with_items(
                 app,
                 &[&show_hide, &settings, &select_pet, &sep, &about, &quit],
             )?;
+            app.manage(TrayMenu {
+                show_hide,
+                settings,
+                select_pet,
+                about,
+                quit,
+            });
 
             let logo_bytes = include_bytes!("../icons/logo.png");
             let tray_icon = {
@@ -723,6 +790,7 @@ pub fn run() {
             enable_autostart,
             disable_autostart,
             open_url,
+            set_tray_locale,
             ai_chat,
             ollama_detect,
         ])
@@ -744,7 +812,14 @@ pub fn run() {
 
 #[cfg(test)]
 mod tests {
-    use super::{bundled_pets, external_url, panel_route};
+    use super::{bundled_pets, external_url, panel_route, tray_labels};
+
+    #[test]
+    fn tray_labels_follow_the_locale_with_an_english_fallback() {
+        assert_eq!(tray_labels("es").quit, "Salir");
+        assert_eq!(tray_labels("en").quit, "Quit");
+        assert_eq!(tray_labels("fr").quit, "Quit");
+    }
 
     #[test]
     fn only_known_panel_routes_are_accepted() {

@@ -13,6 +13,7 @@ Thank you for considering contributing to NekoAI! This project is community-firs
 - [Creating a New Pet](#creating-a-new-pet)
 - [Pet Definition Format](#pet-definition-format)
 - [Sprite Guidelines](#sprite-guidelines)
+- [Adding a Language](#adding-a-language)
 - [Submitting a PR](#submitting-a-pr)
 - [Commit Convention](#commit-convention)
 - [Reporting Bugs](#reporting-bugs)
@@ -33,7 +34,7 @@ This project follows the [Contributor Covenant v2.1](CODE_OF_CONDUCT.md). By par
 | 🐾 Create a pet skin          | Add sprites + `pet.json` to `pets-community/`                                           |
 | 🐛 Report a bug               | Open a Bug Report issue                                                                 |
 | 💡 Suggest a feature          | Open a Feature Request issue                                                            |
-| 🌍 Translate the UI           | Edit files in `src/i18n/`                                                               |
+| 🌍 Translate the UI           | Copy `src/i18n/en.ts` to a new locale (see [Adding a language](#adding-a-language))     |
 | 📖 Improve docs               | Edit any `.md` file and submit a PR                                                     |
 | 🧑‍💻 Fix bugs or build features | Check [good first issues](https://github.com/nucket/nekoai/labels/good%20first%20issue) |
 | ⭐ Spread the word            | Star the repo and share it                                                              |
@@ -85,6 +86,7 @@ nekoai/
 │   ├── pets/PetRenderer.tsx    # Sprite animation engine
 │   ├── ai/                     # ai_chat wrapper, prompt builder, memory, errors
 │   ├── components/             # SpeechBubble, SettingsPanel
+│   ├── i18n/                   # UI strings (en.ts is the source; one file per language)
 │   └── hooks/usePetMovement.ts # Movement state machine
 ├── src-tauri/src/              # Rust backend
 │   ├── lib.rs                  # App setup, tray, all Tauri commands
@@ -200,6 +202,19 @@ idle.png
 walk_right1.png  walk_right2.png
 sleep1.png       sleep2.png
 ```
+
+---
+
+## Adding a Language
+
+UI strings live in `src/i18n/`. `en.ts` is the source dictionary; each other language is one file with the same keys.
+
+1. Copy `src/i18n/es.ts` to `src/i18n/<code>.ts` (e.g. `fr.ts`) and translate every value. Keep the `{placeholders}` and emoji as they are. TypeScript reports any missing key.
+2. In `src/i18n/index.ts`, add the code to `Locale` and `LOCALES`, its name (written in that language) to `LOCALE_NAMES`, and the dictionary to `DICTIONARIES`.
+3. Add the tray menu labels to `tray_labels()` in `src-tauri/src/lib.rs`.
+4. Run `pnpm test`: `src/i18n/i18n.test.ts` checks that every key is translated with the same placeholders.
+
+In components use `const t = useT()`; outside React (error messages, onboarding text) import `t` from `src/i18n`. Never hard-code user-facing text.
 
 ---
 

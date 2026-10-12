@@ -4,6 +4,8 @@ import App from './App'
 import { PanelWindow } from './PanelWindow'
 import { HouseWindow } from './HouseWindow'
 import { IS_LINUX } from './utils/platform'
+import { currentLocale } from './i18n'
+import { useConfigStore } from './store/configStore'
 import './index.css'
 
 // Route selection: the `panel` Tauri window loads the same bundle but with a
@@ -21,6 +23,13 @@ const isPanel = route.length > 0 && route !== 'house'
 if (IS_LINUX && !isPanel) {
   document.body.classList.add('chroma-key')
 }
+
+// Keep <html lang> on the UI language (screen readers, hyphenation).
+const syncDocumentLanguage = () => {
+  document.documentElement.lang = currentLocale()
+}
+syncDocumentLanguage()
+useConfigStore.subscribe(syncDocumentLanguage)
 
 ReactDOM.createRoot(document.getElementById('root') as HTMLElement).render(
   <React.StrictMode>

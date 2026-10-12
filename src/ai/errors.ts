@@ -4,6 +4,8 @@
 // show (Settings → Test prints `.message`), and `describeSendError` turns the
 // kind into a short, actionable message in the pet's voice.
 
+import { t } from '../i18n'
+
 export type AiErrorKind =
   'auth' | 'rate_limit' | 'network' | 'timeout' | 'empty' | 'invalid_request' | 'other'
 
@@ -41,20 +43,18 @@ export function toAiError(err: unknown): AiRequestError {
 export function describeSendError(err: unknown, provider: string): string {
   switch (toAiError(err).kind) {
     case 'timeout':
-      return "I'm taking too long to think — try again in a moment. ⏳"
+      return t('error.timeout')
     case 'empty':
-      return "I couldn't come up with an answer — try rephrasing, or pick a longer response length in Settings. 💭"
+      return t('error.empty')
     case 'network':
-      return provider === 'ollama'
-        ? "I can't reach Ollama — make sure it's running. 🐾"
-        : "I can't reach the internet right now — check your connection. 🐾"
+      return t(provider === 'ollama' ? 'error.networkOllama' : 'error.network')
     case 'auth':
-      return 'My API key looks invalid — open Settings to fix it. 🔑'
+      return t('error.auth')
     case 'rate_limit':
-      return "I've hit the usage limit for now — try again in a little while. 😿"
+      return t('error.rateLimit')
     case 'invalid_request':
-      return 'Something in my AI settings looks off (URL or model name) — open Settings to check. ⚙'
+      return t('error.invalidRequest')
     default:
-      return 'Sorry, something went wrong. 😿'
+      return t('error.generic')
   }
 }

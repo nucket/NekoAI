@@ -7,6 +7,7 @@ import { useConfigStore } from './store/configStore'
 import { IS_LINUX } from './utils/platform'
 import { workAreaOf } from './utils/monitor'
 import { HOUSE_SIZE } from './constants/layout'
+import { useT } from './i18n'
 
 export function HouseWindow() {
   const [placed, setPlaced] = useState(false)
@@ -16,6 +17,7 @@ export function HouseWindow() {
 
   // This is a separate WebView — load config independently from the main window
   const { config, isLoaded, loadConfig } = useConfigStore()
+  const t = useT()
   const activePetId = config.activePetId ?? 'classic-neko'
 
   useEffect(() => {
@@ -167,7 +169,7 @@ export function HouseWindow() {
   if (!placed) return null
 
   return (
-    <div style={styles.root} onClick={handleClick} title="Click to bring pet home">
+    <div style={styles.root} onClick={handleClick} title={t('house.hint')}>
       {imgFailed ? (
         // CSS fallback when the active pet has no house.png
         <>

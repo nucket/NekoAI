@@ -47,4 +47,8 @@ describe('buildContextBlock', () => {
     expect(prompt.indexOf('Reply length')).toBeGreaterThan(prompt.indexOf('1-2 sentence'))
     expect(prompt.trimEnd().endsWith('cannot render markdown.')).toBe(true)
   })
+
+  it("asks for replies in the user's language", () => {
+    expect(buildContextBlock()).toContain("language of the user's latest message")
+  })
 })

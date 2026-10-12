@@ -1,0 +1,111 @@
+import type { Dictionary } from '.'
+
+export const es: Dictionary = {
+  'common.close': 'Cerrar',
+  'common.gotIt': 'Entendido',
+
+  // ── Settings panel ────────────────────────────────────────────────────────
+  'settings.title': '⚙ Ajustes',
+  'settings.status.connected': '🟢 IA conectada',
+  'settings.status.untested': '🟡 Sin verificar',
+  'settings.status.disconnected': '🔴 IA desconectada',
+  'settings.provider': 'Proveedor de IA',
+  'settings.model': 'Modelo',
+  'settings.apiKey': 'API key',
+  'settings.apiKey.saved': 'Guardada en el llavero del sistema — escribe para reemplazarla',
+  'settings.apiKey.show': 'Mostrar',
+  'settings.apiKey.hide': 'Ocultar',
+  'settings.apiKey.remove': 'Borrar la API key guardada',
+  'settings.baseUrl': 'URL base',
+  'settings.help.getKey': 'Obtener API key',
+  'settings.help.getFreeKey': 'Obtener API key gratis',
+  'settings.help.downloadOllama': 'Descargar Ollama',
+  'settings.userName': 'Tu nombre (opcional)',
+  'settings.userName.placeholder': 'p. ej. Alex',
+  'settings.language': 'Idioma',
+  'settings.language.auto': 'Automático (sistema)',
+  'settings.autostart': 'Iniciar NekoAI con el sistema',
+  'settings.autostart.portable': '(modo portable)',
+  'settings.autostart.portableHint': 'No disponible en modo portable',
+  'settings.autostart.readError': 'No se pudo leer el inicio automático: {error}',
+  'settings.length': 'Longitud de respuesta',
+  'settings.length.short': '~1 párrafo · más rápido',
+  'settings.length.medium': '~3 párrafos · recomendado',
+  'settings.length.long': '~6 párrafos · puede tardar más',
+  'settings.length.custom': 'Personalizado · {tokens} tokens',
+  'settings.length.customAria': 'Longitud de respuesta personalizada en tokens',
+  'settings.test': 'Probar conexión',
+  'settings.testing': 'Probando…',
+  'settings.memory': 'Memoria',
+  'settings.memory.empty': 'Todavía no he aprendido nada sobre ti.',
+  'settings.memory.forget': 'Olvidar {fact}',
+  'settings.memory.forgetError': 'No se pudo olvidar «{fact}»: {error}',
+  'settings.memory.clearHistory': 'Borrar historial',
+  'settings.memory.clearHistoryHint': 'Borra la conversación guardada; lo aprendido se conserva',
+  'settings.memory.forgetAll': 'Olvidarlo todo',
+  'settings.memory.forgetAllHint': 'Borra la conversación y todo lo aprendido sobre ti',
+  'settings.memory.confirm': 'Clic para confirmar',
+  'settings.memory.allForgotten': 'Todo olvidado.',
+  'settings.memory.historyCleared': 'Historial borrado.',
+  'settings.memory.clearError': 'No se pudo borrar la memoria: {error}',
+  'settings.fact.name': 'Nombre',
+  'settings.fact.project': 'Proyecto',
+  'settings.fact.language': 'Idioma',
+  'settings.quit': 'Salir de NekoAI',
+
+  // ── Context menu + About ──────────────────────────────────────────────────
+  'menu.selectPet': '🐾 Elegir mascota',
+  'menu.mode': 'Modo',
+  'menu.mode.buddy': 'Seguir',
+  'menu.mode.buddyHint': 'Sigue el cursor del ratón',
+  'menu.mode.wanderer': 'Pasear',
+  'menu.mode.wandererHint': 'Pasea libremente',
+  'menu.size': 'Tamaño',
+  'menu.about': 'ℹ Acerca de NekoAI',
+  'menu.quit': '✕ Salir de NekoAI',
+  'about.back': '← Volver',
+  'about.tagline': 'Mascota con IA • v{version}',
+  'about.website': 'Web',
+  'about.contact': 'Contacto',
+  'about.creator': 'Creado por',
+  'about.star': '⭐ Estrella en GitHub',
+
+  // ── Pet selector + house ──────────────────────────────────────────────────
+  'pets.title': 'Elegir mascota',
+  'pets.spritesNeeded': 'faltan sprites',
+  'house.hint': 'Haz clic para llevar a la mascota a casa',
+
+  // ── Chat bubble ───────────────────────────────────────────────────────────
+  'chat.label': 'Chat de NekoAI',
+  'chat.close': 'Cerrar chat',
+  'chat.thinking': 'Pensando',
+  'chat.placeholder': 'Di algo…',
+  'chat.send': 'Enviar mensaje',
+  'chat.needsKey': '¡Nyaa~ necesito una API key para hablar! Configúrala en Ajustes 🐾',
+
+  // ── Errors (pet voice) ────────────────────────────────────────────────────
+  'error.timeout': 'Estoy tardando demasiado en pensar — inténtalo de nuevo en un momento. ⏳',
+  'error.empty':
+    'No se me ocurrió una respuesta — prueba a reformularlo o elige una respuesta más larga en Ajustes. 💭',
+  'error.networkOllama': 'No puedo conectar con Ollama — asegúrate de que está en marcha. 🐾',
+  'error.network': 'No puedo conectarme a internet ahora mismo — revisa tu conexión. 🐾',
+  'error.auth': 'Mi API key no parece válida — abre Ajustes para corregirla. 🔑',
+  'error.rateLimit': 'He llegado al límite de uso por ahora — inténtalo de nuevo en un rato. 😿',
+  'error.invalidRequest':
+    'Algo en mis ajustes de IA no cuadra (URL o nombre del modelo) — abre Ajustes para revisarlo. ⚙',
+  'error.generic': 'Lo siento, algo salió mal. 😿',
+
+  // ── Onboarding + notices ──────────────────────────────────────────────────
+  'onboarding.ollamaFound':
+    '¡Hola! Vi que Ollama está en marcha y me configuré para usar {model}. Puedes cambiarlo en Ajustes, y hacer clic derecho sobre mí cuando quieras para abrir el menú. ¡Pregúntame lo que quieras!',
+  'onboarding.localModel': 'tu modelo local',
+  'onboarding.needsSetup':
+    '¡Hola! Soy tu nueva mascota de escritorio. Para charlar contigo necesito conectarme a un motor de IA. ¿Me ayudas a configurar uno? También puedes hacer clic derecho sobre mí cuando quieras para abrir el menú.',
+  'onboarding.openSettings': 'Abrir Ajustes',
+  'onboarding.configure': '⚙ Configurar IA',
+  'onboarding.later': 'Más tarde',
+  'wayland.notice':
+    'Aviso: estoy en Wayland, así que no puedo seguir tu ratón por el escritorio. ¡Pasearé por mi cuenta! Para que pueda seguir tu cursor, añádete al grupo `input` y cierra sesión y vuelve a entrar:',
+  'wayland.copy': '📋 Copiar comando',
+  'wayland.copied': '✓ Copiado — cierra sesión y vuelve a entrar para que surta efecto.',
+}

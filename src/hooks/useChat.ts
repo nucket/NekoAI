@@ -7,6 +7,7 @@ import { useAppStore } from '../store'
 import { createAIProvider, buildContextBlock } from '../ai'
 import { loadFacts, extractAndSaveFacts } from '../ai/memory'
 import { describeSendError } from '../ai/errors'
+import { t } from '../i18n'
 
 export interface UseChatOptions {
   petDef: PetDefinition | null
@@ -23,7 +24,7 @@ export function useChat({ petDef, onThinkingChange, onResponse }: UseChatOptions
       const { config: cfg } = useConfigStore.getState()
 
       if (!cfg.hasApiKey && cfg.provider !== 'ollama') {
-        return 'Nyaa~ I need an API key to talk! Set one in Settings 🐾'
+        return t('chat.needsKey')
       }
 
       onThinkingChange(true)

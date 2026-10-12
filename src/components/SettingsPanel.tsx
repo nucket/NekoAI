@@ -4,6 +4,7 @@ import { useConfigStore } from '../store/configStore'
 import { usePanelWindow } from '../hooks/usePanelWindow'
 import { SETTINGS_H, SETTINGS_W } from '../constants/layout'
 import { createAIProvider, buildContextBlock } from '../ai'
+import { LOCALES, LOCALE_NAMES, useT, type MessageKey } from '../i18n'
 import {
   DEFAULT_MAX_TOKENS,
   MAX_TOKENS_BOUNDS,
@@ -16,39 +17,38 @@ import {
 const RESPONSE_LENGTH_OPTIONS: {
   key: MaxTokensPreset
   label: string
-  hint: string
+  hint: MessageKey
 }[] = [
-  { key: 'short', label: 'S', hint: '~1 párrafo · más rápido' },
-  { key: 'medium', label: 'M', hint: '~3 párrafos · recomendado' },
-  { key: 'long', label: 'L', hint: '~6 párrafos · puede tardar más' },
-  {
-    key: 'custom',
-    label: '⚙',
-    hint: `Custom · ${MAX_TOKENS_BOUNDS.min}–${MAX_TOKENS_BOUNDS.max} tokens`,
-  },
+  { key: 'short', label: 'S', hint: 'settings.length.short' },
+  { key: 'medium', label: 'M', hint: 'settings.length.medium' },
+  { key: 'long', label: 'L', hint: 'settings.length.long' },
+  { key: 'custom', label: '⚙', hint: 'settings.length.custom' },
 ]
+
+const CUSTOM_RANGE = `${MAX_TOKENS_BOUNDS.min}–${MAX_TOKENS_BOUNDS.max}`
 
 // ─── Provider defaults ────────────────────────────────────────────────────────
 
 // Gemini is listed first because aistudio.google.com offers a free API tier
 // with no credit card — the lowest-friction onboarding path for new users.
+// `placeholder` shows the key's shape; Ollama takes no key.
 const PROVIDER_DEFAULTS: Record<string, { model: string; placeholder: string }> = {
   gemini: { model: 'gemini-2.5-flash', placeholder: 'AIza…' },
   anthropic: { model: 'claude-haiku-4-5-20251001', placeholder: 'sk-ant-…' },
   openai: { model: 'gpt-4o-mini', placeholder: 'sk-…' },
-  ollama: { model: 'llama3', placeholder: '(not required)' },
+  ollama: { model: 'llama3', placeholder: '' },
   nvidia: { model: 'meta/llama-3.1-8b-instruct', placeholder: 'nvapi-…' },
 }
 
 // External help links — surfaced when the panel opens without working
 // credentials. Gemini gets a "free" tag because aistudio offers a free tier
 // that's the lowest-friction onboarding path for non-technical users.
-const PROVIDER_HELP: Record<string, { url: string; label: string }> = {
-  anthropic: { url: 'https://console.anthropic.com/settings/keys', label: 'Obtener API key' },
-  openai: { url: 'https://platform.openai.com/api-keys', label: 'Obtener API key' },
-  gemini: { url: 'https://aistudio.google.com/apikey', label: 'Obtener API key gratis' },
-  nvidia: { url: 'https://build.nvidia.com/', label: 'Obtener API key' },
-  ollama: { url: 'https://ollama.com/download', label: 'Descargar Ollama' },
+const PROVIDER_HELP: Record<string, { url: string; label: MessageKey }> = {
+  anthropic: { url: 'https://console.anthropic.com/settings/keys', label: 'settings.help.getKey' },
+  openai: { url: 'https://platform.openai.com/api-keys', label: 'settings.help.getKey' },
+  gemini: { url: 'https://aistudio.google.com/apikey', label: 'settings.help.getFreeKey' },
+  nvidia: { url: 'https://build.nvidia.com/', label: 'settings.help.getKey' },
+  ollama: { url: 'https://ollama.com/download', label: 'settings.help.downloadOllama' },
 }
 
 // ─── Draft fields ─────────────────────────────────────────────────────────────
@@ -78,11 +78,11 @@ const CONFIRM_MS = 3000
 // name field below.
 const NAME_FACT_KEYS = ['name', 'userName']
 
-const FACT_LABELS: Record<string, string> = {
-  name: 'Name',
-  userName: 'Name',
-  project: 'Project',
-  language: 'Language',
+const FACT_LABELS: Record<string, MessageKey> = {
+  name: 'settings.fact.name',
+  userName: 'settings.fact.name',
+  project: 'settings.fact.project',
+  language: 'settings.fact.language',
 }
 
 // ─── Component ────────────────────────────────────────────────────────────────
@@ -94,6 +94,8 @@ interface Props {
 
 export function SettingsPanel({ isOpen, onClose }: Props) {
   const { config, isLoaded, loadConfig, updateConfig, setMaxTokens } = useConfigStore()
+  const t = useT()
+  const factLabel = (key: string) => (FACT_LABELS[key] ? t(FACT_LABELS[key]) : key)
 
   const [userName, setUserName] = useState('')
   const [showKey, setShowKey] = useState(false)
@@ -144,20 +146,23 @@ export function SettingsPanel({ isOpen, onClose }: Props) {
     }
   }, [isOpen])
 
-  const forgetFact = useCallback(async (key: string) => {
-    try {
-      await invoke('delete_user_fact', { key })
-      setFacts((prev) => {
-        const next = { ...prev }
-        delete next[key]
-        return next
-      })
-      if (NAME_FACT_KEYS.includes(key)) setUserName('')
-      setMemoryMsg('')
-    } catch (err) {
-      setMemoryMsg(`Couldn't forget "${key}": ${String(err)}`)
-    }
-  }, [])
+  const forgetFact = useCallback(
+    async (key: string) => {
+      try {
+        await invoke('delete_user_fact', { key })
+        setFacts((prev) => {
+          const next = { ...prev }
+          delete next[key]
+          return next
+        })
+        if (NAME_FACT_KEYS.includes(key)) setUserName('')
+        setMemoryMsg('')
+      } catch (err) {
+        setMemoryMsg(t('settings.memory.forgetError', { fact: key, error: String(err) }))
+      }
+    },
+    [t]
+  )
 
   const handleClear = useCallback(
     async (kind: 'history' | 'all') => {
@@ -177,12 +182,14 @@ export function SettingsPanel({ isOpen, onClose }: Props) {
           setFacts({})
           setUserName('')
         }
-        setMemoryMsg(kind === 'all' ? 'Everything forgotten.' : 'Chat history cleared.')
+        setMemoryMsg(
+          t(kind === 'all' ? 'settings.memory.allForgotten' : 'settings.memory.historyCleared')
+        )
       } catch (err) {
-        setMemoryMsg(`Couldn't clear memory: ${String(err)}`)
+        setMemoryMsg(t('settings.memory.clearError', { error: String(err) }))
       }
     },
-    [confirming]
+    [confirming, t]
   )
 
   // ── Start with system (autostart) ──────────────────────────────────────────
@@ -197,9 +204,9 @@ export function SettingsPanel({ isOpen, onClose }: Props) {
       .then(setAutostart)
       .catch((err) => {
         setAutostart(null)
-        setAutostartError(`Couldn't read autostart status: ${String(err)}`)
+        setAutostartError(t('settings.autostart.readError', { error: String(err) }))
       })
-  }, [isOpen])
+  }, [isOpen, t])
 
   const toggleAutostart = useCallback(async (enabled: boolean) => {
     setAutostartError('')
@@ -346,8 +353,8 @@ export function SettingsPanel({ isOpen, onClose }: Props) {
       <div style={styles.panel} onClick={(e) => e.stopPropagation()}>
         {/* ── Header ──────────────────────────────────────────────────────── */}
         <div style={styles.header}>
-          <span style={styles.title}>⚙ Settings</span>
-          <button style={styles.closeBtn} onClick={onClose} title="Close">
+          <span style={styles.title}>{t('settings.title')}</span>
+          <button style={styles.closeBtn} onClick={onClose} title={t('common.close')}>
             ✕
           </button>
         </div>
@@ -361,13 +368,11 @@ export function SettingsPanel({ isOpen, onClose }: Props) {
             ...(status === 'disconnected' ? styles.statusError : {}),
           }}
         >
-          {status === 'connected' && '🟢 IA Conectada'}
-          {status === 'untested' && '🟡 Sin verificar'}
-          {status === 'disconnected' && '🔴 IA Desconectada'}
+          {t(`settings.status.${status}`)}
         </div>
 
         {/* ── Provider ────────────────────────────────────────────────────── */}
-        <label style={styles.label}>AI Provider</label>
+        <label style={styles.label}>{t('settings.provider')}</label>
         <select
           style={styles.select}
           value={config.provider}
@@ -381,7 +386,7 @@ export function SettingsPanel({ isOpen, onClose }: Props) {
         </select>
 
         {/* ── Model ───────────────────────────────────────────────────────── */}
-        <label style={styles.label}>Model</label>
+        <label style={styles.label}>{t('settings.model')}</label>
         <input
           style={styles.input}
           type="text"
@@ -395,7 +400,7 @@ export function SettingsPanel({ isOpen, onClose }: Props) {
         {/* ── API key (hidden for Ollama) ──────────────────────────────────── */}
         {!isOllama && (
           <>
-            <label style={styles.label}>API Key</label>
+            <label style={styles.label}>{t('settings.apiKey')}</label>
             <div style={styles.keyRow}>
               <input
                 style={{ ...styles.input, flex: 1 }}
@@ -406,7 +411,7 @@ export function SettingsPanel({ isOpen, onClose }: Props) {
                 onKeyDown={blurOnEnter}
                 placeholder={
                   config.hasApiKey
-                    ? 'Saved in your system keychain — type to replace'
+                    ? t('settings.apiKey.saved')
                     : (PROVIDER_DEFAULTS[config.provider]?.placeholder ?? '')
                 }
                 autoComplete="off"
@@ -414,7 +419,7 @@ export function SettingsPanel({ isOpen, onClose }: Props) {
               <button
                 style={styles.eyeBtn}
                 onClick={() => setShowKey((v) => !v)}
-                title={showKey ? 'Hide' : 'Show'}
+                title={t(showKey ? 'settings.apiKey.hide' : 'settings.apiKey.show')}
               >
                 {showKey ? '🙈' : '👁'}
               </button>
@@ -422,7 +427,7 @@ export function SettingsPanel({ isOpen, onClose }: Props) {
                 <button
                   style={styles.eyeBtn}
                   onClick={() => void updateConfig({ apiKey: null })}
-                  title="Remove the saved API key"
+                  title={t('settings.apiKey.remove')}
                 >
                   🗑
                 </button>
@@ -434,7 +439,7 @@ export function SettingsPanel({ isOpen, onClose }: Props) {
         {/* ── Ollama base URL ──────────────────────────────────────────────── */}
         {isOllama && (
           <>
-            <label style={styles.label}>Base URL</label>
+            <label style={styles.label}>{t('settings.baseUrl')}</label>
             <input
               style={styles.input}
               type="text"
@@ -454,20 +459,39 @@ export function SettingsPanel({ isOpen, onClose }: Props) {
             onClick={() => invoke('open_url', { url: help.url })}
             title={help.url}
           >
-            ↗ {help.label}
+            ↗ {t(help.label)}
           </button>
         )}
 
         {/* ── User name ───────────────────────────────────────────────────── */}
-        <label style={styles.label}>Your Name (optional)</label>
+        <label style={styles.label}>{t('settings.userName')}</label>
         <input
           style={styles.input}
           type="text"
           value={userName}
           onChange={(e) => setUserName(e.target.value)}
           onBlur={handleUserNameBlur}
-          placeholder="e.g. Alex"
+          placeholder={t('settings.userName.placeholder')}
         />
+
+        {/* ── Language ────────────────────────────────────────────────────── */}
+        <label style={styles.label}>{t('settings.language')}</label>
+        <select
+          style={styles.select}
+          value={config.language ?? 'auto'}
+          onChange={(e) =>
+            void updateConfig({
+              language: e.target.value === 'auto' ? null : (e.target.value as AIConfig['language']),
+            })
+          }
+        >
+          <option value="auto">{t('settings.language.auto')}</option>
+          {LOCALES.map((locale) => (
+            <option key={locale} value={locale}>
+              {LOCALE_NAMES[locale]}
+            </option>
+          ))}
+        </select>
 
         {/* ── Start with system ───────────────────────────────────────────── */}
         <label
@@ -475,7 +499,7 @@ export function SettingsPanel({ isOpen, onClose }: Props) {
             ...styles.toggleRow,
             ...(autostart == null ? styles.toggleRowDisabled : {}),
           }}
-          title={autostart === null ? 'Not available in portable mode' : undefined}
+          title={autostart === null ? t('settings.autostart.portableHint') : undefined}
         >
           <input
             type="checkbox"
@@ -483,13 +507,13 @@ export function SettingsPanel({ isOpen, onClose }: Props) {
             disabled={autostart == null}
             onChange={(e) => void toggleAutostart(e.target.checked)}
           />
-          Start NekoAI with the system
-          {autostart === null && ' (portable mode)'}
+          {t('settings.autostart')}
+          {autostart === null && ` ${t('settings.autostart.portable')}`}
         </label>
         {autostartError !== '' && <p style={styles.memoryHint}>{autostartError}</p>}
 
         {/* ── Response length ─────────────────────────────────────────────── */}
-        <label style={styles.label}>Response length</label>
+        <label style={styles.label}>{t('settings.length')}</label>
         <div style={styles.tokenRow}>
           {RESPONSE_LENGTH_OPTIONS.map(({ key, label, hint }) => {
             const active = maxTokensPreset(config.maxTokens) === key
@@ -511,7 +535,7 @@ export function SettingsPanel({ isOpen, onClose }: Props) {
                     void setMaxTokens(MAX_TOKENS_PRESETS[key])
                   }
                 }}
-                title={hint}
+                title={t(hint, { tokens: CUSTOM_RANGE })}
               >
                 {label}
               </button>
@@ -540,15 +564,16 @@ export function SettingsPanel({ isOpen, onClose }: Props) {
                 customInputRef.current?.blur()
               }
             }}
-            aria-label="Custom response length in tokens"
+            aria-label={t('settings.length.customAria')}
           />
           <span style={styles.customUnit}>tokens</span>
         </div>
         <p style={styles.tokenHint}>
-          {maxTokensPreset(config.maxTokens) === 'custom'
-            ? `Custom · ${config.maxTokens} tokens`
-            : RESPONSE_LENGTH_OPTIONS.find((o) => o.key === maxTokensPreset(config.maxTokens))
-                ?.hint}
+          {t(
+            RESPONSE_LENGTH_OPTIONS.find((o) => o.key === maxTokensPreset(config.maxTokens))
+              ?.hint ?? 'settings.length.medium',
+            { tokens: config.maxTokens ?? DEFAULT_MAX_TOKENS }
+          )}
         </p>
 
         {/* ── Test button ─────────────────────────────────────────────────── */}
@@ -561,7 +586,7 @@ export function SettingsPanel({ isOpen, onClose }: Props) {
           onClick={handleTest}
           disabled={testStatus === 'loading'}
         >
-          {testStatus === 'loading' ? 'Testing…' : 'Test connection'}
+          {t(testStatus === 'loading' ? 'settings.testing' : 'settings.test')}
         </button>
 
         {testMsg !== '' && (
@@ -577,21 +602,21 @@ export function SettingsPanel({ isOpen, onClose }: Props) {
 
         {/* ── Memory ──────────────────────────────────────────────────────── */}
         <div style={styles.divider} />
-        <label style={styles.label}>Memory</label>
+        <label style={styles.label}>{t('settings.memory')}</label>
         {Object.keys(facts).length === 0 ? (
-          <p style={styles.memoryHint}>Nothing learned about you yet.</p>
+          <p style={styles.memoryHint}>{t('settings.memory.empty')}</p>
         ) : (
           <ul style={styles.factList}>
             {Object.entries(facts).map(([key, value]) => (
               <li key={key} style={styles.factRow}>
                 <span style={styles.factText} title={value}>
-                  <span style={styles.factKey}>{FACT_LABELS[key] ?? key}</span> {value}
+                  <span style={styles.factKey}>{factLabel(key)}</span> {value}
                 </span>
                 <button
                   style={styles.factDelete}
                   onClick={() => void forgetFact(key)}
-                  title={`Forget ${FACT_LABELS[key] ?? key}`}
-                  aria-label={`Forget ${FACT_LABELS[key] ?? key}`}
+                  title={t('settings.memory.forget', { fact: factLabel(key) })}
+                  aria-label={t('settings.memory.forget', { fact: factLabel(key) })}
                 >
                   ✕
                 </button>
@@ -606,9 +631,11 @@ export function SettingsPanel({ isOpen, onClose }: Props) {
               ...(confirming === 'history' ? styles.memoryBtnConfirm : {}),
             }}
             onClick={() => void handleClear('history')}
-            title="Delete the stored conversation; learned facts are kept"
+            title={t('settings.memory.clearHistoryHint')}
           >
-            {confirming === 'history' ? 'Click to confirm' : 'Clear chat history'}
+            {t(
+              confirming === 'history' ? 'settings.memory.confirm' : 'settings.memory.clearHistory'
+            )}
           </button>
           <button
             style={{
@@ -616,9 +643,9 @@ export function SettingsPanel({ isOpen, onClose }: Props) {
               ...(confirming === 'all' ? styles.memoryBtnConfirm : {}),
             }}
             onClick={() => void handleClear('all')}
-            title="Delete the conversation and everything learned about you"
+            title={t('settings.memory.forgetAllHint')}
           >
-            {confirming === 'all' ? 'Click to confirm' : 'Forget everything'}
+            {t(confirming === 'all' ? 'settings.memory.confirm' : 'settings.memory.forgetAll')}
           </button>
         </div>
         {memoryMsg !== '' && <p style={styles.memoryHint}>{memoryMsg}</p>}
@@ -626,7 +653,7 @@ export function SettingsPanel({ isOpen, onClose }: Props) {
         {/* ── Quit ────────────────────────────────────────────────────────── */}
         <div style={styles.divider} />
         <button style={styles.quitBtn} onClick={() => invoke('quit_app')}>
-          Quit NekoAI
+          {t('settings.quit')}
         </button>
       </div>
     </div>

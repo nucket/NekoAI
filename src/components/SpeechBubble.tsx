@@ -6,6 +6,7 @@ import {
   type KeyboardEvent,
   type CSSProperties,
 } from 'react'
+import { useT } from '../i18n'
 import './SpeechBubble.css'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -71,6 +72,7 @@ export function SpeechBubble({
   announcement,
 }: SpeechBubbleProps) {
   // ── Internal state (as requested) ─────────────────────────────────────────
+  const t = useT()
   const [inputValue, setInputValue] = useState('')
   const [messages, setMessages] = useState<Message[]>([])
   const [isLoading, setIsLoading] = useState(false)
@@ -215,12 +217,9 @@ export function SpeechBubble({
     } catch (err) {
       console.error('[SpeechBubble] onSendMessage error:', err)
       setIsLoading(false)
-      setMessages((prev) => [
-        ...prev,
-        { role: 'assistant', content: 'Sorry, something went wrong. 😿' },
-      ])
+      setMessages((prev) => [...prev, { role: 'assistant', content: t('error.generic') }])
     }
-  }, [inputValue, isLoading, pendingText, onSendMessage, resetTimer])
+  }, [inputValue, isLoading, pendingText, onSendMessage, resetTimer, t])
 
   const handleKeyDown = useCallback(
     (e: KeyboardEvent<HTMLInputElement>) => {
@@ -257,7 +256,7 @@ export function SpeechBubble({
       className={`speech-bubble speech-bubble--${position}`}
       style={anchorStyle}
       role="dialog"
-      aria-label="NekoAI chat"
+      aria-label={t('chat.label')}
       // Prevent drag from starting while interacting with the bubble
       onMouseDown={(e) => e.stopPropagation()}
     >
@@ -265,7 +264,7 @@ export function SpeechBubble({
       <button
         className="speech-bubble__close"
         onClick={onClose}
-        aria-label="Close chat"
+        aria-label={t('chat.close')}
         tabIndex={-1}
       >
         ×
@@ -292,7 +291,7 @@ export function SpeechBubble({
           {/* Thinking indicator while waiting for the network response */}
           {isLoading && (
             <div className="speech-bubble__msg speech-bubble__msg--assistant">
-              <span className="speech-bubble__thinking" aria-label="Thinking">
+              <span className="speech-bubble__thinking" aria-label={t('chat.thinking')}>
                 <span />
                 <span />
                 <span />
@@ -330,7 +329,7 @@ export function SpeechBubble({
             ref={inputRef}
             type="text"
             className="speech-bubble__input"
-            placeholder="Say something…"
+            placeholder={t('chat.placeholder')}
             value={inputValue}
             autoComplete="off"
             spellCheck={false}
@@ -345,7 +344,7 @@ export function SpeechBubble({
             className="speech-bubble__send"
             onClick={handleSend}
             disabled={isLoading || isTyping || !inputValue.trim()}
-            aria-label="Send message"
+            aria-label={t('chat.send')}
           >
             ↵
           </button>

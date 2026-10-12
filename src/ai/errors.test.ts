@@ -1,5 +1,11 @@
-import { describe, expect, it } from 'vitest'
+import { beforeAll, describe, expect, it } from 'vitest'
 import { AiRequestError, describeSendError, toAiError } from './errors'
+import { useConfigStore } from '../store/configStore'
+
+// The messages below are the English ones, whatever the machine's language.
+beforeAll(() => {
+  useConfigStore.setState((s) => ({ config: { ...s.config, language: 'en' } }))
+})
 
 const rustError = (kind: string, message = 'details') => ({ kind, message })
 
