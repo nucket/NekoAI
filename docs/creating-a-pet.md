@@ -102,7 +102,7 @@ One-shot triggers play one pass of the animation (frames ÷ fps), clamped to 0.4
 
 ### How `system_prompt` is used
 
-`system_prompt` becomes the start of the AI's system prompt whenever your pet is active. NekoAI then appends what the user has taught the pet (name, project…), the pet's current mood, and a reply-length instruction matching **Settings → Response length** (S / M / L). Describe who the pet _is_ — voice, quirks, catchphrases — and leave length and formatting to the app.
+`system_prompt` becomes the start of the AI's system prompt whenever your pet is active. NekoAI then appends what the user has taught the pet (name, project…), the pet's current mood, and a reply-length instruction matching **Settings → Response length** (Short / Medium / Long). Describe who the pet _is_ — voice, quirks, catchphrases — and leave length and formatting to the app.
 
 ### Required animations
 

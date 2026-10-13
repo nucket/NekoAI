@@ -14,15 +14,17 @@ import {
   type MaxTokensPreset,
 } from '../ai/types'
 
+// Worded labels (not S / M / L) so these aren't mistaken for the pet size
+// chips in the context menu. Custom has an icon instead (`label` unset).
 const RESPONSE_LENGTH_OPTIONS: {
   key: MaxTokensPreset
-  label: string
+  label?: MessageKey
   hint: MessageKey
 }[] = [
-  { key: 'short', label: 'S', hint: 'settings.length.short' },
-  { key: 'medium', label: 'M', hint: 'settings.length.medium' },
-  { key: 'long', label: 'L', hint: 'settings.length.long' },
-  { key: 'custom', label: '⚙', hint: 'settings.length.custom' },
+  { key: 'short', label: 'settings.length.shortLabel', hint: 'settings.length.short' },
+  { key: 'medium', label: 'settings.length.mediumLabel', hint: 'settings.length.medium' },
+  { key: 'long', label: 'settings.length.longLabel', hint: 'settings.length.long' },
+  { key: 'custom', hint: 'settings.length.custom' },
 ]
 
 const CUSTOM_RANGE = `${MAX_TOKENS_BOUNDS.min}–${MAX_TOKENS_BOUNDS.max}`
@@ -537,7 +539,7 @@ export function SettingsPanel({ isOpen, onClose }: Props) {
                 }}
                 title={t(hint, { tokens: CUSTOM_RANGE })}
               >
-                {label}
+                {label ? t(label) : '⚙'}
               </button>
             )
           })}
