@@ -88,7 +88,7 @@ _Zero-config onboarding on Windows — NekoAI auto-detects Ollama and walks you 
 | 🖥️ System tray — hide/show, switch pets, settings                                | ✅         |
 | 📏 Adjustable pet size (S/M/L/XL) with pixel-perfect scaling                     | ✅         |
 | 🖱️ Right-click context menu — quick settings & pet size adjustment               | ✅         |
-| 💬 Tunable AI response length — S / M / L / Custom (32–4096 tokens)              | ✅         |
+| 💬 Tunable AI response length — Short / Medium / Long / Custom (32–4096 tokens)  | ✅         |
 | 🪄 Zero-config onboarding — auto-detects Ollama; walks pet out from house corner | ✅         |
 | 📊 NekoMetrics — anonymous keystroke / mouse / pet-step counters in a tooltip    | 🔜 v0.4    |
 | 🥁 BongoCat-style reactive paw animations driven by keystrokes                   | 🔜 v0.4    |
@@ -183,7 +183,7 @@ pnpm tauri build         # Production build
 - ⚙ **Settings** — configure AI provider, API key, model, response length, and your name
 - 🐾 **Select Pet** — switch between available pets
 - 📏 **Size** — adjust pet size (S=32px, M=64px, L=96px, XL=128px) for pixel-perfect rendering
-- 💬 **Response length** — pick **S / M / L** (256 / 512 / 1024 tokens) or set a **Custom** value (32–4096). Medium is the default and covers most replies; pick Short for snappy answers on local Ollama, Long for detailed technical explanations, Custom when you want exact control.
+- 💬 **Response length** (in Settings) — pick **Short / Medium / Long** (256 / 512 / 1024 tokens) or set a **Custom** value (32–4096). Medium is the default and covers most replies; pick Short for snappy answers on local Ollama, Long for detailed technical explanations, Custom when you want exact control.
 
 Configuration is auto-created on first run:
 
@@ -304,7 +304,7 @@ NekoAI/
 │   │   └── ollama.ts            # Local Ollama detection (onboarding)
 │   ├── components/
 │   │   ├── SpeechBubble.tsx     # Animated chat bubble — scramble text, sprite-anchored, preloads recent history
-│   │   ├── SettingsPanel.tsx    # Settings panel (API key, model, pet size)
+│   │   ├── SettingsPanel.tsx    # Settings panel (provider, API key, language, response length, memory)
 │   │   ├── ContextMenu.tsx      # Right-click context menu (settings, pet, size)
 │   │   └── PetSelector.tsx      # Pet picker with dynamic window resizing
 │   ├── i18n/                    # UI strings: en.ts (source), es.ts, t() / useT()
