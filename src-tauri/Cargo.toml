@@ -28,7 +28,7 @@ rusqlite = { version = "0.40", features = ["bundled"] }
 # used with 0.12; 0.13 defaults to rustls + aws-lc-rs.
 reqwest = { version = "0.13", default-features = false, features = ["json", "native-tls", "charset", "http2", "system-proxy"] }
 toml = "1"
-dirs = "6"
+dirs = "7"
 url = "2"
 # API key storage: Windows Credential Manager, macOS Keychain, Secret Service on
 # Linux (each backend only builds on its own OS).
