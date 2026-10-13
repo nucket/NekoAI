@@ -5,6 +5,7 @@ import type { useOnboarding } from './useOnboarding'
 import { useConfigStore } from '../store/configStore'
 import { DEFAULT_PET_SIZE, HOUSE_SIZE } from '../constants/layout'
 import { workAreaOf } from '../utils/monitor'
+import { t } from '../i18n'
 
 // Onboarding bubble stays up at most this long; user can close earlier via
 // the action buttons. After it closes, regular cursor-following resumes.
@@ -108,23 +109,30 @@ export function useOnboardingSequence({
         const announcement: AnnouncementContent =
           onboarding.state === 'ollama_found'
             ? {
-                text: `Hello! I detected Ollama running and automatically set myself up to use ${
-                  onboarding.detectedModel ?? 'your local model'
-                }. You can change this in Settings, and right-click me anytime for the menu. Ask me anything!`,
+                text: t('onboarding.ollamaFound', {
+                  model: onboarding.detectedModel ?? t('onboarding.localModel'),
+                }),
                 actions: [
-                  { label: 'Got it', primary: true, onClick: () => closeOnboardingBubble(false) },
-                  { label: 'Open Settings', onClick: () => closeOnboardingBubble(true) },
+                  {
+                    label: t('common.gotIt'),
+                    primary: true,
+                    onClick: () => closeOnboardingBubble(false),
+                  },
+                  {
+                    label: t('onboarding.openSettings'),
+                    onClick: () => closeOnboardingBubble(true),
+                  },
                 ],
               }
             : {
-                text: "Hello! I'm your new desktop pet. To chat with you, I need to be connected to an AI engine. Will you help me set one up? You can also right-click me anytime for the menu.",
+                text: t('onboarding.needsSetup'),
                 actions: [
                   {
-                    label: '⚙ Configure AI',
+                    label: t('onboarding.configure'),
                     primary: true,
                     onClick: () => closeOnboardingBubble(true),
                   },
-                  { label: 'Later', onClick: () => closeOnboardingBubble(false) },
+                  { label: t('onboarding.later'), onClick: () => closeOnboardingBubble(false) },
                 ],
               }
 

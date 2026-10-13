@@ -195,6 +195,7 @@ provider  = "gemini"            # "anthropic" | "openai" | "gemini" | "nvidia" |
 model     = "gemini-2.5-flash"
 petSize   = 64                  # pixels (32, 64, 96, or 128)
 maxTokens = 512                 # 256 (Short) | 512 (Medium, default) | 1024 (Long) | 32–4096 (Custom)
+language  = "es"                # UI language: "en" | "es" (omit to follow the system language)
 ```
 
 The API key you enter in Settings is kept in your system's credential store (Windows Credential Manager, macOS Keychain, or GNOME Keyring / KWallet on Linux), not in this file.
@@ -287,6 +288,7 @@ NekoAI/
 │       ├── ai.rs                # All AI provider calls (Anthropic, OpenAI, Gemini, NIM, Ollama)
 │       ├── desktop_monitor.rs   # Active window & idle time (Windows + Linux/X11)
 │       ├── cursor_tracker.rs    # Wayland cursor fallback — reads /dev/input via evdev
+│       ├── secrets.rs           # API key in the OS credential store
 │       └── storage.rs           # SQLite: conversation history, user facts, config
 │
 ├── src/                         # TypeScript / React frontend
@@ -305,6 +307,7 @@ NekoAI/
 │   │   ├── SettingsPanel.tsx    # Settings panel (API key, model, pet size)
 │   │   ├── ContextMenu.tsx      # Right-click context menu (settings, pet, size)
 │   │   └── PetSelector.tsx      # Pet picker with dynamic window resizing
+│   ├── i18n/                    # UI strings: en.ts (source), es.ts, t() / useT()
 │   ├── hooks/
 │   │   ├── usePetMovement.ts    # 8-direction movement, overridePosition, EdgePhase state machine
 │   │   ├── useIdleSequencer.ts  # Classic Neko stop→wash→scratch→yawn→sleep idle sequence

@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { usePanelWindow } from '../hooks/usePanelWindow'
 import { SELECTOR_H, SELECTOR_W } from '../constants/layout'
+import { useT } from '../i18n'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -35,6 +36,7 @@ interface Props {
 }
 
 export function PetSelector({ isOpen, activePetId, onSelect, onClose }: Props) {
+  const t = useT()
   const [pets, setPets] = useState<PetManifestEntry[]>(FALLBACK_PETS)
 
   // ── Expand / collapse the main Tauri window ────────────────────────────────
@@ -66,8 +68,8 @@ export function PetSelector({ isOpen, activePetId, onSelect, onClose }: Props) {
       <style>{scrollbarCss}</style>
       <div style={styles.panel} onClick={(e) => e.stopPropagation()}>
         <div style={styles.header}>
-          <span style={styles.title}>Select Pet</span>
-          <button style={styles.closeBtn} onClick={onClose}>
+          <span style={styles.title}>{t('pets.title')}</span>
+          <button style={styles.closeBtn} onClick={onClose} title={t('common.close')}>
             ✕
           </button>
         </div>
@@ -89,7 +91,9 @@ export function PetSelector({ isOpen, activePetId, onSelect, onClose }: Props) {
               <span style={styles.petEmoji}>{pet.emoji}</span>
               <div style={styles.petInfo}>
                 <span style={styles.petName}>{pet.name}</span>
-                {pet.spritesRequired && <span style={styles.petBadge}>sprites needed</span>}
+                {pet.spritesRequired && (
+                  <span style={styles.petBadge}>{t('pets.spritesNeeded')}</span>
+                )}
               </div>
               {pet.id === activePetId && <span style={styles.check}>✓</span>}
             </button>

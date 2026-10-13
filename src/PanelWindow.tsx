@@ -3,6 +3,7 @@ import { invoke } from '@tauri-apps/api/core'
 import { getCurrentWindow } from '@tauri-apps/api/window'
 import { useConfigStore } from './store/configStore'
 import { MENU_H, MENU_W } from './constants/layout'
+import { useT } from './i18n'
 
 // Height of the About view (the menu itself is MENU_W × MENU_H).
 const ABOUT_H = 340
@@ -34,6 +35,7 @@ export function PanelWindow({ route }: Props) {
 function ContextMenuPanel() {
   const { config, loadConfig, isLoaded, setPetMode, setPetSize } = useConfigStore()
   const [view, setView] = useState<'menu' | 'about'>('menu')
+  const t = useT()
 
   useEffect(() => {
     if (!isLoaded) loadConfig()
@@ -84,37 +86,39 @@ function ContextMenuPanel() {
         <div style={styles.menu} onClick={(e) => e.stopPropagation()}>
           <div style={styles.header}>
             <span style={styles.title}>🐱 NekoAI</span>
-            <button style={styles.closeBtn} onClick={close} title="Close">
+            <button style={styles.closeBtn} onClick={close} title={t('common.close')}>
               ✕
             </button>
           </div>
           <div style={styles.divider} />
 
           <button style={styles.backBtn} onClick={showMenu}>
-            ← Back
+            {t('about.back')}
           </button>
 
           <div style={aboutStyles.appBlock}>
             <div style={aboutStyles.appName}>NekoAI</div>
-            <div style={aboutStyles.appDesc}>Desktop AI Companion • v{__APP_VERSION__}</div>
+            <div style={aboutStyles.appDesc}>
+              {t('about.tagline', { version: __APP_VERSION__ })}
+            </div>
           </div>
 
           <div style={styles.divider} />
 
           <div style={aboutStyles.row}>
-            <span style={aboutStyles.label}>Website</span>
+            <span style={aboutStyles.label}>{t('about.website')}</span>
             <button style={aboutStyles.link} onClick={() => openUrl('https://nekoai.dev/')}>
               nekoai.dev
             </button>
           </div>
           <div style={aboutStyles.row}>
-            <span style={aboutStyles.label}>Contact</span>
+            <span style={aboutStyles.label}>{t('about.contact')}</span>
             <button style={aboutStyles.link} onClick={() => openUrl('mailto:hi@nekoai.dev')}>
               hi@nekoai.dev
             </button>
           </div>
           <div style={aboutStyles.row}>
-            <span style={aboutStyles.label}>Creator</span>
+            <span style={aboutStyles.label}>{t('about.creator')}</span>
             <button
               style={aboutStyles.link}
               onClick={() => openUrl('https://naudycastellanos.com/')}
@@ -129,7 +133,7 @@ function ContextMenuPanel() {
             style={aboutStyles.starBtn}
             onClick={() => openUrl('https://github.com/nucket/nekoai')}
           >
-            ⭐ Star on GitHub
+            {t('about.star')}
           </button>
         </div>
       </div>
@@ -141,23 +145,23 @@ function ContextMenuPanel() {
       <div style={styles.menu} onClick={(e) => e.stopPropagation()}>
         <div style={styles.header}>
           <span style={styles.title}>🐱 NekoAI</span>
-          <button style={styles.closeBtn} onClick={close} title="Close">
+          <button style={styles.closeBtn} onClick={close} title={t('common.close')}>
             ✕
           </button>
         </div>
         <div style={styles.divider} />
 
         <button style={styles.item} onClick={openSettings}>
-          ⚙ Settings
+          {t('settings.title')}
         </button>
         <button style={styles.item} onClick={openSelectPet}>
-          🐾 Select Pet
+          {t('menu.selectPet')}
         </button>
 
         <div style={styles.divider} />
 
         <div style={styles.modeRow}>
-          <span style={styles.modeLabel}>Mode</span>
+          <span style={styles.modeLabel}>{t('menu.mode')}</span>
           <div style={styles.modeBtns}>
             <button
               style={{
@@ -168,9 +172,9 @@ function ContextMenuPanel() {
                 setPetMode('buddy')
                 panelAction('pet-mode:buddy')
               }}
-              title="Follow mouse cursor"
+              title={t('menu.mode.buddyHint')}
             >
-              Buddy
+              {t('menu.mode.buddy')}
             </button>
             <button
               style={{
@@ -181,9 +185,9 @@ function ContextMenuPanel() {
                 setPetMode('wanderer')
                 panelAction('pet-mode:wanderer')
               }}
-              title="Wander freely"
+              title={t('menu.mode.wandererHint')}
             >
-              Wanderer
+              {t('menu.mode.wanderer')}
             </button>
           </div>
         </div>
@@ -191,7 +195,7 @@ function ContextMenuPanel() {
         <div style={styles.divider} />
 
         <div style={styles.sizeRow}>
-          <span style={styles.sizeLabel}>Size</span>
+          <span style={styles.sizeLabel}>{t('menu.size')}</span>
           <div style={styles.sizeBtns}>
             {PET_SIZES.map(({ label, value }) => (
               <button
@@ -215,13 +219,13 @@ function ContextMenuPanel() {
         <div style={styles.divider} />
 
         <button style={styles.item} onClick={showAbout}>
-          ℹ About NekoAI
+          {t('menu.about')}
         </button>
 
         <div style={styles.divider} />
 
         <button style={styles.quitItem} onClick={quit}>
-          ✕ Quit NekoAI
+          {t('menu.quit')}
         </button>
       </div>
     </div>

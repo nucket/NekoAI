@@ -53,6 +53,10 @@ pub struct AIConfig {
     // to be lost on every save.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub pet_size: Option<u32>,
+    // UI language ("en" / "es"). `None` follows the system language; the
+    // frontend resolves it (src/i18n) and tells the tray via set_tray_locale.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub language: Option<String>,
 }
 
 impl Default for AIConfig {
@@ -71,6 +75,7 @@ impl Default for AIConfig {
             ollama_auto_detected: None,
             max_tokens: None,
             pet_size: None,
+            language: None,
         }
     }
 }

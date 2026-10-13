@@ -22,6 +22,7 @@ import { useAppEvents } from './hooks/useAppEvents'
 import { useLinuxExpandedChrome } from './hooks/useLinuxExpandedChrome'
 import { useWaylandNotice } from './hooks/useWaylandNotice'
 import { useChat } from './hooks/useChat'
+import { useTrayLocale } from './hooks/useTrayLocale'
 import { IS_LINUX } from './utils/platform'
 import { openContextMenu } from './utils/contextMenu'
 import { resolveAnimation } from './pets/resolveAnimation'
@@ -43,6 +44,7 @@ export default function App() {
   useEffect(() => {
     if (!isLoaded) loadConfig()
   }, [isLoaded, loadConfig])
+  useTrayLocale()
 
   // Settings and the pet selector take over the main window; the context
   // menu lives in its own window, so the sprite stays free to move.

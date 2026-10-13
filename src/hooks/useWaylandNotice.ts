@@ -1,11 +1,10 @@
 import { useEffect, useRef } from 'react'
 import type { AnnouncementContent } from '../components/SpeechBubble'
 import type { CursorTracking } from './useCursorTracking'
+import { t } from '../i18n'
 
 const SEEN_KEY = 'nekoai.waylandCursorNoticeSeen'
 const ENABLE_CMD = 'sudo usermod -aG input $USER'
-const BASE_TEXT =
-  "Heads-up — I'm on Wayland, so I can't follow your mouse around the desktop. I'll roam on my own instead! To let me follow your cursor, add yourself to the `input` group and log out / back in:"
 
 export interface UseWaylandNoticeOptions {
   cursorTracking: CursorTracking
@@ -40,18 +39,19 @@ export function useWaylandNotice({
     shownRef.current = true
     void (async () => {
       localStorage.setItem(SEEN_KEY, '1')
+      const baseText = `${t('wayland.notice')}\n\n${ENABLE_CMD}`
       const dismiss = {
-        label: 'Got it',
+        label: t('common.gotIt'),
         onClick: () => {
           setAnnouncement(null)
           void closeBubble()
         },
       }
       setAnnouncement({
-        text: `${BASE_TEXT}\n\n${ENABLE_CMD}`,
+        text: baseText,
         actions: [
           {
-            label: '📋 Copy fix command',
+            label: t('wayland.copy'),
             primary: true,
             onClick: () => {
               void (async () => {
@@ -62,7 +62,7 @@ export function useWaylandNotice({
                   // the command is already visible in the bubble text.
                 }
                 setAnnouncement({
-                  text: `${BASE_TEXT}\n\n${ENABLE_CMD}\n\n✓ Copied — log out and back in for it to take effect.`,
+                  text: `${baseText}\n\n${t('wayland.copied')}`,
                   actions: [dismiss],
                 })
               })()
