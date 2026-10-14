@@ -1,21 +1,21 @@
 {
   "schema_version": 1,
-  "captured_at": "2026-10-13T14:06:37.827Z",
+  "captured_at": "2026-10-14T11:46:45.051Z",
   "source": "github-releases",
   "repo": "nucket/NekoAI",
   "totals": {
-    "all": 928,
+    "all": 939,
     "by_os": {
-      "linux": 267,
-      "windows": 538,
-      "macos": 123
+      "linux": 270,
+      "windows": 545,
+      "macos": 124
     },
     "by_arch": {
-      "x86_64": 896,
+      "x86_64": 907,
       "aarch64": 32
     },
     "by_version": {
-      "v0.3.8": 789,
+      "v0.3.8": 800,
       "v0.3.7": 25,
       "v0.3.6": 7,
       "v0.3.5": 7,
@@ -29,12 +29,12 @@
     },
     "by_format": {
       "rpm": 56,
-      "portable": 111,
-      "dmg": 123,
-      "appimage": 92,
-      "deb": 119,
-      "nsis": 129,
-      "msi": 298
+      "portable": 113,
+      "dmg": 124,
+      "appimage": 94,
+      "deb": 120,
+      "nsis": 130,
+      "msi": 302
     }
   },
   "releases": [
@@ -55,7 +55,7 @@
           "os": "windows",
           "arch": "x86_64",
           "format": "portable",
-          "download_count": 90,
+          "download_count": 92,
           "size": 4274967
         },
         {
@@ -71,7 +71,7 @@
           "os": "linux",
           "arch": "x86_64",
           "format": "appimage",
-          "download_count": 68,
+          "download_count": 70,
           "size": 84593144
         },
         {
@@ -79,7 +79,7 @@
           "os": "linux",
           "arch": "x86_64",
           "format": "deb",
-          "download_count": 107,
+          "download_count": 108,
           "size": 4937460
         },
         {
@@ -87,7 +87,7 @@
           "os": "windows",
           "arch": "x86_64",
           "format": "nsis",
-          "download_count": 110,
+          "download_count": 111,
           "size": 3181485
         },
         {
@@ -95,7 +95,7 @@
           "os": "macos",
           "arch": "x86_64",
           "format": "dmg",
-          "download_count": 74,
+          "download_count": 75,
           "size": 5137595
         },
         {
@@ -103,7 +103,7 @@
           "os": "windows",
           "arch": "x86_64",
           "format": "msi",
-          "download_count": 282,
+          "download_count": 286,
           "size": 4595712
         }
       ]
