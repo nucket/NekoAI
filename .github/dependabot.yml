@@ -27,6 +27,14 @@ updates:
       interval: weekly
       day: monday
     open-pull-requests-limit: 10
+    ignore:
+      # gtk-rs crates must stay on the versions Tauri / wry build against
+      # (gtk 0.18 today); a newer cairo-rs or glib alone doesn't compile.
+      # Bump them together with Tauri instead.
+      - dependency-name: 'gtk'
+        update-types: ['version-update:semver-minor', 'version-update:semver-major']
+      - dependency-name: 'cairo-rs'
+        update-types: ['version-update:semver-minor', 'version-update:semver-major']
 
   # Workflows pin actions to commit SHAs; Dependabot bumps the SHA and the
   # version comment together.
