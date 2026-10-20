@@ -1,21 +1,21 @@
 {
   "schema_version": 1,
-  "captured_at": "2026-10-19T13:06:06.734Z",
+  "captured_at": "2026-10-20T11:30:52.872Z",
   "source": "github-releases",
   "repo": "nucket/NekoAI",
   "totals": {
-    "all": 988,
+    "all": 998,
     "by_os": {
-      "linux": 286,
-      "windows": 570,
-      "macos": 132
+      "linux": 290,
+      "windows": 574,
+      "macos": 134
     },
     "by_arch": {
-      "x86_64": 954,
-      "aarch64": 34
+      "x86_64": 963,
+      "aarch64": 35
     },
     "by_version": {
-      "v0.3.8": 845,
+      "v0.3.8": 853,
       "v0.3.7": 25,
       "v0.3.6": 7,
       "v0.3.5": 7,
@@ -25,15 +25,15 @@
       "v0.3.1": 14,
       "v0.3.0": 28,
       "v0.2.0": 25,
-      "v0.1.0": 12
+      "v0.1.0": 14
     },
     "by_format": {
-      "rpm": 60,
-      "portable": 115,
-      "dmg": 132,
-      "appimage": 102,
-      "deb": 124,
-      "nsis": 137,
+      "rpm": 61,
+      "portable": 117,
+      "dmg": 134,
+      "appimage": 103,
+      "deb": 126,
+      "nsis": 139,
       "msi": 318
     }
   },
@@ -47,7 +47,7 @@
           "os": "linux",
           "arch": "x86_64",
           "format": "rpm",
-          "download_count": 39,
+          "download_count": 40,
           "size": 4938315
         },
         {
@@ -55,7 +55,7 @@
           "os": "windows",
           "arch": "x86_64",
           "format": "portable",
-          "download_count": 94,
+          "download_count": 96,
           "size": 4274967
         },
         {
@@ -63,7 +63,7 @@
           "os": "macos",
           "arch": "aarch64",
           "format": "dmg",
-          "download_count": 24,
+          "download_count": 25,
           "size": 4931929
         },
         {
@@ -71,7 +71,7 @@
           "os": "linux",
           "arch": "x86_64",
           "format": "appimage",
-          "download_count": 77,
+          "download_count": 78,
           "size": 84593144
         },
         {
@@ -79,7 +79,7 @@
           "os": "linux",
           "arch": "x86_64",
           "format": "deb",
-          "download_count": 112,
+          "download_count": 113,
           "size": 4937460
         },
         {
@@ -87,7 +87,7 @@
           "os": "windows",
           "arch": "x86_64",
           "format": "nsis",
-          "download_count": 117,
+          "download_count": 119,
           "size": 3181485
         },
         {
@@ -771,7 +771,7 @@
           "os": "linux",
           "arch": "x86_64",
           "format": "deb",
-          "download_count": 1,
+          "download_count": 2,
           "size": 3929702
         },
         {
@@ -787,7 +787,7 @@
           "os": "macos",
           "arch": "x86_64",
           "format": "dmg",
-          "download_count": 1,
+          "download_count": 2,
           "size": 3800169
         },
         {
