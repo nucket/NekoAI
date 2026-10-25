@@ -57,6 +57,10 @@ pub struct AIConfig {
     // frontend resolves it (src/i18n) and tells the tray via set_tray_locale.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub language: Option<String>,
+    // Look for a new release at startup. `None` means yes; Settings can turn
+    // it off (the check is a request to github.com).
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub check_updates: Option<bool>,
 }
 
 impl Default for AIConfig {
@@ -76,6 +80,7 @@ impl Default for AIConfig {
             max_tokens: None,
             pet_size: None,
             language: None,
+            check_updates: None,
         }
     }
 }

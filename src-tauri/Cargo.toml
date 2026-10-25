@@ -33,6 +33,10 @@ url = "2"
 # API key storage: Windows Credential Manager, macOS Keychain, Secret Service on
 # Linux (each backend only builds on its own OS).
 keyring = { version = "3.6", features = ["apple-native", "windows-native", "sync-secret-service", "crypto-rust"] }
+# In-app updates (see updater.rs). native-tls like reqwest above; no `zip`
+# feature: v2 updater artifacts are plain installers / AppImages, and zip
+# extraction is what pulls in the zip crate.
+tauri-plugin-updater = { version = "2", default-features = false, features = ["native-tls"] }
 
 [target.'cfg(target_os = "linux")'.dependencies]
 x11rb = { version = "0.14", features = ["screensaver"] }
