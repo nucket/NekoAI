@@ -137,11 +137,15 @@ _Zero-config onboarding on Windows — NekoAI auto-detects Ollama and walks you 
 
 Go to [Releases](https://github.com/nucket/nekoai/releases) and grab the latest installer for your OS.
 
-| Platform | File                          |
-| -------- | ----------------------------- |
-| Windows  | `NekoAI_x.x.x_x64.msi`        |
-| macOS    | `NekoAI_x.x.x_aarch64.dmg`    |
-| Linux    | `NekoAI_x.x.x_amd64.AppImage` |
+| Platform | File                                                                         |
+| -------- | ---------------------------------------------------------------------------- |
+| Windows  | `nekoai_x.x.x_x64-setup.exe` (or the `.msi`, or the portable `.zip`)         |
+| macOS    | `nekoai_x.x.x_aarch64.dmg` (Apple Silicon) or `nekoai_x.x.x_x64.dmg` (Intel) |
+| Linux    | `nekoai_x.x.x_amd64.AppImage` (or the `.deb` / `.rpm`)                       |
+
+> **First launch on Windows and macOS:** the installers are not code-signed yet, so Windows SmartScreen and macOS
+> Gatekeeper warn the first time you open NekoAI. [Opening an unsigned build](docs/code-signing.md#opening-an-unsigned-build)
+> shows how to get past the warning, and the [code signing policy](docs/code-signing.md) explains how releases are built.
 
 > **Linux note:** The `.AppImage` needs no installation — `chmod +x` it and run it
 > directly. If you prefer the `.deb`, install it from a terminal with
