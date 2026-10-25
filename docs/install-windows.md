@@ -6,12 +6,15 @@ Two distribution formats are available: an **installer** and a **portable ZIP**.
 
 ## Installer (recommended)
 
-Download `nekoai-setup-windows-x64.exe` from the [releases page](https://github.com/nucket/nekoai/releases).
+Download `nekoai_X.Y.Z_x64-setup.exe` from the [releases page](https://github.com/nucket/nekoai/releases)
+(an `nekoai_X.Y.Z_x64_en-US.msi` is also published).
 
 - Installs for the current user (no admin rights required)
 - Creates a Start Menu shortcut
 - Supports launch-at-login via the Settings panel
-- Data is stored in `%USERPROFILE%\.config\nekoai\` and `%USERPROFILE%\.local\share\nekoai\`
+
+The installer is not code-signed yet, so SmartScreen may say _"Windows protected your PC"_: click **More info**,
+then **Run anyway**. See the [code signing policy](code-signing.md).
 
 ### Where your data is stored
 
