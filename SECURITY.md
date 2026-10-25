@@ -10,7 +10,7 @@
 
 NekoAI is designed with privacy as a core principle.
 
-- **No telemetry in the app.** No analytics, no crash reports, no background reporting. The only outbound network calls from the app are the AI provider calls listed below and a single loopback probe for Ollama on first launch.
+- **No telemetry in the app.** No analytics, no crash reports, no background reporting. The only outbound network calls from the app are the AI provider calls listed below, a single loopback probe for Ollama on first launch, and the update check described below.
 - **AI providers** — calls go directly from your machine to the provider you select. NekoAI has no proxy, no relay, and no infrastructure of its own. Every call is made by the app's native side (the Rust `ai_chat` command), never by the WebView.
   - Anthropic Claude — `https://api.anthropic.com`
   - OpenAI — `https://api.openai.com`
@@ -29,6 +29,7 @@ NekoAI is designed with privacy as a core principle.
 
 - **Bounded history.** The `conversations` table auto-prunes to the most recent 200 rows / 30 days to bound disk growth. **Settings → Memory** lists everything the pet has learned about you and lets you forget individual facts, clear the conversation history, or forget everything (`delete_user_fact`, `clear_conversations`, `clear_user_facts`).
 - **First-launch Ollama detection.** On first run, NekoAI asks the Rust `ollama_detect` command to call `http://localhost:11434/api/tags` once, with a 2.5 s timeout, to detect a local Ollama install. The request is loopback only — it cannot leave your machine. Once onboarding completes, this probe does not run again.
+- **Update check.** About 15 seconds after launch, the app's native side downloads `https://github.com/nucket/NekoAI/releases/latest/download/latest.json` once, to see whether a newer release exists. It sends nothing about you beyond what any download from GitHub carries (IP address, user agent). Nothing is downloaded or installed unless you accept the update in the pet's bubble, and every update is verified against the updater public key in `src-tauri/tauri.conf.json` before it is installed. Turn the check off in **Settings → Check for updates at startup**.
 
 ### Public install metrics — not telemetry
 

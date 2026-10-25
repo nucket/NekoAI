@@ -28,6 +28,7 @@ export const es: Dictionary = {
   'settings.autostart.portable': '(modo portable)',
   'settings.autostart.portableHint': 'No disponible en modo portable',
   'settings.autostart.readError': 'No se pudo leer el inicio automático: {error}',
+  'settings.checkUpdates': 'Buscar actualizaciones al iniciar',
   'settings.length': 'Longitud de respuesta',
   'settings.length.shortLabel': 'Corta',
   'settings.length.mediumLabel': 'Media',
@@ -111,4 +112,13 @@ export const es: Dictionary = {
     'Aviso: estoy en Wayland, así que no puedo seguir tu ratón por el escritorio. ¡Pasearé por mi cuenta! Para que pueda seguir tu cursor, añádete al grupo `input` y cierra sesión y vuelve a entrar:',
   'wayland.copy': '📋 Copiar comando',
   'wayland.copied': '✓ Copiado — cierra sesión y vuelve a entrar para que surta efecto.',
+  'update.available':
+    '¡Hay una versión nueva de NekoAI: v{version}! ¿Me actualizo ahora? Me reiniciaré al terminar.',
+  'update.availableManual':
+    'Hay una versión nueva de NekoAI: v{version}. Esta copia no puede actualizarse sola: descárgala desde la página de descargas.',
+  'update.install': '⬇ Actualizar ahora',
+  'update.download': '↗ Página de descarga',
+  'update.later': 'Más tarde',
+  'update.installing': 'Descargando la actualización… Me reinicio en un momento. 🐾',
+  'update.failed': 'La actualización falló: {error}',
 }

@@ -29,6 +29,7 @@ export const en = {
   'settings.autostart.portable': '(portable mode)',
   'settings.autostart.portableHint': 'Not available in portable mode',
   'settings.autostart.readError': "Couldn't read autostart status: {error}",
+  'settings.checkUpdates': 'Check for updates at startup',
   'settings.length': 'Response length',
   'settings.length.shortLabel': 'Short',
   'settings.length.mediumLabel': 'Medium',
@@ -112,4 +113,13 @@ export const en = {
     "Heads-up — I'm on Wayland, so I can't follow your mouse around the desktop. I'll roam on my own instead! To let me follow your cursor, add yourself to the `input` group and log out / back in:",
   'wayland.copy': '📋 Copy fix command',
   'wayland.copied': '✓ Copied — log out and back in for it to take effect.',
+  'update.available':
+    "There's a new version of NekoAI: v{version}. Want me to update now? I'll restart when it's done.",
+  'update.availableManual':
+    "There's a new version of NekoAI: v{version}. This copy can't update itself — grab it from the download page.",
+  'update.install': '⬇ Update now',
+  'update.download': '↗ Download page',
+  'update.later': 'Later',
+  'update.installing': "Downloading the update… I'll restart in a moment. 🐾",
+  'update.failed': "The update didn't work: {error}",
 } as const
