@@ -82,7 +82,7 @@ _Zero-config onboarding on Windows — NekoAI auto-detects Ollama and walks you 
 | 🧠 Persistent memory — remembers your name, projects, preferences                | ✅         |
 | 🔌 Multi-provider AI (Claude, OpenAI, Gemini, NVIDIA NIM, Ollama local)          | ✅         |
 | 😴 Dynamic mood — energy changes with time of day & idle time                    | ✅         |
-| 🎭 Multiple pets — Classic Neko, Pingu, Pac-Man, BSD Daemon, Tabby, TIE Fighter  | ✅         |
+| 🎭 Multiple pets — Classic Neko, Pingu, BSD Daemon, Tabby                        | ✅         |
 | 🏠 Pet house — spawn point at bottom-right corner, click to bring pet home       | ✅         |
 | 🔔 Proactive nudges ("coding 90 min — take a break!")                            | ✅         |
 | 🖥️ System tray — hide/show, switch pets, settings                                | ✅         |
@@ -265,10 +265,8 @@ Mood affects:
 | --------------- | --------------- | ------------------------------------------------------------------- |
 | 🐱 Classic Neko | `classic-neko`  | Playful, curious — short bursts, occasional nya~                    |
 | 🐧 Pingu        | `penguin-pixel` | Cheerful and clumsy, bounces back from every stumble                |
-| 🟡 Pac-Man      | `pac-man`       | Always hungry, obsessed with dots — very short waka-waka replies    |
 | 😈 BSD Daemon   | `bsd-daemon`    | Wry Unix sysadmin — terse, accurate, mildly smug about BSD          |
 | 🐈 Tabby        | `tabby`         | Dignified and old-school — the original X11 cat, calm and unhurried |
-| 🚀 TIE Fighter  | `tie-fighter`   | Imperial officer — formal, brief, always scanning for Rebel scum    |
 
 Switch pets via right-click → Select Pet, or from the system tray menu.
 
@@ -322,10 +320,8 @@ NekoAI/
     ├── manifest.json            # Registry of all available pets
     ├── classic-neko/            # 🐱 pet.json + sprites/
     ├── penguin-pixel/           # 🐧 pet.json + sprites/ (Pingu)
-    ├── pac-man/                 # 🟡 pet.json + sprites/
     ├── bsd-daemon/              # 😈 pet.json + sprites/
-    ├── tabby/                   # 🐈 pet.json + sprites/
-    └── tie-fighter/             # 🚀 pet.json + sprites/
+    └── tabby/                   # 🐈 pet.json + sprites/
 ```
 
 ### Window Resizing on Windows
