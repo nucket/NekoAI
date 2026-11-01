@@ -1,21 +1,21 @@
 {
   "schema_version": 1,
-  "captured_at": "2026-10-31T12:19:37.349Z",
+  "captured_at": "2026-11-01T13:15:33.385Z",
   "source": "github-releases",
   "repo": "nucket/NekoAI",
   "totals": {
-    "all": 1114,
+    "all": 1134,
     "by_os": {
-      "linux": 324,
-      "windows": 648,
-      "macos": 142
+      "linux": 330,
+      "windows": 660,
+      "macos": 144
     },
     "by_arch": {
-      "x86_64": 1077,
+      "x86_64": 1097,
       "aarch64": 37
     },
     "by_version": {
-      "v0.3.8": 967,
+      "v0.3.8": 987,
       "v0.3.7": 26,
       "v0.3.6": 7,
       "v0.3.5": 7,
@@ -28,13 +28,13 @@
       "v0.1.0": 15
     },
     "by_format": {
-      "rpm": 64,
-      "portable": 130,
-      "dmg": 142,
+      "rpm": 66,
+      "portable": 136,
+      "dmg": 144,
       "appimage": 122,
-      "deb": 138,
+      "deb": 142,
       "nsis": 145,
-      "msi": 373
+      "msi": 379
     }
   },
   "releases": [
@@ -47,7 +47,7 @@
           "os": "linux",
           "arch": "x86_64",
           "format": "rpm",
-          "download_count": 43,
+          "download_count": 45,
           "size": 4938315
         },
         {
@@ -55,7 +55,7 @@
           "os": "windows",
           "arch": "x86_64",
           "format": "portable",
-          "download_count": 109,
+          "download_count": 115,
           "size": 4274967
         },
         {
@@ -79,7 +79,7 @@
           "os": "linux",
           "arch": "x86_64",
           "format": "deb",
-          "download_count": 125,
+          "download_count": 129,
           "size": 4937460
         },
         {
@@ -95,7 +95,7 @@
           "os": "macos",
           "arch": "x86_64",
           "format": "dmg",
-          "download_count": 87,
+          "download_count": 89,
           "size": 5137595
         },
         {
@@ -103,7 +103,7 @@
           "os": "windows",
           "arch": "x86_64",
           "format": "msi",
-          "download_count": 356,
+          "download_count": 362,
           "size": 4595712
         }
       ]
