@@ -84,6 +84,14 @@ jobs:
           releaseDraft: false
           prerelease: false
           generateReleaseNotes: true
+          # In-app updater (src-tauri/src/updater.rs): each job uploads its
+          # installers' .sig files and merges its platforms into latest.json.
+          # Signed with TAURI_SIGNING_PRIVATE_KEY above; the matching public
+          # key is plugins.updater.pubkey in tauri.conf.json.
+          uploadUpdaterJson: true
+          # Installer for the generic Windows entry; latest.json also gets one
+          # entry per installer type, so MSI installs keep updating via MSI.
+          updaterJsonPreferNsis: true
           args: ${{ matrix.args }}
 
       # Package the portable ZIP after the installer is already built.

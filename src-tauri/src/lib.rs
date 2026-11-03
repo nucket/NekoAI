@@ -17,6 +17,7 @@ mod cursor_tracker;
 mod desktop_monitor;
 mod secrets;
 mod storage;
+mod updater;
 use storage::{AIConfig, PublicConfig, StoredMessage};
 
 /// Wraps the shutdown sender for the notification monitor thread so it can be
@@ -598,6 +599,8 @@ pub fn run() {
             tauri_plugin_autostart::MacosLauncher::LaunchAgent,
             None,
         ))
+        .plugin(tauri_plugin_updater::Builder::new().build())
+        .manage(updater::PendingUpdate::default())
         .on_window_event(|window, event| {
             if let tauri::WindowEvent::CloseRequested { api, .. } = event {
                 window.hide().ok();
@@ -791,6 +794,8 @@ pub fn run() {
             disable_autostart,
             open_url,
             set_tray_locale,
+            updater::check_for_update,
+            updater::install_update,
             ai_chat,
             ollama_detect,
         ])
