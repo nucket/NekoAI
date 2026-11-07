@@ -1,3 +1,7 @@
+# Updates arrive as a few grouped PRs a week instead of one per package:
+# per ecosystem, every minor/patch bump shares one PR, while majors (which may
+# need code changes) still come one by one. Security updates are not grouped
+# and are not delayed by the cooldown, so they open as soon as a fix exists.
 version: 2
 updates:
   - package-ecosystem: npm
@@ -6,15 +10,25 @@ updates:
       interval: weekly
       day: monday
     open-pull-requests-limit: 10
+    # Wait a few days after a release before proposing it, so a compromised or
+    # broken version is usually yanked before it reaches a PR.
+    cooldown:
+      default-days: 3
     groups:
+      # The JS API and CLI must move with the `tauri` crate.
       tauri:
         patterns:
           - '@tauri-apps/*'
-      react:
+      react-major:
         patterns:
           - 'react'
           - 'react-dom'
           - '@types/react*'
+        update-types: ['major']
+      npm-minor-patch:
+        patterns:
+          - '*'
+        update-types: ['minor', 'patch']
     ignore:
       # typescript-eslint only supports TypeScript < 6.1, so 7.x breaks typed
       # linting. Remove once typescript-eslint declares TypeScript 7 support.
@@ -27,6 +41,19 @@ updates:
       interval: weekly
       day: monday
     open-pull-requests-limit: 10
+    cooldown:
+      default-days: 3
+    groups:
+      tauri:
+        patterns:
+          - 'tauri'
+          - 'tauri-*'
+      # For 0.x crates a "minor" bump (0.40 -> 0.41) can break the API; CI
+      # (clippy + tests on all three OSes) is what catches that.
+      cargo-minor-patch:
+        patterns:
+          - '*'
+        update-types: ['minor', 'patch']
     ignore:
       # gtk-rs crates must stay on the versions Tauri / wry build against
       # (gtk 0.18 today); a newer cairo-rs or glib alone doesn't compile.
@@ -43,6 +70,8 @@ updates:
     schedule:
       interval: weekly
       day: monday
+    cooldown:
+      default-days: 3
     groups:
       actions:
         patterns:
