@@ -34,12 +34,14 @@ const CUSTOM_RANGE = `${MAX_TOKENS_BOUNDS.min}–${MAX_TOKENS_BOUNDS.max}`
 // Gemini is listed first because aistudio.google.com offers a free API tier
 // with no credit card — the lowest-friction onboarding path for new users.
 // `placeholder` shows the key's shape; Ollama takes no key.
+// When a provider retires one of these models, also add the old id to
+// RETIRED_DEFAULT_MODELS in src-tauri/src/storage.rs so saved configs move on.
 const PROVIDER_DEFAULTS: Record<string, { model: string; placeholder: string }> = {
-  gemini: { model: 'gemini-2.5-flash', placeholder: 'AIza…' },
-  anthropic: { model: 'claude-haiku-4-5-20251001', placeholder: 'sk-ant-…' },
-  openai: { model: 'gpt-4o-mini', placeholder: 'sk-…' },
+  gemini: { model: 'gemini-3.5-flash-lite', placeholder: 'AIza…' },
+  anthropic: { model: 'claude-haiku-5-5', placeholder: 'sk-ant-…' },
+  openai: { model: 'gpt-6-luna', placeholder: 'sk-…' },
   ollama: { model: 'llama3', placeholder: '' },
-  nvidia: { model: 'meta/llama-3.1-8b-instruct', placeholder: 'nvapi-…' },
+  nvidia: { model: 'nvidia/nemotron-3.5-lightning-30b-a3b', placeholder: 'nvapi-…' },
 }
 
 // External help links — surfaced when the panel opens without working

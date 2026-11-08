@@ -71,7 +71,7 @@ impl Default for AIConfig {
         AIConfig {
             provider: "gemini".to_string(),
             api_key: None,
-            model: "gemini-2.5-flash".to_string(),
+            model: "gemini-3.5-flash-lite".to_string(),
             base_url: None,
             pet_mode: None,
             active_pet_id: Some("classic-neko".to_string()),
@@ -278,8 +278,49 @@ fn non_empty(key: Option<&str>) -> Option<&str> {
     key.map(str::trim).filter(|k| !k.is_empty())
 }
 
+/// Default models of earlier versions that their provider has retired or is
+/// retiring, as (provider, old default, replacement). The replacements are
+/// the current defaults in Settings (src/components/SettingsPanel.tsx).
+const RETIRED_DEFAULT_MODELS: &[(&str, &str, &str)] = &[
+    // Deprecated; new Gemini projects can no longer use it.
+    ("gemini", "gemini-2.5-flash", "gemini-3.5-flash-lite"),
+    // Its free endpoint on build.nvidia.com was removed.
+    (
+        "nvidia",
+        "meta/llama-3.1-8b-instruct",
+        "nvidia/nemotron-3.5-lightning-30b-a3b",
+    ),
+    // Shuts down on 2027-01-14.
+    ("openai", "gpt-4o-mini", "gpt-6-luna"),
+    // Legacy model, superseded by Haiku 5.5.
+    ("anthropic", "claude-haiku-4-5-20251001", "claude-haiku-5-5"),
+];
+
+/// Moves a config still on a retired default model to its replacement. Only
+/// an exact match changes, so a model the user typed is never touched.
+fn replace_retired_default_model(config: &mut AIConfig) -> bool {
+    let current = (config.provider.as_str(), config.model.trim());
+    match RETIRED_DEFAULT_MODELS
+        .iter()
+        .find(|(provider, old, _)| (*provider, *old) == current)
+    {
+        Some((_, _, new)) => {
+            config.model = (*new).to_string();
+            true
+        }
+        None => false,
+    }
+}
+
 fn load_config_with(path: &Path, store: Option<&dyn SecretStore>) -> AIConfig {
     let mut config = read_config_from(path);
+    // Saved as read (no key from the store is added), so the file only
+    // changes in its model line.
+    if replace_retired_default_model(&mut config) {
+        if let Err(e) = write_config_to(path, &config) {
+            eprintln!("[storage] could not save the updated default model: {e}");
+        }
+    }
     let Some(store) = store else {
         return config;
     };
@@ -815,6 +856,58 @@ mod tests {
     }
 
     #[test]
+    fn retired_default_models_move_to_their_replacement() {
+        let path = temp_config("retired-model");
+        let old = AIConfig {
+            provider: "gemini".into(),
+            model: "gemini-2.5-flash".into(),
+            pet_size: Some(48),
+            ..AIConfig::default()
+        };
+        write_config_to(&path, &old).unwrap();
+
+        let loaded = load_config_with(&path, None);
+        assert_eq!(loaded.model, "gemini-3.5-flash-lite");
+        // Saved once, and nothing else in the file changes.
+        let on_disk = read_config_from(&path);
+        assert_eq!(on_disk.model, "gemini-3.5-flash-lite");
+        assert_eq!(on_disk.pet_size, Some(48));
+
+        for (provider, old, new) in RETIRED_DEFAULT_MODELS {
+            let mut config = AIConfig {
+                provider: (*provider).into(),
+                model: (*old).into(),
+                ..AIConfig::default()
+            };
+            assert!(replace_retired_default_model(&mut config));
+            assert_eq!(config.model, *new);
+        }
+    }
+
+    #[test]
+    fn models_the_user_chose_are_never_replaced() {
+        for (provider, model) in [
+            // Typed by hand: not an old default.
+            ("gemini", "gemini-2.5-pro"),
+            ("openai", "gpt-4o"),
+            // An old default of another provider (e.g. through a gateway).
+            ("ollama", "gpt-4o-mini"),
+            ("ollama", "llama3"),
+        ] {
+            let mut config = AIConfig {
+                provider: provider.into(),
+                model: model.into(),
+                ..AIConfig::default()
+            };
+            assert!(
+                !replace_retired_default_model(&mut config),
+                "{provider} {model}"
+            );
+            assert_eq!(config.model, model);
+        }
+    }
+
+    #[test]
     fn saving_keeps_the_key_out_of_the_file_and_none_removes_it() {
         let path = temp_config("keychain-save");
         let store = secrets::MemoryStore::new();
@@ -906,7 +999,7 @@ mod tests {
         let path = temp_config("partial");
         std::fs::write(&path, "apiKey = \"sk-test\"\n").unwrap();
         let config = read_config_from(&path);
-        assert_eq!(config.model, "gemini-2.5-flash");
+        assert_eq!(config.model, "gemini-3.5-flash-lite");
         assert_eq!(config.api_key.as_deref(), Some("sk-test"));
         assert!(find_backups(&path).is_empty());
     }

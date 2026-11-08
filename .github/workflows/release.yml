@@ -118,3 +118,17 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: gh release upload "${{ github.ref_name }}" "${{ env.PORTABLE_ZIP }}"
+
+  # Refresh the download metrics once the release is out. A release published
+  # with GITHUB_TOKEN doesn't trigger other workflows (metrics.yml never sees
+  # the `release` event), but a workflow_dispatch from here does.
+  metrics:
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      actions: write
+    steps:
+      - name: Start the metrics workflow
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh workflow run metrics.yml --repo "$GITHUB_REPOSITORY" --ref main

@@ -1,0 +1,46 @@
+name: Model review reminder
+
+# Providers retire models every few months. Once a quarter, open an issue to
+# check that the default models in Settings still exist (no API keys needed:
+# the issue only links to each provider's deprecation page).
+on:
+  schedule:
+    - cron: '0 9 1 1,4,7,10 *' # 09:00 UTC on the 1st of Jan, Apr, Jul, Oct
+  workflow_dispatch:
+
+permissions:
+  issues: write
+
+jobs:
+  remind:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Open the review issue
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          title="Review the default AI models ($(date -u +%Y)-Q$(( ($(date -u +%-m) + 2) / 3 )))"
+          if gh issue list --state open --search "in:title \"$title\"" --json number --jq '.[].number' | grep -q .; then
+            echo "Already open: $title"
+            exit 0
+          fi
+          gh issue create --title "$title" --body-file - <<'BODY'
+          Quarterly check that the default model of each provider still exists and isn't scheduled for retirement.
+
+          **Where the defaults live**
+          - `PROVIDER_DEFAULTS` in `src/components/SettingsPanel.tsx`
+          - `AIConfig::default()` in `src-tauri/src/storage.rs` and `DEFAULT_CONFIG` in `src/store/configStore.ts` (Gemini)
+          - `RETIRED_DEFAULT_MODELS` in `src-tauri/src/storage.rs`: add the old id when a default changes, so saved configs move to the new one
+          - The provider table in `README.md`
+
+          **Deprecation pages**
+          - [ ] Google Gemini: https://ai.google.dev/gemini-api/docs/deprecations
+          - [ ] Anthropic: https://platform.claude.com/docs/en/about-claude/model-deprecations
+          - [ ] OpenAI: https://developers.openai.com/api/docs/deprecations
+          - [ ] NVIDIA NIM: the default model's page on https://build.nvidia.com/models still shows a free endpoint
+
+          **If a new default model "thinks" or reasons by default**, check that `src-tauri/src/ai.rs` keeps it short (`gemini_thinking`, `openai_reasoning_effort`, Nemotron's `enable_thinking`). Otherwise reasoning can use up the reply budget and the pet answers with nothing.
+
+          Test each changed default with Settings → Test connection, then close this issue.
+          BODY

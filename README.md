@@ -198,7 +198,7 @@ Configuration is auto-created on first run:
 # Linux: ~/.config/nekoai · Windows: %APPDATA%\nekoai · macOS: ~/Library/Application Support/nekoai
 
 provider  = "gemini"            # "anthropic" | "openai" | "gemini" | "nvidia" | "ollama"
-model     = "gemini-2.5-flash"
+model     = "gemini-3.5-flash-lite"
 petSize   = 64                  # pixels (32, 64, 96, or 128)
 maxTokens = 512                 # 256 (Short) | 512 (Medium, default) | 1024 (Long) | 32–4096 (Custom)
 language  = "es"                # UI language: "en" | "es" (omit to follow the system language)
@@ -235,13 +235,17 @@ sqlite3 ~/.local/share/nekoai/memory.db "SELECT * FROM user_facts;"   # Linux pa
 
 ### Supported AI providers
 
-| Provider       | Models                                     | Requires                                                                        |
-| -------------- | ------------------------------------------ | ------------------------------------------------------------------------------- |
-| **Anthropic**  | Claude Haiku, Sonnet                       | API Key                                                                         |
-| **OpenAI**     | GPT-4o mini, GPT-4o                        | API Key                                                                         |
-| **Google**     | Gemini 2.5 Flash _(default)_, 2.0 Flash... | Free API Key ([Google AI Studio](https://aistudio.google.com)) — no credit card |
-| **NVIDIA NIM** | Llama 3.1, Mistral, Nemotron, MiniMax...   | API Key ([build.nvidia.com](https://build.nvidia.com)) — free tier available    |
-| **Ollama**     | Llama 3, Mistral, Phi-3...                 | [Ollama](https://ollama.ai) running locally                                     |
+| Provider       | Default model                           | Requires                                                                        |
+| -------------- | --------------------------------------- | ------------------------------------------------------------------------------- |
+| **Google**     | `gemini-3.5-flash-lite` _(default)_     | Free API Key ([Google AI Studio](https://aistudio.google.com)) — no credit card |
+| **Anthropic**  | `claude-haiku-5-5`                      | API Key                                                                         |
+| **OpenAI**     | `gpt-6-luna`                            | API Key                                                                         |
+| **NVIDIA NIM** | `nvidia/nemotron-3.5-lightning-30b-a3b` | API Key ([build.nvidia.com](https://build.nvidia.com)) — free tier available    |
+| **Ollama**     | `llama3`, or a model you have installed | [Ollama](https://ollama.ai) running locally                                     |
+
+Any model your provider offers works: type its ID in **Settings → Model**. When a
+provider retires the default model, NekoAI moves configs that still use it to the new
+default on the next launch; models you typed yourself are never changed.
 
 > 💡 **For full privacy**: Use Ollama — 100% local, no API costs, no data leaves your machine.
 > 🟢 **Free models**: NVIDIA NIM offers a generous free tier with 40+ open-source models at [build.nvidia.com](https://build.nvidia.com).

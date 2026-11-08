@@ -47,7 +47,7 @@ const { useConfigStore, isConfigured } = await import('./configStore')
 beforeEach(async () => {
   backend.stored = {
     provider: 'gemini',
-    model: 'gemini-2.5-flash',
+    model: 'gemini-3.5-flash-lite',
     apiKey: 'AIza-old',
     petSize: 64,
   }

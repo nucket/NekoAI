@@ -33,7 +33,7 @@ export function isConfigured(config: AIConfig): boolean {
 // Gemini is the default for free-tier onboarding friction reasons.
 const DEFAULT_CONFIG: AIConfig = {
   provider: 'gemini',
-  model: 'gemini-2.5-flash',
+  model: 'gemini-3.5-flash-lite',
   petSize: 32,
   activePetId: 'classic-neko',
 }
