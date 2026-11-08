@@ -62,6 +62,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   Rust command. All five now have the same 60 s timeout and the same
   response parsing, and errors are short and tell you what to do (bad key,
   rate limit, no connection, Ollama not running…).
+- **New default AI models** ([#216](https://github.com/nucket/NekoAI/pull/216)),
+  because providers retired the old ones:
+
+  | Provider   | Before                       | Now                                     |
+  | ---------- | ---------------------------- | --------------------------------------- |
+  | Google     | `gemini-2.5-flash`           | `gemini-3.5-flash-lite`                 |
+  | NVIDIA NIM | `meta/llama-3.1-8b-instruct` | `nvidia/nemotron-3.5-lightning-30b-a3b` |
+  | OpenAI     | `gpt-4o-mini`                | `gpt-6-luna`                            |
+  | Anthropic  | `claude-haiku-4-5-20251001`  | `claude-haiku-5-5`                      |
+
+  A config still on one of the old defaults switches to the new one on first
+  launch. Models you typed yourself are not changed.
+
 - **Each pet uses its own personality** ([#140](https://github.com/nucket/NekoAI/pull/140)):
   pets now use the `system_prompt` from their `pet.json` instead of a fixed
   cat prompt. Reply length follows the Settings choice.
@@ -129,7 +142,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Install this version by hand** from the
   [releases page](https://github.com/nucket/NekoAI/releases/latest). The
   installer upgrades over 0.3.8, and later versions will be offered in-app.
-- Your provider, model, API key, chat history and learned facts carry over:
+- Your provider, model (unless it was a retired default, see above), API key,
+  chat history and learned facts carry over:
   files move to the new folders and the key moves to the keychain on first
   launch.
 
