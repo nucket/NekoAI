@@ -18,7 +18,7 @@ describe('createAIProvider', () => {
     const provider = createAIProvider({
       provider: 'gemini',
       apiKey: 'key',
-      model: 'gemini-2.5-flash',
+      model: 'gemini-3.5-flash-lite',
       maxTokens: 256,
     })
 
@@ -27,7 +27,7 @@ describe('createAIProvider', () => {
       request: {
         provider: 'gemini',
         apiKey: 'key',
-        model: 'gemini-2.5-flash',
+        model: 'gemini-3.5-flash-lite',
         baseUrl: undefined,
         messages: HELLO,
         systemPrompt: 'be a cat',
@@ -38,7 +38,7 @@ describe('createAIProvider', () => {
 
   it('rejects with an AiRequestError carrying the Rust error kind', async () => {
     invoke.mockRejectedValue({ kind: 'rate_limit', message: 'OpenAI API error: 429' })
-    const provider = createAIProvider({ provider: 'openai', apiKey: 'k', model: 'gpt-4o-mini' })
+    const provider = createAIProvider({ provider: 'openai', apiKey: 'k', model: 'gpt-6-luna' })
 
     const err = await provider.sendMessage(HELLO, 'sys').catch((e: unknown) => e)
     expect(err).toBeInstanceOf(AiRequestError)

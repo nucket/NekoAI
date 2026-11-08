@@ -209,7 +209,7 @@ Config file (`config.toml`, see the table above):
 
 ```toml
 provider = "gemini"
-model    = "gemini-2.5-flash"
+model    = "gemini-3.5-flash-lite"
 ```
 
 The API key is not in this file: `secrets.rs` keeps it in the OS credential store — Windows Credential Manager, the macOS Keychain, or the Secret Service (GNOME Keyring / KWallet) on Linux. `get_config`, `patch_config` and

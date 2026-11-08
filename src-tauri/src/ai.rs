@@ -160,9 +160,34 @@ pub fn ollama_base_url(base_url: Option<&str>) -> Result<String, AiError> {
     Ok(url.as_str().trim_end_matches('/').to_string())
 }
 
+/// How much a Gemini model may "think" before answering. Thinking tokens count
+/// against maxOutputTokens, so with a short reply budget a thinking model can
+/// spend all of it there and return no text.
+/// - 2.5 Flash / Flash-Lite: thinking can be turned off (`thinkingBudget: 0`).
+///   2.5 Pro rejects a 0 budget, so it keeps its default.
+/// - Gemini 3 and later use `thinkingLevel` instead. Flash-Lite already
+///   defaults to the lowest level; the others default to medium or high, and
+///   "low" is the lowest level every 3.x text model accepts.
+fn gemini_thinking(model: &str) -> Option<Value> {
+    if model.contains("gemini-2.5-flash") {
+        Some(json!({ "thinkingBudget": 0 }))
+    } else if model.contains("gemini-3") && !model.contains("flash-lite") {
+        Some(json!({ "thinkingLevel": "low" }))
+    } else {
+        None
+    }
+}
+
+/// GPT-6 models reason at "medium" effort by default, and reasoning tokens
+/// count against max_completion_tokens. The pet's short replies don't need
+/// it. Older models reject the parameter, so it is only sent to GPT-6.
+fn openai_reasoning_effort(model: &str) -> Option<&'static str> {
+    model.starts_with("gpt-6").then_some("none")
+}
+
 /// Model names end up in a URL path for Gemini, so only allow the characters
-/// real model ids use (`gemini-2.5-flash`, `meta/llama-3.1-8b-instruct`,
-/// `llama3:8b`).
+/// real model ids use (`gemini-3.5-flash-lite`,
+/// `nvidia/nemotron-3.5-lightning-30b-a3b`, `llama3:8b`).
 fn validate_model(model: &str) -> Result<&str, AiError> {
     let model = model.trim();
     let ok = !model.is_empty()
@@ -244,20 +269,22 @@ pub fn build_request(req: &ChatRequest) -> Result<HttpRequest, AiError> {
             // `max_tokens` is rejected (HTTP 400) by the o-series / gpt-5
             // reasoning models; `max_completion_tokens` works on all current
             // chat models.
-            body: json!({
-                "model": model,
-                "max_completion_tokens": max_tokens,
-                "messages": openai_style_messages(req),
-            }),
+            body: {
+                let mut body = json!({
+                    "model": model,
+                    "max_completion_tokens": max_tokens,
+                    "messages": openai_style_messages(req),
+                });
+                if let Some(effort) = openai_reasoning_effort(model) {
+                    body["reasoning_effort"] = json!(effort);
+                }
+                body
+            },
         },
         Provider::Gemini => {
             let mut generation = json!({ "maxOutputTokens": max_tokens });
-            // Gemini 2.5 Flash / Flash-Lite "think" first, and thinking
-            // tokens count against maxOutputTokens, so short budgets can be
-            // spent entirely on thinking. 2.5 Pro rejects a 0 budget, so only
-            // Flash gets it.
-            if model.contains("gemini-2.5-flash") {
-                generation["thinkingConfig"] = json!({ "thinkingBudget": 0 });
+            if let Some(thinking) = gemini_thinking(model) {
+                generation["thinkingConfig"] = thinking;
             }
             HttpRequest {
                 url: format!(
@@ -278,11 +305,19 @@ pub fn build_request(req: &ChatRequest) -> Result<HttpRequest, AiError> {
         Provider::Nvidia => HttpRequest {
             url: "https://integrate.api.nvidia.com/v1/chat/completions".into(),
             headers: vec![json_ct],
-            body: json!({
-                "model": model,
-                "max_tokens": max_tokens,
-                "messages": openai_style_messages(req),
-            }),
+            body: {
+                let mut body = json!({
+                    "model": model,
+                    "max_tokens": max_tokens,
+                    "messages": openai_style_messages(req),
+                });
+                // Nemotron 3 models can reason before answering; the pet only
+                // needs the answer, and reasoning would eat into max_tokens.
+                if model.contains("nemotron-3") {
+                    body["chat_template_kwargs"] = json!({ "enable_thinking": false });
+                }
+                body
+            },
         },
         Provider::Ollama => HttpRequest {
             url: format!("{}/api/chat", ollama_base_url(req.base_url.as_deref())?),
@@ -583,19 +618,68 @@ mod tests {
     }
 
     #[test]
+    fn gemini_3_models_think_at_the_lowest_level_they_accept() {
+        let thinking = |model: &str| {
+            build_request(&request(Provider::Gemini, model))
+                .unwrap()
+                .body["generationConfig"]
+                .get("thinkingConfig")
+                .cloned()
+        };
+        // Flash-Lite already defaults to minimal thinking.
+        assert_eq!(thinking("gemini-3.5-flash-lite"), None);
+        for model in [
+            "gemini-3.8-flash",
+            "gemini-3.6-flash",
+            "gemini-3-flash-preview",
+        ] {
+            assert_eq!(
+                thinking(model),
+                Some(json!({ "thinkingLevel": "low" })),
+                "{model}"
+            );
+        }
+    }
+
+    #[test]
     fn openai_style_providers_put_the_system_prompt_first() {
-        let http = build_request(&request(Provider::Openai, "gpt-4o-mini")).unwrap();
+        let http = build_request(&request(Provider::Openai, "gpt-6-luna")).unwrap();
         assert_eq!(http.body["max_completion_tokens"], 256);
         assert_eq!(http.body["messages"][0]["role"], "system");
         assert_eq!(http.body["messages"][2]["role"], "assistant");
 
-        let nim = build_request(&request(Provider::Nvidia, "meta/llama-3.1-8b-instruct")).unwrap();
+        let nim = build_request(&request(
+            Provider::Nvidia,
+            "nvidia/nemotron-3.5-lightning-30b-a3b",
+        ))
+        .unwrap();
         assert_eq!(nim.body["max_tokens"], 256);
     }
 
     #[test]
+    fn reasoning_is_turned_off_only_for_models_that_accept_it() {
+        let body = |provider, model: &str| build_request(&request(provider, model)).unwrap().body;
+
+        assert_eq!(
+            body(Provider::Openai, "gpt-6-luna")["reasoning_effort"],
+            "none"
+        );
+        assert!(body(Provider::Openai, "gpt-4o-mini")
+            .get("reasoning_effort")
+            .is_none());
+
+        assert_eq!(
+            body(Provider::Nvidia, "nvidia/nemotron-3.5-lightning-30b-a3b")["chat_template_kwargs"],
+            json!({ "enable_thinking": false })
+        );
+        assert!(body(Provider::Nvidia, "google/gemma-4-31b-it")
+            .get("chat_template_kwargs")
+            .is_none());
+    }
+
+    #[test]
     fn anthropic_uses_its_own_headers_and_system_field() {
-        let http = build_request(&request(Provider::Anthropic, "claude-haiku-4-5")).unwrap();
+        let http = build_request(&request(Provider::Anthropic, "claude-haiku-5-5")).unwrap();
         assert_eq!(header(&http, "anthropic-version"), Some("2023-06-01"));
         assert_eq!(http.body["system"], "be a cat");
         assert_eq!(http.body["messages"].as_array().unwrap().len(), 2);
@@ -603,7 +687,7 @@ mod tests {
 
     #[test]
     fn cloud_providers_need_a_key_and_models_are_validated() {
-        let mut req = request(Provider::Openai, "gpt-4o-mini");
+        let mut req = request(Provider::Openai, "gpt-6-luna");
         req.api_key = Some("  ".into());
         assert_eq!(credential(&req).unwrap_err().kind, ErrorKind::Auth);
 
