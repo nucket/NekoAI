@@ -66,6 +66,8 @@ export type AIConfig = {
   maxTokens?: number
   // UI language. `undefined` follows the system language (see src/i18n).
   language?: 'en' | 'es'
+  // Check for a new release at startup. `undefined` means yes.
+  checkUpdates?: boolean
 }
 
 export type Message = {

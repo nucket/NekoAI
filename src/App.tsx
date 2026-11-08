@@ -21,6 +21,7 @@ import { useTimedValue } from './hooks/useTimedValue'
 import { useAppEvents } from './hooks/useAppEvents'
 import { useLinuxExpandedChrome } from './hooks/useLinuxExpandedChrome'
 import { useWaylandNotice } from './hooks/useWaylandNotice'
+import { useUpdateNotice } from './hooks/useUpdateNotice'
 import { useChat } from './hooks/useChat'
 import { useTrayLocale } from './hooks/useTrayLocale'
 import { IS_LINUX } from './utils/platform'
@@ -138,6 +139,13 @@ export default function App() {
 
   useWaylandNotice({
     cursorTracking,
+    busy: onboardingActive || bubbleOpen || anyPanelOpen || notificationAlert,
+    setAnnouncement: bubble.setAnnouncement,
+    openBubble: bubble.openBubble,
+    closeBubble: bubble.closeBubble,
+  })
+
+  useUpdateNotice({
     busy: onboardingActive || bubbleOpen || anyPanelOpen || notificationAlert,
     setAnnouncement: bubble.setAnnouncement,
     openBubble: bubble.openBubble,

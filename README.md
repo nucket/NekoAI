@@ -162,6 +162,8 @@ Go to [Releases](https://github.com/nucket/nekoai/releases) and grab the latest 
 > its own, and tells you so once. Xorg sessions need no setup. See
 > [Cursor Tracking on Wayland](#cursor-tracking-on-wayland-linux) for the details.
 
+**Updates.** NekoAI checks for a new release when it starts. When there is one, the pet offers it in its bubble, and nothing is downloaded until you accept. Installers on Windows and macOS, and the Linux AppImage, update themselves and restart. The portable build and `.deb` / `.rpm` installs link to the download page instead. You can turn the check off in **Settings**.
+
 ### Option B — Build from source
 
 ```bash

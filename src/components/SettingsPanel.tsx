@@ -513,6 +513,14 @@ export function SettingsPanel({ isOpen, onClose }: Props) {
           {autostart === null && ` ${t('settings.autostart.portable')}`}
         </label>
         {autostartError !== '' && <p style={styles.memoryHint}>{autostartError}</p>}
+        <label style={styles.toggleRow}>
+          <input
+            type="checkbox"
+            checked={config.checkUpdates !== false}
+            onChange={(e) => void updateConfig({ checkUpdates: e.target.checked ? null : false })}
+          />
+          {t('settings.checkUpdates')}
+        </label>
 
         {/* ── Response length ─────────────────────────────────────────────── */}
         <label style={styles.label}>{t('settings.length')}</label>
