@@ -7,6 +7,134 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.3.9] — 2026-11-08
+
+> A stability, privacy and security release. The API key moves into the
+> system keychain, every AI provider now runs through one Rust command,
+> settings and memory move to each OS's standard folders, the UI speaks
+> English and Spanish, and NekoAI can now update itself. This is the first
+> release with the in-app updater, so this one update still has to be
+> installed by hand.
+
+### Added
+
+- **In-app updates** ([#200](https://github.com/nucket/NekoAI/pull/200)).
+  About 15 s after launch, NekoAI checks the latest GitHub release and the
+  pet offers it in its bubble (_Update now_ / _Later_). Nothing is downloaded
+  until you accept. Every download is verified against the project's signing
+  key before it is installed. Portable copies and Linux `.deb` / `.rpm`
+  installs get a link to the download page instead. You can turn the check
+  off in Settings → _Check for updates at startup_.
+- **English and Spanish UI** ([#182](https://github.com/nucket/NekoAI/pull/182)),
+  covering Settings, menus, the chat bubble, error messages, onboarding and
+  the tray menu. It follows the system language by default and can be changed
+  in Settings → _Language_. The pet replies in the language you write in.
+- **Settings → Memory** ([#144](https://github.com/nucket/NekoAI/pull/144)):
+  see what the pet has learned about you, forget single facts, clear the chat
+  history, or erase everything.
+- **Autostart in Settings** ([#150](https://github.com/nucket/NekoAI/pull/150)):
+  _Start NekoAI with the system_. It is unavailable in portable mode.
+- **Pet triggers** ([#169](https://github.com/nucket/NekoAI/pull/169)): the
+  `pet.json` triggers that pets already declared now run: chat open, AI
+  thinking and reply, idle time, cursor greeting and movement start.
+
+### Changed
+
+- **The API key is stored in the system keychain**
+  ([#180](https://github.com/nucket/NekoAI/pull/180)): Windows Credential
+  Manager, macOS Keychain, or Secret Service on Linux. A key in an existing
+  `config.toml` is moved there on first launch and removed from the file.
+  The key is never sent to the app's windows. Portable mode, and Linux
+  sessions without a Secret Service, keep it in `config.toml`. On macOS and
+  Linux that file is now readable only by its owner.
+- **Standard data folders** ([#176](https://github.com/nucket/NekoAI/pull/176)).
+  Existing files are moved once on first launch and are never overwritten.
+  Linux paths are unchanged.
+
+  | OS      | `config.toml`                          | `memory.db`                            |
+  | ------- | -------------------------------------- | -------------------------------------- |
+  | Windows | `%APPDATA%\nekoai`                     | `%LOCALAPPDATA%\nekoai`                |
+  | macOS   | `~/Library/Application Support/nekoai` | `~/Library/Application Support/nekoai` |
+  | Linux   | `~/.config/nekoai`                     | `~/.local/share/nekoai`                |
+
+- **One AI path for every provider** ([#178](https://github.com/nucket/NekoAI/pull/178)).
+  Anthropic, OpenAI, Gemini, NVIDIA NIM and Ollama all go through a single
+  Rust command. All five now have the same 60 s timeout and the same
+  response parsing, and errors are short and tell you what to do (bad key,
+  rate limit, no connection, Ollama not running…).
+- **Each pet uses its own personality** ([#140](https://github.com/nucket/NekoAI/pull/140)):
+  pets now use the `system_prompt` from their `pet.json` instead of a fixed
+  cat prompt. Reply length follows the Settings choice.
+- **Response length chips are worded** ([#187](https://github.com/nucket/NekoAI/pull/187)):
+  _Short / Medium / Long_ instead of S / M / L, so they can't be mistaken
+  for pet size.
+- **Less CPU while idle** ([#170](https://github.com/nucket/NekoAI/pull/170)):
+  sprites redraw at their own frame rate instead of the display's, and the
+  movement loop only runs while the pet is walking.
+- **Removed the Pac-Man and TIE Fighter pets**
+  ([#199](https://github.com/nucket/NekoAI/pull/199)), which used
+  trademarked characters. If one of them was selected, the Classic Neko
+  takes its place.
+- Dependencies updated, including Tauri 2.12.5, React 19.3 and Vite 8.3
+  ([#171](https://github.com/nucket/NekoAI/pull/171),
+  [#188](https://github.com/nucket/NekoAI/pull/188),
+  [#213](https://github.com/nucket/NekoAI/pull/213)).
+
+### Fixed
+
+- **AI providers**: Anthropic requests no longer fail on browser-origin checks
+  ([#136](https://github.com/nucket/NekoAI/pull/136)), Gemini 2.5 Flash no longer
+  returns empty replies on short budgets
+  ([#137](https://github.com/nucket/NekoAI/pull/137)), and OpenAI reasoning
+  models (o-series, gpt-5) are accepted
+  ([#138](https://github.com/nucket/NekoAI/pull/138)).
+- **Config safety**: an unreadable `config.toml` is backed up instead of being
+  wiped, and saves are atomic ([#143](https://github.com/nucket/NekoAI/pull/143)).
+  Settings, the menu and the house window no longer overwrite each other's
+  changes ([#149](https://github.com/nucket/NekoAI/pull/149)).
+- **Pet size is remembered** across restarts
+  ([#147](https://github.com/nucket/NekoAI/pull/147)).
+- **Memory**: the pet only learns facts from what _you_ write, not from its
+  own replies ([#145](https://github.com/nucket/NekoAI/pull/145)).
+- **Movement and placement**: walking speed no longer depends on the monitor's
+  refresh rate ([#141](https://github.com/nucket/NekoAI/pull/141)). The pet
+  and house respect taskbars on any edge and the macOS dock
+  ([#148](https://github.com/nucket/NekoAI/pull/148)). Sprite geometry scales
+  correctly with display scaling, and wanderer mode works on secondary
+  monitors, including ones left of or above the primary ([#153](https://github.com/nucket/NekoAI/pull/153)).
+- **Tray menu**: it lists exactly the installed pets and no longer offers
+  pets without sprites ([#139](https://github.com/nucket/NekoAI/pull/139)).
+- **Linux**: correct notification position under X11 window managers, and
+  steadier cursor following on Wayland
+  ([#177](https://github.com/nucket/NekoAI/pull/177)).
+
+### Security
+
+- The IPC commands, the Content Security Policy and the app's permissions
+  were narrowed to what the app actually uses. Panel routes and external
+  links are validated before they're opened
+  ([#150](https://github.com/nucket/NekoAI/pull/150),
+  [#157](https://github.com/nucket/NekoAI/pull/157),
+  [#181](https://github.com/nucket/NekoAI/pull/181)).
+- Release builds now wait for CI to pass, and the GitHub Actions they use are
+  pinned to commit SHAs ([#155](https://github.com/nucket/NekoAI/pull/155)).
+- Updates are signed, and NekoAI checks the signature before installing
+  ([#200](https://github.com/nucket/NekoAI/pull/200)). Windows and macOS
+  installers are not code-signed yet. See
+  [docs/code-signing.md](docs/code-signing.md) for how to open them and for
+  the signing plan.
+
+### Upgrading
+
+- **Install this version by hand** from the
+  [releases page](https://github.com/nucket/NekoAI/releases/latest). The
+  installer upgrades over 0.3.8, and later versions will be offered in-app.
+- Your provider, model, API key, chat history and learned facts carry over:
+  files move to the new folders and the key moves to the keychain on first
+  launch.
+
+---
+
 ## [0.3.8] — 2026-05-25
 
 > AI replies stop feeling cropped. The default token budget doubles
