@@ -31,8 +31,9 @@ If applicable, add screenshots or paste console output (right-click the pet wind
 ## Environment
 
 - OS: [e.g. Windows 11, macOS 14.x, Ubuntu 22.04]
-- NekoAI version: [e.g. 0.1.0 — shown in tray menu → About]
-- AI Provider: [Anthropic / OpenAI / Ollama / None]
+- NekoAI version: [e.g. 0.3.9 — shown in tray menu → About]
+- Install type: [installer (.exe / .msi / .dmg) / portable ZIP / AppImage / .deb / .rpm / built from source]
+- AI Provider: [Gemini / Anthropic / OpenAI / NVIDIA NIM / Ollama / None]
 
 ## Additional context
 

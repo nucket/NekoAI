@@ -48,9 +48,14 @@ sudo zypper install libwebkit2gtk3-soup2-devel libayatana-appindicator3
 The AppImage runs without installation on any Linux distribution:
 
 ```bash
-chmod +x nekoai-vX.Y.Z-linux-x64.AppImage
-./nekoai-vX.Y.Z-linux-x64.AppImage
+chmod +x nekoai_X.Y.Z_amd64.AppImage
+./nekoai_X.Y.Z_amd64.AppImage
 ```
+
+The AppImage is the only Linux format that updates itself: when a new release is out the pet
+offers it in its bubble, and installs it only if you accept (the download is verified against the
+project's signing key first). Versions before 0.3.9 have no updater, so install 0.3.9 or later
+by hand once.
 
 For automatic desktop integration (launcher entry, app icon):
 
@@ -72,10 +77,11 @@ Then double-click the `.AppImage` — AppImageLauncher will offer to integrate i
 ## Installing the DEB (Ubuntu / Debian)
 
 ```bash
-sudo apt install ./nekoai-vX.Y.Z-linux-x64.deb
+sudo apt install ./nekoai_X.Y.Z_amd64.deb
 ```
 
-Launches as `nekoai` from the terminal or application launcher.
+Launches as `nekoai` from the terminal or application launcher. The pet tells you when a new
+release is out; update by installing the new `.deb` the same way.
 
 To remove:
 
@@ -88,10 +94,11 @@ sudo apt remove nekoai
 ## Installing the RPM (Fedora / RHEL)
 
 ```bash
-sudo dnf install ./nekoai-vX.Y.Z-linux-x64.rpm
+sudo dnf install ./nekoai-X.Y.Z-1.x86_64.rpm
 ```
 
-Launches as `nekoai` from the terminal or application launcher.
+Launches as `nekoai` from the terminal or application launcher. The pet tells you when a new
+release is out; update by installing the new `.rpm` the same way.
 
 To remove:
 
@@ -188,6 +195,9 @@ curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
 source ~/.cargo/env
 ```
 
+NekoAI needs Rust 1.90 or newer (`rustup update` if your toolchain is older). Distro-packaged Rust is
+often too old.
+
 ### Node.js (22+) and pnpm (11+)
 
 **Ubuntu / Debian:**
@@ -217,7 +227,7 @@ sudo pacman -S nodejs npm pnpm
 
 ```bash
 git clone https://github.com/nucket/nekoai.git
-cd nekoai/NekoAI
+cd nekoai
 pnpm install
 pnpm tauri build
 ```
@@ -236,3 +246,7 @@ NekoAI follows the [XDG Base Directory Specification](https://specifications.fre
 | Conversation history | `~/.local/share/nekoai/memory.db` |
 
 These paths respect `$XDG_CONFIG_HOME` and `$XDG_DATA_HOME` if set.
+
+The API key is not in `config.toml`: NekoAI stores it through the Secret Service (GNOME Keyring or
+KWallet). On a session without one, the key falls back to `config.toml`, which is created readable
+by your user only (`0600`).

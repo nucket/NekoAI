@@ -1,222 +1,42 @@
 # NekoAI — Project Summary
 
-> **Author:** Naudy Castellanos ([@nucket](https://github.com/nucket))  
-> **Repository:** https://github.com/nucket/nekoai  
-> **License:** MIT  
-> **Status:** Active development — v0.3.0 release branch open — v0.2.0 shipped (2026-04-24) — v0.4 (NekoMetrics) in planning
+> **Author:** Naudy Castellanos ([@nucket](https://github.com/nucket)) · **License:** MIT ·
+> **Repository:** https://github.com/nucket/nekoai
 
----
+A one-page overview. Details live in the documents linked below, so this page stays short and
+doesn't go stale.
 
-## What is NekoAI?
+## What it is
 
-NekoAI is an open-source, AI-powered desktop pet that lives on your screen. Inspired by the classic desktop companions of the 90s and early 2000s (Neko, eSheep, Shimeji), it brings those beloved characters into the modern era with a real AI brain, multi-directional animation, and an extensible community pet format.
+NekoAI is an open-source desktop pet with an AI brain. A pixel-art pet (the classic Neko cat, or
+another bundled pet) roams your desktop and follows your cursor. Click it and it chats with you in a
+speech bubble, using the AI provider you pick: Gemini, Claude, OpenAI, NVIDIA NIM, or a local Ollama
+model. It remembers a few facts about you, and its mood follows the time of day and how long you've
+been away. There is no backend server and no telemetry.
 
-The pet wanders freely across your desktop, reacts to cursor movement and window activity, and holds conversations with you via an animated speech bubble — powered by Claude, GPT, or a fully local Ollama model.
+## Where it stands
 
----
+- **Latest release:** see [Releases](https://github.com/nucket/nekoai/releases) and the
+  [CHANGELOG](CHANGELOG.md).
+- **Platforms:** Windows, macOS (Apple Silicon and Intel), Linux (Xorg and Wayland).
+- **Next:** v0.4, NekoMetrics ([spec](docs/feature-nekometrics-v0.4.md)). The full plan is the
+  Roadmap section of the [README](README.md).
 
-## Architecture Overview
+## Stack
 
-```
-┌─────────────────────────────────────────────────────────┐
-│  Tauri v2 App (Rust backend + React/TypeScript frontend) │
-│                                                          │
-│  Frontend (WebView)          Backend (Rust)              │
-│  ┌─────────────────┐         ┌───────────────────────┐  │
-│  │ PetRenderer.tsx │         │ main.rs               │  │
-│  │ — sprite anim   │ IPC     │ — tray icon, window   │  │
-│  │ usePetMovement  │◄───────►│ desktop_monitor.rs    │  │
-│  │ — 8-dir cursor  │         │ — active window API   │  │
-│  │ SpeechBubble    │         │ storage.rs            │  │
-│  │ SettingsPanel   │         │ — SQLite memory       │  │
-│  └─────────────────┘         └───────────────────────┘  │
-│            │                                             │
-│            ▼                                             │
-│  ┌─────────────────┐                                     │
-│  │ AI Providers    │                                     │
-│  │ Anthropic API   │  ← user's own API key               │
-│  │ OpenAI API      │  ← user's own API key               │
-│  │ Google Gemini   │  ← user's own API key               │
-│  │ NVIDIA NIM      │  ← free tier available              │
-│  │ Ollama (local)  │  ← no key required                  │
-│  └─────────────────┘                                     │
-└─────────────────────────────────────────────────────────┘
-```
+Tauri 2 (Rust backend) · React 19 + TypeScript + Vite · SQLite (rusqlite) · Zustand · PNG sprites
+with a JSON pet format. All AI calls, storage, the API key (OS credential store) and signed in-app
+updates are handled on the Rust side.
 
----
+## Where to read more
 
-## Tech Stack
-
-| Layer             | Technology                                                      |
-| ----------------- | --------------------------------------------------------------- |
-| Desktop framework | Tauri v2                                                        |
-| Backend           | Rust 1.75+                                                      |
-| Frontend          | React 19 + TypeScript 6 + Vite                                  |
-| Persistence       | SQLite via rusqlite                                             |
-| AI (cloud)        | Anthropic Claude API, OpenAI API, Google Gemini API, NVIDIA NIM |
-| AI (local)        | Ollama                                                          |
-| Sprites           | PNG (RGBA, 32×32 px native, 1×/2×/3×/4× integer scaling)        |
-| Pet format        | JSON (pet.json schema)                                          |
-| State management  | Zustand                                                         |
-| Styling           | Inline CSS-in-JS + dynamic inline styles for responsive sizing  |
-
----
-
-## Development Progress
-
-### Completed
-
-- [x] Transparent always-on-top Tauri window
-- [x] Sprite animation engine (`PetRenderer.tsx`) — individual PNG frames
-- [x] 8-direction cursor tracking movement state machine (`usePetMovement.ts`)
-- [x] Pet definition format (`pet.json`) with animations and AI triggers
-- [x] Classic Neko sprites integrated (32 original ICO files converted to PNG)
-- [x] Speech bubble UI with typewriter effect
-- [x] Settings panel with API key configuration
-- [x] Multi-provider AI (Anthropic, OpenAI, Ollama)
-- [x] SQLite persistence for conversation history
-- [x] System tray icon with context menu
-- [x] Right-click context menu (`ContextMenu.tsx`) — quick access to settings, pet selection, and size adjustment
-- [x] Adjustable pet size with integer-multiple scaling (32, 64, 96, 128 px) for pixel-perfect rendering
-- [x] Rust `resize_window` command to bypass Windows OS-level window resizing restrictions
-- [x] Dynamic CSS sizing via inline styles (no hardcoded pixel values in stylesheets)
-- [x] Adaptable storage paths — portable mode writes all data to `./data/` beside the exe
-- [x] Windows portable build script (`scripts/build-portable-windows.ps1`)
-- [x] Linux desktop monitor — idle time via XScreenSaver, active window via EWMH/X11 (`x11rb`)
-- [x] Linux install documentation (`docs/install-linux.md`)
-
-- [x] GitHub Actions CI/CD with auto-release (Windows installer + portable + Linux AppImage/RPM/DEB)
-- [x] House Window — always-visible pet house widget; click to send pet home
-- [x] Notification monitor — pet reacts when a system notification steals focus (idle-aware background thread)
-- [x] Two new bundled pets: Ember (dragon-pixel) and Pingu (penguin-pixel) with full sprite sets
-- [x] Ghost pet sprites refreshed — new naming convention, 20 animations, `house.png`
-- [x] `bored` animation support — triggers after 1 min of cursor idle
-- [x] Animation fallback chain — pets with partial sprite sets animate without errors
-- [x] `activePetId` persisted across restarts via config store + SQLite
-- [x] Google Gemini AI provider
-- [x] NVIDIA NIM AI provider (5th provider — Rust-side HTTP via `reqwest` to bypass WebView CORS)
-- [x] Persistent user memory (name, project, language extracted from conversations)
-- [x] Dynamic mood engine (energy / happiness / curiosity based on time-of-day and idle time)
-- [x] Animation / movement separation — `resolveAnimation()` ensures `walk_*` sprites are never overridden by idle/mood animations during WALKING state
-- [x] Classic Neko idle sequencer — faithful STOP→wash→scratch→yawn→sleep sequence with `awaken` flash only after genuine rest (`useIdleSequencer.ts`)
-- [x] Bounding-box monitor edge detection — pet never appears split across two screens; clamp + scratch/yawn/scratch/cross sequence before crossing
-- [x] EdgePhase state machine — `scratch1 → (50%) yawn → idle rest (1.5–3 s) → scratch2 → cross`; all phases with synchronized animation and frozen position
-- [x] NEAR_CURSOR hysteresis — stricter entry radius (×0.7) + longer cursor stillness (400 ms) eliminates oscillation between WALKING and NEAR_CURSOR
-- [x] `PetDefinition` TypeScript type aligned with `pet.schema.json` — `files: string[]` per animation, added `personality` / `system_prompt` / `spritesDir` / `version` fields
-- [x] Dead code removal — deleted `src/pets/loader.ts`, `src/pets/placeholderSprite.ts`, `src/pets/index.ts` (sprite-sheet paradigm, never imported by the active runtime)
-- [x] SQLite stability — single `OnceLock<Mutex<Connection>>` replaces per-call `Connection::open()`; WAL mode + 5s busy_timeout prevent `SQLITE_BUSY` on concurrent writes
-- [x] Conversation pruning — `conversations` table auto-prunes to 200 rows / 30 days every 20 inserts; `prune_conversations` and `clear_conversations` Tauri commands exposed
-- [x] Notification monitor thread shutdown — `mpsc::recv_timeout` + `RunEvent::Exit` handler for clean process exit (was a bare infinite loop)
-- [x] CI cross-platform matrix — `rust-check` and `test` jobs run on Linux + Windows + macOS; `cargo fmt --check` enforced; `npm run build` added to typecheck job
-
-### Planned (v0.4+)
-
-- [ ] NekoMetrics — anonymous keystroke / mouse / pet-step counters (spec: `docs/feature-nekometrics-v0.4.md`)
-- [ ] BongoCat-style reactive paw animations driven by keystrokes
-- [ ] Daily/weekly/monthly activity history + GitHub-style heatmap
-- [ ] macOS testing and stable cross-platform release
-- [ ] Community pet gallery in-app browser
-- [ ] Plugin system for custom behaviors
-- [ ] Voice interaction (TTS/STT)
-
----
-
-## Pet Format
-
-NekoAI uses an open, JSON-based **Pet Definition Format** that allows anyone to create and share pets via pull request.
-
-A pet consists of:
-
-- `pet.json` — metadata, animation definitions, AI personality, and event triggers
-- `sprites/` — PNG files (32×32 RGBA) for each animation frame
-
-The format supports 18+ named animations, configurable fps and loop behavior, and a custom AI system prompt that defines the pet's personality in conversations.
-
-Community pets live in `pets-community/` and are listed in the in-app gallery.
-
----
-
-## Architectural Decisions
-
-### Window Resizing on Windows (`resize_window` Command)
-
-**Challenge:** The app has `resizable: false` in `tauri.conf.json` to create a truly frameless window. However, when Windows creates a non-resizable window, it removes the `WS_THICKFRAME` window style, which JavaScript APIs cannot restore at runtime.
-
-**Solution:** A Rust command-side implementation of `resize_window()` calls `window.set_size()` directly from the backend, completely bypassing the JS API limitation. This allows:
-
-- Speech bubbles to expand/collapse without showing resize handles
-- Settings and context menus to appear/disappear smoothly
-- Dynamic pet size adjustment via UI controls
-
-**Implementation:** `src-tauri/src/lib.rs` registers the command and handles resizing for all interactive panels.
-
-### Pixel-Perfect Sprite Scaling
-
-**Challenge:** Arbitrary pet sizes (like 48px = 1.5× of the 32px native sprite) cause uneven pixel mapping, resulting in visible borders and artifacts in pixelated art.
-
-**Solution:** Restrict all pet sizes to integer multiples of 32px:
-
-- S = 32px (1×), M = 64px (2×), L = 96px (3×), XL = 128px (4×)
-- This ensures each sprite pixel maps to an exact integer of screen pixels with no anti-aliasing
-
-**Implementation Details:**
-
-- CSS sizes are **not hardcoded** in `App.css`; instead they're injected as inline styles from `App.tsx` using the `spriteSize` state
-- `PetRenderer.tsx` has `imageRendering: "pixelated"` and `display: block` to prevent baseline gaps and sub-pixel rendering
-- Container styles dynamically update when the user changes size via the context menu
-
-## Privacy
-
-NekoAI has no backend servers and no telemetry. All data stays on the user's machine:
-
-- API keys: the OS credential store (Credential Manager / Keychain / Secret Service); `config.toml` in the platform config dir (`~/.config/nekoai`, `%APPDATA%\nekoai`, `~/Library/Application Support/nekoai`) holds the other settings. Portable mode keeps everything, key included, in `./data/`
-- Conversation history: `memory.db` in the platform data dir (`~/.local/share/nekoai`, `%LOCALAPPDATA%\nekoai`, `~/Library/Application Support/nekoai`), or `./data/` in portable mode
-- Pet size preference: persisted in `configStore.ts` via `save_config` command
-- The only outbound network requests are direct calls to the AI provider the user configures
-- In portable mode (a `portable` file beside the exe), all data stays in the same folder as the exe — nothing written to the home directory
-
----
-
-## Repository Structure
-
-```
-nekoai/
-├── src/                     # React/TypeScript frontend
-├── src-tauri/               # Rust backend
-├── pets/classic-neko/       # Bundled Neko pet (original sprites)
-├── pets-community/          # Community-contributed pets
-├── scripts/                 # Dev utilities (sprite conversion, portable build)
-├── docs/                    # Architecture, install guides, pet format spec
-│   ├── architecture.md
-│   ├── creating-a-pet.md
-│   ├── install-windows.md
-│   └── install-linux.md
-├── .github/                 # CI/CD workflows, issue templates
-├── README.md
-├── CONTRIBUTING.md
-├── CODE_OF_CONDUCT.md
-├── SECURITY.md
-├── CHANGELOG.md
-└── LICENSE                  # MIT
-```
-
----
-
-## How to Contribute
-
-The easiest contribution is creating a new pet — add sprites and a `pet.json` to `pets-community/` and open a PR. No Rust knowledge required.
-
-See [CONTRIBUTING.md](CONTRIBUTING.md) for full setup instructions, sprite guidelines, and the PR checklist.
-
----
-
-## Links
-
-- **Repository:** https://github.com/nucket/nekoai
-- **Issues:** https://github.com/nucket/nekoai/issues
-- **Discussions:** https://github.com/nucket/nekoai/discussions
-- **Author:** https://github.com/nucket
-
----
-
-_Made with ☕ and deep nostalgia for Windows XP — by Naudy Castellanos_
+| Topic                                 | Document                                         |
+| ------------------------------------- | ------------------------------------------------ |
+| Features, install, configuration      | [README.md](README.md)                           |
+| How the code fits together            | [docs/architecture.md](docs/architecture.md)     |
+| Privacy, network connections, storage | [SECURITY.md](SECURITY.md)                       |
+| Development setup, conventions, PRs   | [CONTRIBUTING.md](CONTRIBUTING.md)               |
+| Making a pet                          | [docs/creating-a-pet.md](docs/creating-a-pet.md) |
+| Release signing                       | [docs/code-signing.md](docs/code-signing.md)     |
+| What changed, release by release      | [CHANGELOG.md](CHANGELOG.md)                     |
+| The history behind Neko               | [STORY-Neko.md](STORY-Neko.md)                   |

@@ -29,15 +29,15 @@ This project follows the [Contributor Covenant v2.1](CODE_OF_CONDUCT.md). By par
 
 ## Ways to Contribute
 
-| Type                          | How                                                                                     |
-| ----------------------------- | --------------------------------------------------------------------------------------- |
-| 🐾 Create a pet skin          | Add sprites + `pet.json` to `pets-community/`                                           |
-| 🐛 Report a bug               | Open a Bug Report issue                                                                 |
-| 💡 Suggest a feature          | Open a Feature Request issue                                                            |
-| 🌍 Translate the UI           | Copy `src/i18n/en.ts` to a new locale (see [Adding a language](#adding-a-language))     |
-| 📖 Improve docs               | Edit any `.md` file and submit a PR                                                     |
-| 🧑‍💻 Fix bugs or build features | Check [good first issues](https://github.com/nucket/nekoai/labels/good%20first%20issue) |
-| ⭐ Spread the word            | Star the repo and share it                                                              |
+| Type                          | How                                                                                                          |
+| ----------------------------- | ------------------------------------------------------------------------------------------------------------ |
+| 🐾 Create a pet               | Add a folder to `pets/` and an entry to `pets/manifest.json` (see [Creating a New Pet](#creating-a-new-pet)) |
+| 🐛 Report a bug               | Open a Bug Report issue                                                                                      |
+| 💡 Suggest a feature          | Open a Feature Request issue                                                                                 |
+| 🌍 Translate the UI           | Copy `src/i18n/en.ts` to a new locale (see [Adding a language](#adding-a-language))                          |
+| 📖 Improve docs               | Edit any `.md` file and submit a PR                                                                          |
+| 🧑‍💻 Fix bugs or build features | Check [good first issues](https://github.com/nucket/nekoai/labels/good%20first%20issue)                      |
+| ⭐ Spread the word            | Star the repo and share it                                                                                   |
 
 ---
 
@@ -49,7 +49,7 @@ This project follows the [Contributor Covenant v2.1](CODE_OF_CONDUCT.md). By par
 | --------- | ------- | ---------------------------------------------- |
 | Node.js   | 22+     | https://nodejs.org (pnpm 11 requires ≥ v22.13) |
 | pnpm      | 11+     | `npm install -g pnpm` or via Corepack          |
-| Rust      | 1.75+   | https://rustup.rs                              |
+| Rust      | 1.90+   | https://rustup.rs                              |
 | Tauri CLI | 2.x     | `cargo install tauri-cli --version "^2.0"`     |
 | Python    | 3.8+    | https://python.org (for sprite scripts)        |
 
@@ -70,10 +70,13 @@ pnpm tauri dev             # Dev server with hot reload
 pnpm tauri build           # Production installer
 pnpm lint                  # ESLint (zero warnings allowed)
 pnpm typecheck             # TypeScript type check (tsc --noEmit)
+pnpm test                  # Vitest unit tests
+pnpm pets:validate         # Check every pet in pets/manifest.json (fields, sprites, triggers)
 pnpm format                # Prettier write
 pnpm format:check          # Prettier check
 pnpm sprites:convert       # Convert .ico sprites to .png
 cargo clippy               # Lint Rust code (from src-tauri/)
+cargo test                 # Rust unit tests (from src-tauri/)
 ```
 
 ---
@@ -83,47 +86,56 @@ cargo clippy               # Lint Rust code (from src-tauri/)
 ```
 nekoai/
 ├── src/                        # TypeScript/React frontend
-│   ├── pets/PetRenderer.tsx    # Sprite animation engine
+│   ├── App.tsx                 # Main pet window — wires the hooks together
+│   ├── pets/                   # PetRenderer (sprite engine), resolveAnimation, triggers
 │   ├── ai/                     # ai_chat wrapper, prompt builder, memory, errors
-│   ├── components/             # SpeechBubble, SettingsPanel
+│   ├── components/             # SpeechBubble, SettingsPanel, PetSelector
+│   ├── hooks/                  # usePetMovement, useChat, useMoodEngine, … (one concern each)
 │   ├── i18n/                   # UI strings (en.ts is the source; one file per language)
-│   └── hooks/usePetMovement.ts # Movement state machine
+│   └── store/                  # Zustand stores (app state, settings)
 ├── src-tauri/src/              # Rust backend
-│   ├── lib.rs                  # App setup, tray, all Tauri commands
+│   ├── lib.rs                  # App setup, tray, Tauri commands
 │   ├── ai.rs                   # All AI provider HTTP calls (behind ai_chat)
-│   ├── main.rs                 # App entry (calls lib::run())
+│   ├── storage.rs              # config.toml + SQLite persistence
+│   ├── secrets.rs              # API key in the OS credential store
+│   ├── updater.rs              # In-app updates (check_for_update / install_update)
 │   ├── desktop_monitor.rs      # OS window detection, idle time, session type
 │   ├── cursor_tracker.rs       # Wayland cursor fallback (evdev /dev/input reader)
-│   └── storage.rs              # SQLite persistence
-├── pets/classic-neko/          # Bundled default pet
-├── pets-community/             # Community-contributed pets
-└── scripts/convert-sprites.py  # Sprite conversion tool
+│   └── main.rs                 # App entry (calls lib::run())
+├── pets/                       # Every pet the app ships, listed in pets/manifest.json
+├── schemas/pet.schema.json     # pet.json schema (used by pets:validate)
+└── scripts/                    # Sprite conversion, pet validation, version bump, portable build
 ```
 
 ---
 
 ## Creating a New Pet
 
+Every pet the app ships lives in `pets/` and is listed in `pets/manifest.json` — the pet selector and the tray menu both read that file, so a new pet needs no code changes. [docs/creating-a-pet.md](docs/creating-a-pet.md) is the full guide.
+
 ### Folder structure
 
 ```
-pets-community/
-└── your-pet-name/
+pets/
+└── your-pet-name/      ← the folder name is the pet's ID (kebab-case, unique)
     ├── pet.json
     ├── sprites/
     │   ├── idle.png
     │   ├── walk_right1.png
     │   └── ...
-    └── preview.gif    (optional but recommended)
+    └── README.md       ← description, credits, sprite license
 ```
 
 ### Steps
 
-1. Create your folder under `pets-community/`
+1. Create your folder under `pets/`
 2. Add sprite PNG files to `sprites/` (see [Sprite Guidelines](#sprite-guidelines))
 3. Write your `pet.json` (see [Pet Definition Format](#pet-definition-format))
-4. Test locally by pointing `App.tsx` at your pet temporarily
-5. Submit a PR
+4. Add an entry for it to `pets/manifest.json`
+5. Run `pnpm pets:validate`, then `pnpm tauri dev` and pick your pet from the selector
+6. Open a PR with a screenshot or GIF of the pet in action
+
+Only submit sprites you made yourself or that are under a license allowing redistribution, and no characters that belong to someone else (trademarked or copyrighted characters are not accepted).
 
 ---
 
@@ -136,7 +148,7 @@ pets-community/
   "author": "your-github-username",
   "description": "one-line description",
   "personality": "human-readable personality",
-  "system_prompt": "You are [name], a tiny [creature] on the user's desktop. Give 1-2 sentence answers. Never use markdown.",
+  "system_prompt": "You are [name], a tiny [creature] on the user's desktop. [Voice, quirks, catchphrases.]",
   "spritesDir": "sprites",
   "animations": {
     "idle": { "files": ["idle.png"], "fps": 2, "loop": true },
@@ -174,9 +186,8 @@ pets-community/
 ### System prompt tips
 
 - Keep under 500 characters
-- Instruct for short answers: "1-2 sentences max"
-- Say "Never use markdown"
-- Give the pet a distinct voice
+- Describe who the pet _is_ — voice, quirks, catchphrases
+- Leave reply length and formatting out: the app adds them from **Settings → Response length**
 
 ---
 
@@ -185,7 +196,7 @@ pets-community/
 | Property   | Requirement                                        |
 | ---------- | -------------------------------------------------- |
 | Format     | PNG with alpha channel (RGBA)                      |
-| Frame size | 32×32 px native (displayed at 64×64 via 2× scale)  |
+| Frame size | 32×32 px (shown at 32–128 px by integer scaling)   |
 | Background | Fully transparent (alpha = 0)                      |
 | Naming     | lowercase, snake_case, number suffix for sequences |
 
@@ -222,7 +233,7 @@ In components use `const t = useT()`; outside React (error messages, onboarding 
 
 1. Fork the repo and create a branch: `git checkout -b feat/my-dragon-pet`
 2. Make your changes
-3. Run `pnpm lint` and `pnpm typecheck` — both must pass
+3. Run `pnpm lint`, `pnpm typecheck` and `pnpm test` — all must pass
 4. Commit with [conventional commits](#commit-convention)
 5. Open a PR against `main` and fill in the PR template
 
@@ -230,9 +241,10 @@ In components use `const t = useT()`; outside React (error messages, onboarding 
 
 - [ ] `pnpm lint` passes
 - [ ] `pnpm typecheck` passes
+- [ ] `pnpm test` passes
 - [ ] App runs without console errors
-- [ ] New pet: `pet.json` includes all required animations
-- [ ] New pet: sprites are PNG with transparent background
+- [ ] New pet: listed in `pets/manifest.json` and `pnpm pets:validate` passes
+- [ ] New pet: sprites are PNG with transparent background, with credits and license in its `README.md`
 
 ---
 
@@ -283,11 +295,11 @@ Run `pnpm lint` (zero warnings allowed) and `pnpm format:check` before submittin
 
 ### Rust
 
-| Rule           | Convention                                                         |
-| -------------- | ------------------------------------------------------------------ |
-| Linting        | `cargo clippy` — all warnings are errors in CI                     |
-| Tauri commands | All `#[tauri::command]` functions go in `lib.rs` only              |
-| Error returns  | Use `.map_err(\|e\| e.to_string())` — Tauri serializes these to JS |
+| Rule           | Convention                                                                                |
+| -------------- | ----------------------------------------------------------------------------------------- |
+| Linting        | `cargo clippy` — all warnings are errors in CI                                            |
+| Tauri commands | In `lib.rs`, or in their feature's module (e.g. `updater.rs`), and registered in `lib.rs` |
+| Error returns  | Use `.map_err(\|e\| e.to_string())` — Tauri serializes these to JS                        |
 
 Run `cargo clippy` from the `src-tauri/` directory before submitting any Rust changes.
 

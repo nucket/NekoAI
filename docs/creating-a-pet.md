@@ -12,11 +12,12 @@ Each pet lives in its own directory inside `pets/`:
 pets/
 └── my-dragon/
     ├── pet.json        ← required: metadata, personality, animations
-    └── sprites/        ← required: one PNG per animation frame
-        ├── idle1.png
-        ├── idle2.png
-        ├── walk_right1.png
-        └── ...
+    ├── sprites/        ← required: one PNG per animation frame
+    │   ├── idle1.png
+    │   ├── idle2.png
+    │   ├── walk_right1.png
+    │   └── ...
+    └── README.md       ← description, credits, sprite license
 ```
 
 The folder name is the pet's **ID** — it must be kebab-case and unique.
@@ -106,7 +107,7 @@ One-shot triggers play one pass of the animation (frames ÷ fps), clamped to 0.4
 
 ### Required animations
 
-The only mandatory animation is **`idle`**. The engine falls back to `idle` when a requested animation is missing, so you can ship a minimal pet and add animations incrementally.
+Four animations are mandatory: **`idle`**, **`walk_right`**, **`walk_left`** and **`sleep`** (`pnpm pets:validate` checks them against `schemas/pet.schema.json`, which also lists the required top-level fields). For anything else the engine falls back to `idle`, so you can ship a minimal pet and add animations incrementally.
 
 ### Recommended animation set
 
@@ -116,20 +117,20 @@ For a polished pet, implement all 8 walk directions plus `idle`, `happy`, `sleep
 
 ## Sprite specifications
 
-| Property   | Recommendation                                      |
-| ---------- | --------------------------------------------------- |
-| Format     | PNG with transparency (RGBA)                        |
-| Frame size | 32×32 px or 48×48 px (consistent within a pet)      |
-| Style      | Pixel art — use `image-rendering: pixelated` in CSS |
-| Background | Transparent                                         |
+| Property   | Recommendation               |
+| ---------- | ---------------------------- |
+| Format     | PNG with transparency (RGBA) |
+| Frame size | 32×32 px                     |
+| Style      | Pixel art                    |
+| Background | Transparent                  |
 
-The engine renders sprites at 2× scale by default (`displaySize` prop on `PetRenderer`). A 32px sprite appears as 64px on screen.
+The user picks the on-screen size in the context menu: S = 32 px (the default), M = 64, L = 96 or XL = 128. These are whole multiples of 32, so a 32×32 sprite stays crisp at every size; other frame sizes get scaled by fractions and look blurry or uneven.
 
 ---
 
 ## Registering your pet
 
-### 1. Add to `pets/manifest.json`
+Add an entry to the `pets` array in `pets/manifest.json`:
 
 ```json
 {
@@ -137,36 +138,18 @@ The engine renders sprites at 2× scale by default (`displaySize` prop on `PetRe
   "name": "Ember",
   "description": "A tiny fire dragon who loves dark mode",
   "emoji": "🔥",
-  "author": "yourname"
+  "author": "yourname",
+  "bundled": true
 }
 ```
 
-### 2. Add to the tray menu (Rust)
-
-In `src-tauri/src/lib.rs`, add a `MenuItem` and a handler inside `setup`:
-
-```rust
-// In the setup block:
-let pet_dragon = MenuItem::with_id(app, "pet_dragon", "Ember", true, None::<&str>)?;
-let select_pet  = Submenu::with_items(app, "Select Pet", true, &[
-    &pet_classic, &pet_ghost, &pet_shiba, &pet_dragon
-])?;
-
-// In on_menu_event:
-"pet_dragon" => {
-    show_window(app);
-    app.emit("tray-select-pet", "my-dragon").ok();
-}
-```
-
-After these two steps the pet appears in both the in-app selector (PetSelector reads `manifest.json`) and the system tray.
+`id` must match the folder name. That's all: the in-app selector and the tray's **Select Pet** menu both read this file, so no code changes are needed.
 
 ---
 
 ## Testing your pet
 
 ```bash
-cd NekoAI
 pnpm pets:validate   # checks every manifest pet: required fields + animations, sprite files, triggers
 pnpm tauri dev
 ```
@@ -183,14 +166,8 @@ If a sprite file is missing, `PetRenderer` silently renders a transparent placeh
 
 ## Sharing your pet
 
-Submit a PR adding your pet folder to `pets-community/`. Include:
+Open a PR that adds your `pets/<id>/` folder (with its `README.md`) and the `pets/manifest.json` entry, and attach a screenshot or GIF of the pet in action. CI runs `pnpm pets:validate` on every PR. Once merged, the pet ships in the next release.
 
-```
-pets-community/
-└── my-dragon/
-    ├── pet.json
-    ├── sprites/         ← all PNG frames
-    └── README.md        ← description, credits, license
-```
+Only submit sprites you made yourself or that are under a license allowing redistribution. Characters that belong to someone else (trademarked or copyrighted) are not accepted.
 
 See [CONTRIBUTING.md](../CONTRIBUTING.md) for full guidelines.

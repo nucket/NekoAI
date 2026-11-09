@@ -7,6 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [Unreleased]
+
+### Documentation
+
+- **README, CONTRIBUTING, architecture and install guides brought up to date with 0.3.9:**
+  in-app updates, the credential store, English/Spanish, the Rust-side AI calls, the current
+  project layout and Tauri commands, Rust 1.90+ as the minimum, and the real release file names.
+  Proactive nudges, which were listed as shipped but never built, are now marked as planned. The
+  README's Docs link now leads to a Documentation section.
+- **New pets go straight into `pets/` plus an entry in `pets/manifest.json`**, which is what the
+  app actually loads; the unused `pets-community/` folder is gone. The guides drop the obsolete
+  tray-menu step and list the four required animations and the sprite-license rule.
+- **`PROJECT_SUMMARY.md` is now a one-page overview** that links to the detailed documents.
+- **The Discord invite is removed** until there is a permanent one.
+
+---
+
 ## [0.3.9] — 2026-11-08
 
 > A stability, privacy and security release. The API key moves into the
