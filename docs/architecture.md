@@ -6,7 +6,7 @@ This document describes how the different layers of NekoAI work together.
 
 ## Overview
 
-NekoAI is a **Tauri v2** application: a Rust backend exposes native OS APIs via IPC commands, and a React/TypeScript frontend handles all UI rendering and AI calls.
+NekoAI is a **Tauri v2** application: a React/TypeScript frontend renders the pet and its UI, and a Rust backend does everything that touches the OS or the network — AI provider calls, storage, the API key, updates — exposed to the WebView as IPC commands.
 
 ```
 ┌─────────────────────────────────────────────────────────┐
@@ -14,18 +14,15 @@ NekoAI is a **Tauri v2** application: a Rust backend exposes native OS APIs via 
 │  ┌────────────┐  ┌───────────────┐  ┌───────────────┐  │
 │  │ PetRenderer│  │ SpeechBubble  │  │SettingsPanel  │  │
 │  │ (sprites)  │  │ (AI chat UI)  │  │ PetSelector   │  │
-│  └──────┬─────┘  └───────┬───────┘  └───────────────┘  │
-│         │                │                              │
-│  ┌──────▼─────┐  ┌───────▼───────┐                     │
-│  │usePetMove- │  │ AI providers  │                     │
-│  │ment + Mood │  │ (Anthropic /  │                     │
-│  │ Engine     │  │  OpenAI /     │                     │
-│  │            │  │  Gemini /     │                     │
-│  │            │  │  NVIDIA NIM / │                     │
-│  │            │  │  Ollama)      │                     │
-│  └──────┬─────┘  └───────┘       │                     │
-│         │                │                              │
-│  ┌──────▼────────────────▼──────────────────────────┐  │
+│  └──────┬─────┘  └───────┬───────┘  └───────┬───────┘  │
+│         │                │                  │          │
+│  ┌──────▼─────┐  ┌───────▼───────┐          │          │
+│  │usePetMove- │  │ useChat       │          │          │
+│  │ment, Mood, │  │ (prompt +     │          │          │
+│  │ triggers   │  │  memory)      │          │          │
+│  └──────┬─────┘  └───────┬───────┘          │          │
+│         │                │                  │          │
+│  ┌──────▼────────────────▼──────────────────▼───────┐  │
 │  │                Tauri IPC (invoke)                 │  │
 │  └──────┬────────────────────────────────────────────┘  │
 └─────────┼───────────────────────────────────────────────┘
@@ -34,8 +31,12 @@ NekoAI is a **Tauri v2** application: a Rust backend exposes native OS APIs via 
 │  Rust backend (src-tauri/src/)                          │
 │                                                         │
 │  lib.rs              — commands, tray, window setup     │
-│  storage.rs          — SQLite (conversations, facts)    │
+│  ai.rs               — every AI provider (ai_chat)      │
+│  storage.rs          — config.toml + SQLite             │
+│  secrets.rs          — API key in the credential store  │
+│  updater.rs          — signed in-app updates            │
 │  desktop_monitor.rs  — OS APIs (window, idle time)      │
+│  cursor_tracker.rs   — Wayland cursor via evdev         │
 └─────────────────────────────────────────────────────────┘
 ```
 
@@ -47,18 +48,19 @@ NekoAI is a **Tauri v2** application: a Rust backend exposes native OS APIs via 
 
 `PetRenderer` runs a `requestAnimationFrame` loop that advances sprite frames at the animation's FPS. It accepts a `currentAnimation` string and looks up the frame list in `animations` from the loaded `pet.json`.
 
-The final animation is resolved by `resolveAnimation()` in `App.tsx` — a pure function that applies a strict priority order:
+The final animation is resolved by `resolveAnimation()` (`src/pets/resolveAnimation.ts`, called from `App.tsx`) — a pure function that applies a strict priority order:
 
 ```
 1. notificationAlert → 'alert' (or 'idle' if no alert anim)   [always wins]
 2. petState === 'WALKING'  → edgeAnimOverride ?? currentAnimation
-   (walk_* sprites are immune to idle, mood, and wake overrides)
-3. other states → edgeAnimOverride ?? clickWakeAnim ?? idleAnim ?? moodOverride ?? currentAnimation
+   (walk_* sprites are immune to idle, mood, trigger and wake overrides)
+3. other states → edgeAnimOverride ?? clickWakeAnim ?? triggerAnim ?? idleAnim ?? moodOverride ?? currentAnimation
 ```
 
 Sources of each layer:
 
 - `currentAnimation` — `usePetMovement` (idle / walk\_\* / sleep)
+- `triggerAnim` — `usePetTriggers`: the pet.json `triggers` for chat open, AI thinking / response and OS idle (see `src/pets/triggers.ts`)
 - `moodOverride` — `useMoodEngine` (yawn when OS idle; only fires in `IDLE` state)
 - `idleAnim` — `useIdleSequencer` (wash / scratch_wall / yawn / falling_asleep / sleep; only in `NEAR_CURSOR`)
 - `clickWakeAnim` — brief `awaken` flash on sprite click (only in stationary states)
@@ -83,19 +85,19 @@ These are stored in the Zustand store and included in every AI system prompt.
 
 ### AI pipeline
 
-On each user message:
+On each user message (`useChat`):
 
 1. Save user message to SQLite
 2. Load last 20 messages from SQLite (conversation history)
 3. Load all user facts from SQLite
-4. Build system prompt: `pet personality + facts + mood description`
-5. Call AI provider (Anthropic / OpenAI / Gemini / Ollama)
+4. Build system prompt: `pet personality + facts + mood description + reply-length instruction`
+5. Call the configured provider through the Rust `ai_chat` command (Anthropic / OpenAI / Gemini / NVIDIA NIM / Ollama)
 6. Save assistant reply to SQLite
-7. Extract new facts from the exchange (async, fire-and-forget)
+7. Extract new facts from the user's message (async, fire-and-forget)
 
 ### Fact extraction
 
-`src/ai/memory.ts` runs regex patterns over each user message + assistant reply looking for:
+`src/ai/memory.ts` runs regex patterns over each user message looking for:
 
 - Name (`my name is X`, `me llamo X`)
 - Project (`working on X`, `building X`)
@@ -112,13 +114,16 @@ Extracted facts are upserted into the `user_facts` SQLite table.
 | Command                                  | Description                                                         |
 | ---------------------------------------- | ------------------------------------------------------------------- |
 | `get_cursor_pos`                         | Physical cursor position (for movement loop)                        |
+| `cursor_tracking_status`                 | How the cursor is read (direct, evdev on Wayland, or unavailable)   |
 | `resize_window`                          | Resize the transparent window (bypasses `WS_THICKFRAME` on Windows) |
+| `open_panel_window`                      | Open the secondary panel window (context menu / settings)           |
 | `resize_panel_window`                    | Resize the secondary panel window (context menu / settings)         |
 | `close_panel_window`                     | Close the panel window                                              |
 | `panel_action`                           | Route a panel action (settings, select-pet, pet-mode, pet-size)     |
 | `set_window_shape`                       | Apply per-frame GTK shape mask from canvas alpha (Linux only)       |
 | `clear_window_shape`                     | Remove shape mask so full window is visible (Linux only)            |
-| `get_config` / `save_config`             | Read/write config (SQLite)                                          |
+| `get_config` / `save_config`             | Read/write `config.toml` (the API key goes to the credential store) |
+| `patch_config`                           | Change some settings and broadcast `config-updated` to all windows  |
 | `get_recent_messages`                    | Last N messages from SQLite                                         |
 | `save_message`                           | Append a message to SQLite (triggers pruning every 20 inserts)      |
 | `clear_conversations`                    | Wipe all conversation history (Settings → Memory)                   |
@@ -132,6 +137,9 @@ Extracted facts are upserted into the `user_facts` SQLite table.
 | `open_url`                               | Open a URL or mailto link via the system browser                    |
 | `autostart_status`                       | Launch-at-login state (`null` in portable mode)                     |
 | `enable_autostart` / `disable_autostart` | Launch-at-login (Settings → "Start NekoAI with the system")         |
+| `set_tray_locale`                        | Show the tray menu in the UI language                               |
+| `check_for_update`                       | Ask GitHub for a newer signed release (`updater.rs`)                |
+| `install_update`                         | Download, verify and install it, then restart (`updater.rs`)        |
 | `quit_app`                               | Exit the process                                                    |
 
 ### Storage
@@ -148,7 +156,7 @@ Default paths (installed mode), resolved with the `dirs` crate (`storage::config
 On Linux, `$XDG_CONFIG_HOME` / `$XDG_DATA_HOME` override `~/.config` / `~/.local/share`. On
 Windows the database lives under `%LOCALAPPDATA%` so it doesn't roam with the profile.
 
-Versions up to 0.3.x used `~/.config/nekoai` and `~/.local/share/nekoai` on every OS.
+Versions up to 0.3.8 used `~/.config/nekoai` and `~/.local/share/nekoai` on every OS.
 `storage::migrate_legacy_paths()` runs first thing in `run()` and moves `config.toml` and
 `memory.db` (with its `-wal` / `-shm` files) to the new location once. It never overwrites
 existing files and is a no-op on Linux, where the paths are unchanged.
@@ -167,8 +175,22 @@ when portable mode is active.
 
 Pure Wayland sessions and macOS gracefully degrade: the mood engine runs on
 time-of-day only, desktop context is empty, and the notification monitor is effectively
-disabled. All other features are unaffected. macOS implementation (via `core-graphics`
-/ `objc2`) is planned for v0.3+.
+disabled. Because idle time reads as `0`, the pet.json idle triggers (`on_idle_*`) don't fire
+there either. All other features are unaffected. A macOS implementation (via `core-graphics`
+/ `objc2`) is not written yet.
+
+### Updates
+
+`updater.rs` wraps `tauri-plugin-updater`. The release workflow publishes `latest.json` and a
+minisign signature for each installer; the plugin only installs a download whose signature
+matches the public key in `tauri.conf.json` (`plugins.updater.pubkey`). This is separate from OS
+code signing ([code-signing.md](code-signing.md)).
+
+The WebView has no updater permissions: `useUpdateNotice` calls `check_for_update` a little
+after startup (unless **Settings → Check for updates at startup** is off), shows the offer in
+the pet's bubble, and calls `install_update` only when the user accepts. Portable copies and
+Linux `.deb` / `.rpm` installs can't replace themselves, so for them the bubble links to the
+download page instead (`can_install_in_place`).
 
 ### Content Security Policy
 
@@ -225,11 +247,12 @@ Default is Gemini because Google AI Studio offers a free tier with no credit car
 
 ### Registry
 
-`pets/manifest.json` is the authoritative list of available pets. `PetSelector` fetches it dynamically so adding a new pet only requires:
+`pets/manifest.json` is the authoritative list of available pets. `PetSelector` fetches it at runtime and the tray embeds it at compile time (`include_str!` in `lib.rs`), so adding a new pet only requires:
 
 1. A `pets/<id>/` directory with `pet.json` + `sprites/`
 2. An entry in `pets/manifest.json`
-3. A tray entry in `src-tauri/src/lib.rs`
+
+`scripts/validate-pets.mjs` (`pnpm pets:validate`, also run in CI) checks every listed pet against `schemas/pet.schema.json` and makes sure each referenced sprite exists.
 
 ### Format
 
@@ -237,7 +260,7 @@ Default is Gemini because Google AI Studio offers a free tier with no credit car
 
 ### Loading
 
-`App.tsx` fetches `/pets/<activePetId>/pet.json` via HTTP (Vite serves `pets/` as static assets in dev; the build hook copies them to `dist/pets/`). When `activePetId` changes, the effect re-runs and the new pet loads immediately.
+`usePetDefinition` fetches `/pets/<activePetId>/pet.json` via HTTP (Vite serves `pets/` as static assets in dev; the build hook copies them to `dist/pets/`). When `activePetId` changes, the effect re-runs and the new pet loads immediately; if it fails to load, the hook falls back to the default pet.
 
 ---
 
@@ -276,14 +299,14 @@ User types message
 SpeechBubble.handleSend()
         │
         ▼
-App.handleSendMessage(text)
+useChat.sendMessage(text)
         ├─ invoke('save_message', user)
         ├─ invoke('get_recent_messages', 20)   ─┐
         ├─ invoke('get_all_user_facts')          ├─ parallel
         │                                       ─┘
-        ├─ buildContextBlock(petName, facts, mood)
+        ├─ buildContextBlock(persona, facts, mood, maxTokens)
         ├─ provider.sendMessage(history, systemPrompt)
-        │        └─ invoke('ai_chat') → Rust (reqwest) → AI API
+        │        └─ invoke('ai_chat') → Rust (reqwest, key from secrets.rs) → AI API
         ├─ invoke('save_message', assistant)
-        └─ extractAndSaveFacts(text, reply)  ← fire and forget
+        └─ extractAndSaveFacts(text)  ← fire and forget
 ```

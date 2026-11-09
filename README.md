@@ -10,13 +10,12 @@
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Built with Tauri](https://img.shields.io/badge/Built%20with-Tauri%202-blue?logo=tauri)](https://tauri.app)
-[![Rust](https://img.shields.io/badge/Rust-1.75+-orange?logo=rust)](https://www.rust-lang.org/)
+[![Rust](https://img.shields.io/badge/Rust-1.90+-orange?logo=rust)](https://www.rust-lang.org/)
 [![React](https://img.shields.io/badge/React-19-61dafb?logo=react)](https://react.dev/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-6.x-blue?logo=typescript)](https://www.typescriptlang.org/)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](CONTRIBUTING.md)
 [![Stars](https://img.shields.io/github/stars/nucket/nekoai?style=social)](https://github.com/nucket/nekoai/stargazers)
 [![Lighthouse 100 on nekoai.dev](https://img.shields.io/badge/Lighthouse-100%20%C2%B7%20100%20%C2%B7%20100%20%C2%B7%20100-brightgreen?logo=lighthouse&logoColor=white)](https://pagespeed.web.dev/analysis/https-nekoai-dev/zx7oz277uk?form_factor=desktop)
-[![Discord](https://img.shields.io/badge/Discord-Join%20us-5865F2?logo=discord&logoColor=white)](https://discord.gg/d7pykbNz)
 
 <br/>
 
@@ -25,7 +24,7 @@
 
 <br/>
 
-**[🌐 nekoai.dev](https://nekoai.dev/) · [🚀 Download](#-installation) · [🎬 Showcase](docs/showcase.md) · [📖 Docs](#-documentation) · [🎨 Create a pet](docs/creating-a-pet.md) · [💬 Community](#community)**
+**[🌐 nekoai.dev](https://nekoai.dev/) · [🚀 Download](#-installation) · [🎬 Showcase](docs/showcase.md) · [📖 Docs](#-documentation) · [🎨 Create a pet](docs/creating-a-pet.md) · [🤝 Contribute](CONTRIBUTING.md)**
 
 </div>
 
@@ -74,31 +73,36 @@ _Zero-config onboarding on Windows — NekoAI auto-detects Ollama and walks you 
 
 ## 🌟 Features
 
-| Feature                                                                          | Status     |
-| -------------------------------------------------------------------------------- | ---------- |
-| 🐱 Animated sprite pets that roam your desktop                                   | ✅         |
-| 🖱️ 8-direction cursor following & movement                                       | ✅         |
-| 💬 AI chat via animated speech bubble                                            | ✅         |
-| 🧠 Persistent memory — remembers your name, projects, preferences                | ✅         |
-| 🔌 Multi-provider AI (Claude, OpenAI, Gemini, NVIDIA NIM, Ollama local)          | ✅         |
-| 😴 Dynamic mood — energy changes with time of day & idle time                    | ✅         |
-| 🎭 Multiple pets — Classic Neko, Pingu, BSD Daemon, Tabby                        | ✅         |
-| 🏠 Pet house — spawn point at bottom-right corner, click to bring pet home       | ✅         |
-| 🔔 Proactive nudges ("coding 90 min — take a break!")                            | ✅         |
-| 🖥️ System tray — hide/show, switch pets, settings                                | ✅         |
-| 📏 Adjustable pet size (S/M/L/XL) with pixel-perfect scaling                     | ✅         |
-| 🖱️ Right-click context menu — quick settings & pet size adjustment               | ✅         |
-| 💬 Tunable AI response length — Short / Medium / Long / Custom (32–4096 tokens)  | ✅         |
-| 🪄 Zero-config onboarding — auto-detects Ollama; walks pet out from house corner | ✅         |
-| 📊 NekoMetrics — anonymous keystroke / mouse / pet-step counters in a tooltip    | 🔜 v0.4    |
-| 🥁 BongoCat-style reactive paw animations driven by keystrokes                   | 🔜 v0.4    |
-| 📅 Daily/weekly/monthly activity history & GitHub-style heatmap                  | 🔜 v0.4    |
-| 📷 NekoCapture — screenshots with username/date/app/comment footer               | 🔜 v0.6    |
-| 🖼️ Customizable screenshot borders (color, thickness, rounded corners, shadow)   | 🔜 v0.6    |
-| ✏️ NekoAnnotate — full-screen drawing overlay (pen, shapes, arrows, text)        | 🔜 v0.7    |
-| 🌐 Cross-platform (Windows, macOS, Linux)                                        | 🔜 Planned |
-| 🧩 Plugin system for custom behaviors                                            | 🔜 Planned |
-| 🗣️ Voice interaction (TTS/STT)                                                   | 🔜 Planned |
+| Feature                                                                                   | Status     |
+| ----------------------------------------------------------------------------------------- | ---------- |
+| 🌐 Cross-platform — Windows, macOS (Apple Silicon & Intel), Linux (Xorg & Wayland)        | ✅         |
+| 🐱 Animated sprite pets that roam your desktop                                            | ✅         |
+| 🖱️ 8-direction cursor following & movement                                                | ✅         |
+| 💬 AI chat via animated speech bubble                                                     | ✅         |
+| 🧠 Persistent memory — remembers your name, projects, preferences                         | ✅         |
+| 🗂️ Memory you control — see what the pet learned, forget one fact or everything           | ✅         |
+| 🔌 Multi-provider AI (Claude, OpenAI, Gemini, NVIDIA NIM, Ollama local)                   | ✅         |
+| 🔑 API key kept in your system's credential store (Keychain, Credential Manager, …)       | ✅         |
+| 😴 Dynamic mood — energy changes with time of day & idle time                             | ✅         |
+| 🎭 Multiple pets — Classic Neko, Pingu, BSD Daemon, Tabby                                 | ✅         |
+| 🏠 Pet house — spawn point at bottom-right corner, click to bring pet home                | ✅         |
+| 🖥️ System tray — hide/show, switch pets, settings                                         | ✅         |
+| 📏 Adjustable pet size (S/M/L/XL) with pixel-perfect scaling                              | ✅         |
+| 🖱️ Right-click context menu — quick settings & pet size adjustment                        | ✅         |
+| 💬 Tunable AI response length — Short / Medium / Long / Custom (32–4096 tokens)           | ✅         |
+| 🪄 Zero-config onboarding — auto-detects Ollama; walks pet out from house corner          | ✅         |
+| 🌍 English and Spanish interface (follows your system language)                           | ✅         |
+| ⬆️ In-app updates — the pet offers new releases; signed, nothing installs without your OK | ✅         |
+| 🚀 Start with the system (optional)                                                       | ✅         |
+| 📊 NekoMetrics — anonymous keystroke / mouse / pet-step counters in a tooltip             | 🔜 v0.4    |
+| 🥁 BongoCat-style reactive paw animations driven by keystrokes                            | 🔜 v0.4    |
+| 📅 Daily/weekly/monthly activity history & GitHub-style heatmap                           | 🔜 v0.4    |
+| 📷 NekoCapture — screenshots with username/date/app/comment footer                        | 🔜 v0.6    |
+| 🖼️ Customizable screenshot borders (color, thickness, rounded corners, shadow)            | 🔜 v0.6    |
+| ✏️ NekoAnnotate — full-screen drawing overlay (pen, shapes, arrows, text)                 | 🔜 v0.7    |
+| 🔔 Proactive nudges ("coding 90 min — take a break!")                                     | 🔜 Planned |
+| 🧩 Plugin system for custom behaviors                                                     | 🔜 Planned |
+| 🗣️ Voice interaction (TTS/STT)                                                            | 🔜 Planned |
 
 ---
 
@@ -109,10 +113,10 @@ _Zero-config onboarding on Windows — NekoAI auto-detects Ollama and walks you 
 │                    Your Desktop                       │
 │                                                       │
 │   ┌──────────┐          ┌──────────────────────────┐  │
-│   │  VSCode  │          │ "You've been coding 90   │  │
-│   │          │          │  min. Stretch break? 🐾" │  │
+│   │  VSCode  │          │ "That regex matches one  │  │
+│   │          │          │ or more digits. *purrs*" │  │
 │   └──────────┘    🐱←   └──────────────────────────┘  │
-│                  ↑ roams, reacts to what you open     │
+│                  ↑ roams, follows your cursor         │
 └──────────────────────────────────────────────────────┘
                           │
                Click pet or type to chat
@@ -171,9 +175,9 @@ Go to [Releases](https://github.com/nucket/nekoai/releases) and grab the latest 
 ### Option B — Build from source
 
 ```bash
-# Prerequisites: Node.js 22+, pnpm 11+, Rust 1.75+, Tauri CLI
+# Prerequisites: Node.js 22+, pnpm 11+, Rust 1.90+, Tauri CLI
 git clone https://github.com/nucket/nekoai.git
-cd nekoai/NekoAI
+cd nekoai
 
 pnpm install
 pnpm tauri dev           # Development with hot reload
@@ -199,7 +203,7 @@ Configuration is auto-created on first run:
 
 provider  = "gemini"            # "anthropic" | "openai" | "gemini" | "nvidia" | "ollama"
 model     = "gemini-3.5-flash-lite"
-petSize   = 64                  # pixels (32, 64, 96, or 128)
+petSize   = 32                  # pixels: 32 (S, default) | 64 | 96 | 128
 maxTokens = 512                 # 256 (Short) | 512 (Medium, default) | 1024 (Long) | 32–4096 (Custom)
 language  = "es"                # UI language: "en" | "es" (omit to follow the system language)
 ```
@@ -208,7 +212,7 @@ The API key you enter in Settings is kept in your system's credential store (Win
 
 > 🪄 **New user?** NekoAI auto-detects a running Ollama instance and configures itself on first launch — no settings required. Otherwise it guides you to set up your preferred provider.
 
-> 🔒 **Privacy first**: NekoAI has no backend server. All data stays on your machine. The only outbound calls are the AI API calls _you_ configure.
+> 🔒 **Privacy first**: NekoAI has no backend server and no telemetry. All data stays on your machine. The only outbound calls are the AI API calls _you_ configure and, at startup, a check for a new release on GitHub (you can turn it off in Settings). [SECURITY.md](SECURITY.md) lists every connection.
 
 ---
 
@@ -294,40 +298,34 @@ NekoAI/
 │   └── src/
 │       ├── lib.rs               # App setup, tray, Tauri commands, resize_window
 │       ├── ai.rs                # All AI provider calls (Anthropic, OpenAI, Gemini, NIM, Ollama)
-│       ├── desktop_monitor.rs   # Active window & idle time (Windows + Linux/X11)
-│       ├── cursor_tracker.rs    # Wayland cursor fallback — reads /dev/input via evdev
+│       ├── storage.rs           # config.toml + SQLite (conversation history, user facts)
 │       ├── secrets.rs           # API key in the OS credential store
-│       └── storage.rs           # SQLite: conversation history, user facts, config
+│       ├── updater.rs           # In-app updates (signed releases via tauri-plugin-updater)
+│       ├── desktop_monitor.rs   # Active window & idle time (Windows + Linux/X11)
+│       └── cursor_tracker.rs    # Wayland cursor fallback — reads /dev/input via evdev
 │
 ├── src/                         # TypeScript / React frontend
-│   ├── App.tsx                  # Main pet window — movement, events, AI, rendering
+│   ├── App.tsx                  # Main pet window — wires the hooks below together
 │   ├── HouseWindow.tsx          # Pet house widget (separate Tauri window "house")
 │   ├── PanelWindow.tsx          # Context menu / settings panel (window "panel")
 │   ├── main.tsx                 # Entry point — routes to App / HouseWindow / PanelWindow
-│   ├── ai/
-│   │   ├── index.ts             # ai_chat client, system prompt builder
-│   │   ├── memory.ts            # Fact extraction & persistence (SQLite IPC)
-│   │   ├── types.ts             # AIProvider interface, Message type
-│   │   ├── errors.ts            # AiRequestError + user-facing error messages
-│   │   └── ollama.ts            # Local Ollama detection (onboarding)
-│   ├── components/
-│   │   ├── SpeechBubble.tsx     # Animated chat bubble — scramble text, sprite-anchored, preloads recent history
-│   │   ├── SettingsPanel.tsx    # Settings panel (provider, API key, language, response length, memory)
-│   │   ├── ContextMenu.tsx      # Right-click context menu (settings, pet, size)
-│   │   └── PetSelector.tsx      # Pet picker with dynamic window resizing
+│   ├── ai/                      # ai_chat client, prompt builder, fact extraction, errors, Ollama detection
+│   ├── components/              # SpeechBubble, SettingsPanel, PetSelector
+│   ├── hooks/                   # One concern each, e.g.:
+│   │   ├── usePetMovement.ts    #   8-direction movement + edge state machine
+│   │   ├── useIdleSequencer.ts  #   Classic Neko stop→wash→scratch→yawn→sleep sequence
+│   │   ├── useMoodEngine.ts     #   Energy / happiness / curiosity
+│   │   ├── usePetTriggers.ts    #   Plays the pet.json triggers (chat, AI, idle)
+│   │   ├── useChat.ts           #   Chat turns with persistent memory
+│   │   ├── useOnboarding.ts     #   First launch (Ollama auto-detect)
+│   │   └── useUpdateNotice.ts   #   Offers a new release in the bubble
+│   ├── pets/                    # PetRenderer, resolveAnimation (which sprite plays), triggers
 │   ├── i18n/                    # UI strings: en.ts (source), es.ts, t() / useT()
-│   ├── hooks/
-│   │   ├── usePetMovement.ts    # 8-direction movement, overridePosition, EdgePhase state machine
-│   │   ├── useIdleSequencer.ts  # Classic Neko stop→wash→scratch→yawn→sleep idle sequence
-│   │   ├── useMoodEngine.ts     # Energy/happiness/curiosity + animation overrides
-│   │   ├── useDesktopContext.ts # Active window detection & app categorization
-│   │   └── useOnboarding.ts    # First-launch state machine (Ollama auto-detect → done)
-│   └── store/
-│       ├── index.ts             # Zustand store (mood, active pet, animation)
-│       └── configStore.ts       # AI config & pet size persisted via Tauri commands
+│   ├── store/                   # Zustand stores: app state, configStore (settings)
+│   └── utils/                   # Context menu placement, monitor work area, platform checks
 │
 └── pets/                        # Pet definitions (bundled with app)
-    ├── manifest.json            # Registry of all available pets
+    ├── manifest.json            # Registry: the selector and the tray list these pets
     ├── classic-neko/            # 🐱 pet.json + sprites/
     ├── penguin-pixel/           # 🐧 pet.json + sprites/ (Pingu)
     ├── bsd-daemon/              # 😈 pet.json + sprites/
@@ -380,11 +378,28 @@ This ensures crisp, pixelated rendering without anti-aliasing artifacts. Non-int
 
 ---
 
+## 📖 Documentation
+
+| Document                                                    | What's in it                                                  |
+| ----------------------------------------------------------- | ------------------------------------------------------------- |
+| [Installing on Windows](docs/install-windows.md)            | Installer vs portable ZIP, data folders, WebView2             |
+| [Installing on Linux](docs/install-linux.md)                | AppImage / .deb / .rpm, Wayland setup, building from source   |
+| [Code signing](docs/code-signing.md)                        | How releases are built and signed; opening an unsigned build  |
+| [Creating a pet](docs/creating-a-pet.md)                    | `pet.json` format, sprites, triggers, submitting your pet     |
+| [Architecture](docs/architecture.md)                        | Windows, hooks, Tauri commands, storage, CSP, onboarding flow |
+| [Showcase](docs/showcase.md)                                | Recordings on Windows, macOS, Ubuntu and Fedora               |
+| [Security & privacy](SECURITY.md)                           | Every network connection, where your data lives, reporting    |
+| [Changelog](CHANGELOG.md)                                   | What changed in each release                                  |
+| [NekoMetrics spec (v0.4)](docs/feature-nekometrics-v0.4.md) | The next planned feature                                      |
+
+---
+
 ## 🤝 Contributing
 
 NekoAI is community-first. Ways to contribute:
 
 - 🐾 **Create a new pet** — see [Creating a Pet](docs/creating-a-pet.md)
+- 🌍 **Translate the UI** — see [Adding a language](CONTRIBUTING.md#adding-a-language)
 - 🐛 **Report bugs** — open a detailed Issue
 - 💡 **Suggest features** — Discussions tab
 - 🧑‍💻 **Code** — check [good first issues](https://github.com/nucket/nekoai/labels/good%20first%20issue)
@@ -393,28 +408,18 @@ Read [CONTRIBUTING.md](CONTRIBUTING.md) before submitting.
 
 ---
 
-## 💬 Community {#community}
-
-Join our Discord server to chat, share your pets, get help, and follow development:
-
-[![Discord](https://img.shields.io/badge/Discord-Join%20us-5865F2?logo=discord&logoColor=white)](https://discord.gg/d7pykbNz)
-
-_Channels available in: English 🇬🇧 | Español 🇪🇸 | Português 🇧🇷_
-
----
-
 ## 🗺️ Roadmap
 
-| Version     | Focus                                                                                                                                                                                                                                                                     |
-| ----------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **v0.1** ✅ | Core: transparent window, Neko sprite, cursor tracking, AI chat                                                                                                                                                                                                           |
-| **v0.2** ✅ | Persistent memory, dynamic mood engine, pet house window, new pets (Pingu, Pac-Man, BSD Daemon, Tabby, TIE Fighter), 8-direction movement                                                                                                                                 |
-| **v0.3** ✅ | Zero-config onboarding (Ollama auto-detect), Gemini as default provider, NVIDIA NIM provider, classic Neko idle/edge sequencer, restrictive CSP, multi-OS CI matrix, passive install metrics pipeline, Wayland cursor tracking via evdev, tunable response length (S/M/L) |
-| **v0.4** 🔜 | **NekoMetrics** — anonymous keystroke / mouse / pet-step counters with house right-click menu, animated tooltip above the house, daily/weekly/monthly history, GitHub-style heatmap, BongoCat-style reactive paw animations                                               |
-| **v0.5** 🔜 | Accessories/skins system, sound effects, sprite scale slider, community pet gallery in-app, mini-games                                                                                                                                                                    |
-| **v0.6** 🔜 | **NekoCapture** — native screenshots with metadata footer (username, timestamp, app name, comments), customizable borders & shadows, clipboard/file export, hotkeys                                                                                                       |
-| **v0.7** 🔜 | **NekoAnnotate** — full-screen drawing overlay (pen, shapes, arrows, text, highlighter) with undo/redo, inspired by ZoomIt Draw; annotate before saving screenshots                                                                                                       |
-| **v1.0** 🔜 | Cross-platform stable release, plugin API, voice support                                                                                                                                                                                                                  |
+| Version     | Focus                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
+| ----------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **v0.1** ✅ | Core: transparent window, Neko sprite, cursor tracking, AI chat                                                                                                                                                                                                                                                                                                                                                                                         |
+| **v0.2** ✅ | Persistent memory, dynamic mood engine, pet house window, new pets (Pingu, BSD Daemon, Tabby), 8-direction movement                                                                                                                                                                                                                                                                                                                                     |
+| **v0.3** ✅ | Zero-config onboarding (Ollama auto-detect), Gemini as default provider, NVIDIA NIM provider, classic Neko idle/edge sequencer, restrictive CSP, multi-OS CI matrix, passive install metrics pipeline, Wayland cursor tracking via evdev, tunable response length (S/M/L); in 0.3.9: in-app signed updates, English/Spanish UI, API key in the OS credential store, all AI calls from Rust, Settings → Memory, start with the system, pet.json triggers |
+| **v0.4** 🔜 | **NekoMetrics** — anonymous keystroke / mouse / pet-step counters with house right-click menu, animated tooltip above the house, daily/weekly/monthly history, GitHub-style heatmap, BongoCat-style reactive paw animations                                                                                                                                                                                                                             |
+| **v0.5** 🔜 | Accessories/skins system, sound effects, sprite scale slider, community pet gallery in-app, mini-games                                                                                                                                                                                                                                                                                                                                                  |
+| **v0.6** 🔜 | **NekoCapture** — native screenshots with metadata footer (username, timestamp, app name, comments), customizable borders & shadows, clipboard/file export, hotkeys                                                                                                                                                                                                                                                                                     |
+| **v0.7** 🔜 | **NekoAnnotate** — full-screen drawing overlay (pen, shapes, arrows, text, highlighter) with undo/redo, inspired by ZoomIt Draw; annotate before saving screenshots                                                                                                                                                                                                                                                                                     |
+| **v1.0** 🔜 | Cross-platform stable release, plugin API, voice support                                                                                                                                                                                                                                                                                                                                                                                                |
 
 ---
 

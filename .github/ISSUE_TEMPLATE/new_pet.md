@@ -24,8 +24,10 @@ Attach a GIF or screenshot of the pet animations.
 - [ ] All sprites are PNG with transparent background (RGBA)
 - [ ] Sprites are 32×32 px
 - [ ] `system_prompt` in `pet.json` is under 500 characters
-- [ ] Folder is placed in `pets-community/your-pet-name/`
-- [ ] I have tested the pet locally with `npm run tauri dev`
+- [ ] Folder is placed in `pets/your-pet-name/`, with a `README.md` giving credits and the sprite license
+- [ ] The pet is listed in `pets/manifest.json` and `pnpm pets:validate` passes
+- [ ] The sprites are my own work or under a license that allows redistribution, and the pet is not a trademarked or copyrighted character
+- [ ] I have tested the pet locally with `pnpm tauri dev`
 
 ## Notes
 

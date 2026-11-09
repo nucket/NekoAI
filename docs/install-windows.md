@@ -12,6 +12,11 @@ Download `nekoai_X.Y.Z_x64-setup.exe` from the [releases page](https://github.co
 - Installs for the current user (no admin rights required)
 - Creates a Start Menu shortcut
 - Supports launch-at-login via the Settings panel
+- Updates itself: when a new release is out, the pet offers it in its bubble, and it installs only if you
+  accept. The download is verified against the project's signing key before it runs. You can turn the
+  check off in **Settings → Check for updates at startup**.
+
+Versions before 0.3.9 have no updater, so installing 0.3.9 or later by hand is needed once.
 
 The installer is not code-signed yet, so SmartScreen may say _"Windows protected your PC"_: click **More info**,
 then **Run anyway**. See the [code signing policy](code-signing.md).
@@ -20,7 +25,7 @@ then **Run anyway**. See the [code signing policy](code-signing.md).
 
 The installed app keeps its settings in `%APPDATA%\nekoai\config.toml` and the conversation history in
 `%LOCALAPPDATA%\nekoai\memory.db`. To remove everything after uninstalling, delete those two `nekoai` folders.
-Versions up to 0.3.x used `%USERPROFILE%\.config\nekoai` and
+Versions up to 0.3.8 used `%USERPROFILE%\.config\nekoai` and
 `%USERPROFILE%\.local\share\nekoai`; the first launch of a newer version moves the files.
 
 ### WebView2
@@ -66,6 +71,7 @@ To carry your pet's memory to another machine, copy the entire folder including 
 ### Limitations of portable mode
 
 - **Launch at login is disabled.** The "Start NekoAI with the system" toggle in Settings is disabled in portable mode. To run NekoAI at login, use the installer version instead.
+- **No automatic updates.** The pet still tells you when a new release is out, but links to the download page: extract the new ZIP and copy your `data/` folder into it.
 - **WebView2 is still required.** The portable ZIP does not bundle WebView2. See the table above for your Windows version.
 
 ---
