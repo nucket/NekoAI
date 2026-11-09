@@ -1,0 +1,6 @@
+# Force minimatch 11 until ESLint / typescript-eslint move off ^10:
+# GHSA-g3hv-75wg-m249 (ReDoS via globparts amplification) is fixed only in
+# 11.0.1+. ESLint only uses `new Minimatch().match()`, which 11 keeps; lint
+# output is unchanged. Remove once `pnpm why minimatch` shows 11 without it.
+overrides:
+  minimatch: ^11.0.1
