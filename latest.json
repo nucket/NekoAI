@@ -1,41 +1,41 @@
 {
   "schema_version": 1,
-  "captured_at": "2026-11-08T21:02:19.803Z",
+  "captured_at": "2026-11-09T16:09:46.165Z",
   "source": "github-releases",
   "repo": "nucket/NekoAI",
   "totals": {
-    "all": 1234,
+    "all": 1369,
     "by_os": {
-      "linux": 373,
-      "windows": 707,
-      "macos": 154
+      "linux": 422,
+      "windows": 762,
+      "macos": 185
     },
     "by_arch": {
-      "x86_64": 1195,
-      "aarch64": 39
+      "x86_64": 1312,
+      "aarch64": 57
     },
     "by_version": {
-      "v0.3.9": 0,
-      "v0.3.8": 1083,
-      "v0.3.7": 27,
-      "v0.3.6": 7,
-      "v0.3.5": 8,
-      "v0.3.4": 8,
-      "v0.3.3": 9,
-      "v0.3.2": 9,
-      "v0.3.1": 14,
-      "v0.3.0": 28,
-      "v0.2.0": 25,
-      "v0.1.0": 16
+      "v0.3.9": 21,
+      "v0.3.8": 1096,
+      "v0.3.7": 41,
+      "v0.3.6": 20,
+      "v0.3.5": 22,
+      "v0.3.4": 21,
+      "v0.3.3": 17,
+      "v0.3.2": 17,
+      "v0.3.1": 22,
+      "v0.3.0": 36,
+      "v0.2.0": 33,
+      "v0.1.0": 23
     },
     "by_format": {
-      "rpm": 69,
-      "portable": 149,
-      "dmg": 154,
-      "appimage": 149,
-      "deb": 155,
-      "nsis": 156,
-      "msi": 402
+      "rpm": 87,
+      "portable": 172,
+      "dmg": 185,
+      "appimage": 162,
+      "deb": 173,
+      "nsis": 176,
+      "msi": 414
     }
   },
   "releases": [
@@ -48,7 +48,7 @@
           "os": "linux",
           "arch": "x86_64",
           "format": "rpm",
-          "download_count": 0,
+          "download_count": 2,
           "size": 4707815
         },
         {
@@ -56,7 +56,7 @@
           "os": "windows",
           "arch": "x86_64",
           "format": "portable",
-          "download_count": 0,
+          "download_count": 7,
           "size": 3985939
         },
         {
@@ -64,7 +64,7 @@
           "os": "macos",
           "arch": "aarch64",
           "format": "dmg",
-          "download_count": 0,
+          "download_count": 2,
           "size": 4670895
         },
         {
@@ -72,7 +72,7 @@
           "os": "linux",
           "arch": "x86_64",
           "format": "appimage",
-          "download_count": 0,
+          "download_count": 2,
           "size": 85252600
         },
         {
@@ -80,7 +80,7 @@
           "os": "linux",
           "arch": "x86_64",
           "format": "deb",
-          "download_count": 0,
+          "download_count": 1,
           "size": 4703422
         },
         {
@@ -88,7 +88,7 @@
           "os": "windows",
           "arch": "x86_64",
           "format": "nsis",
-          "download_count": 0,
+          "download_count": 4,
           "size": 2967618
         },
         {
@@ -96,7 +96,7 @@
           "os": "macos",
           "arch": "x86_64",
           "format": "dmg",
-          "download_count": 0,
+          "download_count": 2,
           "size": 4838437
         },
         {
@@ -104,7 +104,7 @@
           "os": "windows",
           "arch": "x86_64",
           "format": "msi",
-          "download_count": 0,
+          "download_count": 1,
           "size": 4243456
         }
       ]
@@ -118,7 +118,7 @@
           "os": "linux",
           "arch": "x86_64",
           "format": "rpm",
-          "download_count": 47,
+          "download_count": 49,
           "size": 4938315
         },
         {
@@ -126,7 +126,7 @@
           "os": "windows",
           "arch": "x86_64",
           "format": "portable",
-          "download_count": 128,
+          "download_count": 130,
           "size": 4274967
         },
         {
@@ -134,7 +134,7 @@
           "os": "macos",
           "arch": "aarch64",
           "format": "dmg",
-          "download_count": 28,
+          "download_count": 30,
           "size": 4931929
         },
         {
@@ -142,7 +142,7 @@
           "os": "linux",
           "arch": "x86_64",
           "format": "appimage",
-          "download_count": 121,
+          "download_count": 122,
           "size": 84593144
         },
         {
@@ -150,7 +150,7 @@
           "os": "linux",
           "arch": "x86_64",
           "format": "deb",
-          "download_count": 142,
+          "download_count": 144,
           "size": 4937460
         },
         {
@@ -158,7 +158,7 @@
           "os": "windows",
           "arch": "x86_64",
           "format": "nsis",
-          "download_count": 135,
+          "download_count": 137,
           "size": 3181485
         },
         {
@@ -166,7 +166,7 @@
           "os": "macos",
           "arch": "x86_64",
           "format": "dmg",
-          "download_count": 97,
+          "download_count": 98,
           "size": 5137595
         },
         {
@@ -174,7 +174,7 @@
           "os": "windows",
           "arch": "x86_64",
           "format": "msi",
-          "download_count": 385,
+          "download_count": 386,
           "size": 4595712
         }
       ]
@@ -188,7 +188,7 @@
           "os": "linux",
           "arch": "x86_64",
           "format": "rpm",
-          "download_count": 1,
+          "download_count": 3,
           "size": 4943600
         },
         {
@@ -196,7 +196,7 @@
           "os": "windows",
           "arch": "x86_64",
           "format": "portable",
-          "download_count": 2,
+          "download_count": 5,
           "size": 4284273
         },
         {
@@ -204,7 +204,7 @@
           "os": "macos",
           "arch": "aarch64",
           "format": "dmg",
-          "download_count": 0,
+          "download_count": 2,
           "size": 4939367
         },
         {
@@ -212,7 +212,7 @@
           "os": "linux",
           "arch": "x86_64",
           "format": "appimage",
-          "download_count": 6,
+          "download_count": 7,
           "size": 84601336
         },
         {
@@ -220,7 +220,7 @@
           "os": "linux",
           "arch": "x86_64",
           "format": "deb",
-          "download_count": 0,
+          "download_count": 2,
           "size": 4943072
         },
         {
@@ -228,7 +228,7 @@
           "os": "windows",
           "arch": "x86_64",
           "format": "nsis",
-          "download_count": 3,
+          "download_count": 5,
           "size": 3181525
         },
         {
@@ -236,7 +236,7 @@
           "os": "macos",
           "arch": "x86_64",
           "format": "dmg",
-          "download_count": 6,
+          "download_count": 7,
           "size": 5140693
         },
         {
@@ -244,7 +244,7 @@
           "os": "windows",
           "arch": "x86_64",
           "format": "msi",
-          "download_count": 9,
+          "download_count": 10,
           "size": 4603904
         }
       ]
@@ -258,7 +258,7 @@
           "os": "linux",
           "arch": "x86_64",
           "format": "rpm",
-          "download_count": 1,
+          "download_count": 3,
           "size": 4814524
         },
         {
@@ -266,7 +266,7 @@
           "os": "windows",
           "arch": "x86_64",
           "format": "portable",
-          "download_count": 3,
+          "download_count": 5,
           "size": 4085326
         },
         {
@@ -274,7 +274,7 @@
           "os": "macos",
           "arch": "aarch64",
           "format": "dmg",
-          "download_count": 0,
+          "download_count": 2,
           "size": 4038604
         },
         {
@@ -282,7 +282,7 @@
           "os": "linux",
           "arch": "x86_64",
           "format": "appimage",
-          "download_count": 0,
+          "download_count": 1,
           "size": 84457976
         },
         {
@@ -290,7 +290,7 @@
           "os": "linux",
           "arch": "x86_64",
           "format": "deb",
-          "download_count": 0,
+          "download_count": 2,
           "size": 4811458
         },
         {
@@ -298,7 +298,7 @@
           "os": "windows",
           "arch": "x86_64",
           "format": "nsis",
-          "download_count": 1,
+          "download_count": 3,
           "size": 3437435
         },
         {
@@ -306,7 +306,7 @@
           "os": "macos",
           "arch": "x86_64",
           "format": "dmg",
-          "download_count": 1,
+          "download_count": 2,
           "size": 4237951
         },
         {
@@ -314,7 +314,7 @@
           "os": "windows",
           "arch": "x86_64",
           "format": "msi",
-          "download_count": 1,
+          "download_count": 2,
           "size": 4370432
         }
       ]
@@ -328,7 +328,7 @@
           "os": "linux",
           "arch": "x86_64",
           "format": "rpm",
-          "download_count": 1,
+          "download_count": 3,
           "size": 4801052
         },
         {
@@ -336,7 +336,7 @@
           "os": "windows",
           "arch": "x86_64",
           "format": "portable",
-          "download_count": 3,
+          "download_count": 5,
           "size": 4085065
         },
         {
@@ -344,7 +344,7 @@
           "os": "macos",
           "arch": "aarch64",
           "format": "dmg",
-          "download_count": 0,
+          "download_count": 2,
           "size": 4037582
         },
         {
@@ -352,7 +352,7 @@
           "os": "linux",
           "arch": "x86_64",
           "format": "appimage",
-          "download_count": 1,
+          "download_count": 2,
           "size": 84445688
         },
         {
@@ -360,7 +360,7 @@
           "os": "linux",
           "arch": "x86_64",
           "format": "deb",
-          "download_count": 0,
+          "download_count": 3,
           "size": 4797560
         },
         {
@@ -368,7 +368,7 @@
           "os": "windows",
           "arch": "x86_64",
           "format": "nsis",
-          "download_count": 2,
+          "download_count": 4,
           "size": 3438187
         },
         {
@@ -376,7 +376,7 @@
           "os": "macos",
           "arch": "x86_64",
           "format": "dmg",
-          "download_count": 1,
+          "download_count": 2,
           "size": 4235628
         },
         {
@@ -384,7 +384,7 @@
           "os": "windows",
           "arch": "x86_64",
           "format": "msi",
-          "download_count": 0,
+          "download_count": 1,
           "size": 4370432
         }
       ]
@@ -398,7 +398,7 @@
           "os": "linux",
           "arch": "x86_64",
           "format": "rpm",
-          "download_count": 1,
+          "download_count": 3,
           "size": 4799919
         },
         {
@@ -406,7 +406,7 @@
           "os": "windows",
           "arch": "x86_64",
           "format": "portable",
-          "download_count": 2,
+          "download_count": 4,
           "size": 4084789
         },
         {
@@ -414,7 +414,7 @@
           "os": "macos",
           "arch": "aarch64",
           "format": "dmg",
-          "download_count": 0,
+          "download_count": 2,
           "size": 4038323
         },
         {
@@ -422,7 +422,7 @@
           "os": "linux",
           "arch": "x86_64",
           "format": "appimage",
-          "download_count": 2,
+          "download_count": 3,
           "size": 84445688
         },
         {
@@ -430,7 +430,7 @@
           "os": "linux",
           "arch": "x86_64",
           "format": "deb",
-          "download_count": 1,
+          "download_count": 3,
           "size": 4796430
         },
         {
@@ -438,7 +438,7 @@
           "os": "windows",
           "arch": "x86_64",
           "format": "nsis",
-          "download_count": 1,
+          "download_count": 3,
           "size": 3438157
         },
         {
@@ -446,7 +446,7 @@
           "os": "macos",
           "arch": "x86_64",
           "format": "dmg",
-          "download_count": 1,
+          "download_count": 2,
           "size": 4235244
         },
         {
@@ -454,7 +454,7 @@
           "os": "windows",
           "arch": "x86_64",
           "format": "msi",
-          "download_count": 0,
+          "download_count": 1,
           "size": 4370432
         }
       ]
@@ -468,7 +468,7 @@
           "os": "linux",
           "arch": "x86_64",
           "format": "rpm",
-          "download_count": 2,
+          "download_count": 3,
           "size": 4788871
         },
         {
@@ -476,7 +476,7 @@
           "os": "windows",
           "arch": "x86_64",
           "format": "portable",
-          "download_count": 1,
+          "download_count": 2,
           "size": 4076046
         },
         {
@@ -484,7 +484,7 @@
           "os": "macos",
           "arch": "aarch64",
           "format": "dmg",
-          "download_count": 0,
+          "download_count": 1,
           "size": 4023344
         },
         {
@@ -492,7 +492,7 @@
           "os": "linux",
           "arch": "x86_64",
           "format": "appimage",
-          "download_count": 3,
+          "download_count": 4,
           "size": 84433400
         },
         {
@@ -500,7 +500,7 @@
           "os": "linux",
           "arch": "x86_64",
           "format": "deb",
-          "download_count": 1,
+          "download_count": 2,
           "size": 4785620
         },
         {
@@ -508,7 +508,7 @@
           "os": "windows",
           "arch": "x86_64",
           "format": "nsis",
-          "download_count": 1,
+          "download_count": 2,
           "size": 3429491
         },
         {
@@ -516,7 +516,7 @@
           "os": "macos",
           "arch": "x86_64",
           "format": "dmg",
-          "download_count": 0,
+          "download_count": 1,
           "size": 4227435
         },
         {
@@ -524,7 +524,7 @@
           "os": "windows",
           "arch": "x86_64",
           "format": "msi",
-          "download_count": 1,
+          "download_count": 2,
           "size": 4362240
         }
       ]
@@ -538,7 +538,7 @@
           "os": "linux",
           "arch": "x86_64",
           "format": "rpm",
-          "download_count": 1,
+          "download_count": 2,
           "size": 4788500
         },
         {
@@ -546,7 +546,7 @@
           "os": "windows",
           "arch": "x86_64",
           "format": "portable",
-          "download_count": 1,
+          "download_count": 2,
           "size": 4076027
         },
         {
@@ -554,7 +554,7 @@
           "os": "macos",
           "arch": "aarch64",
           "format": "dmg",
-          "download_count": 1,
+          "download_count": 2,
           "size": 4024838
         },
         {
@@ -562,7 +562,7 @@
           "os": "linux",
           "arch": "x86_64",
           "format": "appimage",
-          "download_count": 3,
+          "download_count": 4,
           "size": 84433400
         },
         {
@@ -570,7 +570,7 @@
           "os": "linux",
           "arch": "x86_64",
           "format": "deb",
-          "download_count": 1,
+          "download_count": 2,
           "size": 4785250
         },
         {
@@ -578,7 +578,7 @@
           "os": "windows",
           "arch": "x86_64",
           "format": "nsis",
-          "download_count": 1,
+          "download_count": 2,
           "size": 3430858
         },
         {
@@ -586,7 +586,7 @@
           "os": "macos",
           "arch": "x86_64",
           "format": "dmg",
-          "download_count": 1,
+          "download_count": 2,
           "size": 4228015
         },
         {
@@ -594,7 +594,7 @@
           "os": "windows",
           "arch": "x86_64",
           "format": "msi",
-          "download_count": 0,
+          "download_count": 1,
           "size": 4362240
         }
       ]
@@ -608,7 +608,7 @@
           "os": "linux",
           "arch": "x86_64",
           "format": "rpm",
-          "download_count": 2,
+          "download_count": 3,
           "size": 4788352
         },
         {
@@ -616,7 +616,7 @@
           "os": "windows",
           "arch": "x86_64",
           "format": "portable",
-          "download_count": 2,
+          "download_count": 3,
           "size": 4076500
         },
         {
@@ -624,7 +624,7 @@
           "os": "macos",
           "arch": "aarch64",
           "format": "dmg",
-          "download_count": 1,
+          "download_count": 2,
           "size": 4025969
         },
         {
@@ -632,7 +632,7 @@
           "os": "linux",
           "arch": "x86_64",
           "format": "appimage",
-          "download_count": 3,
+          "download_count": 4,
           "size": 84433400
         },
         {
@@ -640,7 +640,7 @@
           "os": "linux",
           "arch": "x86_64",
           "format": "deb",
-          "download_count": 3,
+          "download_count": 4,
           "size": 4785044
         },
         {
@@ -648,7 +648,7 @@
           "os": "windows",
           "arch": "x86_64",
           "format": "nsis",
-          "download_count": 2,
+          "download_count": 3,
           "size": 3428082
         },
         {
@@ -656,7 +656,7 @@
           "os": "macos",
           "arch": "x86_64",
           "format": "dmg",
-          "download_count": 1,
+          "download_count": 2,
           "size": 4227781
         },
         {
@@ -664,7 +664,7 @@
           "os": "windows",
           "arch": "x86_64",
           "format": "msi",
-          "download_count": 0,
+          "download_count": 1,
           "size": 4362240
         }
       ]
@@ -678,7 +678,7 @@
           "os": "linux",
           "arch": "x86_64",
           "format": "rpm",
-          "download_count": 6,
+          "download_count": 7,
           "size": 4786778
         },
         {
@@ -686,7 +686,7 @@
           "os": "windows",
           "arch": "x86_64",
           "format": "portable",
-          "download_count": 3,
+          "download_count": 4,
           "size": 4074801
         },
         {
@@ -694,7 +694,7 @@
           "os": "macos",
           "arch": "aarch64",
           "format": "dmg",
-          "download_count": 3,
+          "download_count": 4,
           "size": 4022199
         },
         {
@@ -702,7 +702,7 @@
           "os": "linux",
           "arch": "x86_64",
           "format": "appimage",
-          "download_count": 5,
+          "download_count": 6,
           "size": 84429304
         },
         {
@@ -710,7 +710,7 @@
           "os": "linux",
           "arch": "x86_64",
           "format": "deb",
-          "download_count": 3,
+          "download_count": 4,
           "size": 4783370
         },
         {
@@ -718,7 +718,7 @@
           "os": "windows",
           "arch": "x86_64",
           "format": "nsis",
-          "download_count": 3,
+          "download_count": 4,
           "size": 3430217
         },
         {
@@ -726,7 +726,7 @@
           "os": "macos",
           "arch": "x86_64",
           "format": "dmg",
-          "download_count": 3,
+          "download_count": 4,
           "size": 4227444
         },
         {
@@ -734,7 +734,7 @@
           "os": "windows",
           "arch": "x86_64",
           "format": "msi",
-          "download_count": 2,
+          "download_count": 3,
           "size": 4362240
         }
       ]
@@ -748,7 +748,7 @@
           "os": "linux",
           "arch": "x86_64",
           "format": "rpm",
-          "download_count": 4,
+          "download_count": 5,
           "size": 3988701
         },
         {
@@ -756,7 +756,7 @@
           "os": "windows",
           "arch": "x86_64",
           "format": "portable",
-          "download_count": 4,
+          "download_count": 5,
           "size": 3660618
         },
         {
@@ -764,7 +764,7 @@
           "os": "macos",
           "arch": "aarch64",
           "format": "dmg",
-          "download_count": 4,
+          "download_count": 5,
           "size": 3636723
         },
         {
@@ -772,7 +772,7 @@
           "os": "linux",
           "arch": "x86_64",
           "format": "appimage",
-          "download_count": 3,
+          "download_count": 4,
           "size": 81771000
         },
         {
@@ -780,7 +780,7 @@
           "os": "linux",
           "arch": "x86_64",
           "format": "deb",
-          "download_count": 2,
+          "download_count": 3,
           "size": 3985494
         },
         {
@@ -788,7 +788,7 @@
           "os": "windows",
           "arch": "x86_64",
           "format": "nsis",
-          "download_count": 4,
+          "download_count": 5,
           "size": 3103169
         },
         {
@@ -796,7 +796,7 @@
           "os": "macos",
           "arch": "x86_64",
           "format": "dmg",
-          "download_count": 2,
+          "download_count": 3,
           "size": 3815362
         },
         {
@@ -804,7 +804,7 @@
           "os": "windows",
           "arch": "x86_64",
           "format": "msi",
-          "download_count": 2,
+          "download_count": 3,
           "size": 3944448
         }
       ]
@@ -818,7 +818,7 @@
           "os": "linux",
           "arch": "x86_64",
           "format": "rpm",
-          "download_count": 3,
+          "download_count": 4,
           "size": 3933107
         },
         {
@@ -826,7 +826,7 @@
           "os": "macos",
           "arch": "aarch64",
           "format": "dmg",
-          "download_count": 2,
+          "download_count": 3,
           "size": 3622915
         },
         {
@@ -834,7 +834,7 @@
           "os": "linux",
           "arch": "x86_64",
           "format": "appimage",
-          "download_count": 2,
+          "download_count": 3,
           "size": 81648120
         },
         {
@@ -842,7 +842,7 @@
           "os": "linux",
           "arch": "x86_64",
           "format": "deb",
-          "download_count": 2,
+          "download_count": 3,
           "size": 3929702
         },
         {
@@ -850,7 +850,7 @@
           "os": "windows",
           "arch": "x86_64",
           "format": "nsis",
-          "download_count": 3,
+          "download_count": 4,
           "size": 3092053
         },
         {
@@ -858,7 +858,7 @@
           "os": "macos",
           "arch": "x86_64",
           "format": "dmg",
-          "download_count": 2,
+          "download_count": 3,
           "size": 3800169
         },
         {
@@ -866,7 +866,7 @@
           "os": "windows",
           "arch": "x86_64",
           "format": "msi",
-          "download_count": 2,
+          "download_count": 3,
           "size": 3932160
         }
       ]
