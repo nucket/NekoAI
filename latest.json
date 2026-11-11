@@ -1,21 +1,21 @@
 {
   "schema_version": 1,
-  "captured_at": "2026-11-10T14:48:29.507Z",
+  "captured_at": "2026-11-11T14:13:38.590Z",
   "source": "github-releases",
   "repo": "nucket/NekoAI",
   "totals": {
-    "all": 1387,
+    "all": 1397,
     "by_os": {
-      "linux": 429,
-      "windows": 764,
-      "macos": 194
+      "linux": 433,
+      "windows": 768,
+      "macos": 196
     },
     "by_arch": {
-      "x86_64": 1326,
-      "aarch64": 61
+      "x86_64": 1335,
+      "aarch64": 62
     },
     "by_version": {
-      "v0.3.9": 37,
+      "v0.3.9": 47,
       "v0.3.8": 1097,
       "v0.3.7": 41,
       "v0.3.6": 20,
@@ -30,11 +30,11 @@
     },
     "by_format": {
       "rpm": 87,
-      "portable": 173,
-      "dmg": 194,
-      "appimage": 168,
+      "portable": 174,
+      "dmg": 196,
+      "appimage": 172,
       "deb": 174,
-      "nsis": 177,
+      "nsis": 180,
       "msi": 414
     }
   },
@@ -56,7 +56,7 @@
           "os": "windows",
           "arch": "x86_64",
           "format": "portable",
-          "download_count": 8,
+          "download_count": 9,
           "size": 3985939
         },
         {
@@ -64,7 +64,7 @@
           "os": "macos",
           "arch": "aarch64",
           "format": "dmg",
-          "download_count": 6,
+          "download_count": 7,
           "size": 4670895
         },
         {
@@ -72,7 +72,7 @@
           "os": "linux",
           "arch": "x86_64",
           "format": "appimage",
-          "download_count": 7,
+          "download_count": 11,
           "size": 85252600
         },
         {
@@ -88,7 +88,7 @@
           "os": "windows",
           "arch": "x86_64",
           "format": "nsis",
-          "download_count": 5,
+          "download_count": 8,
           "size": 2967618
         },
         {
@@ -96,7 +96,7 @@
           "os": "macos",
           "arch": "x86_64",
           "format": "dmg",
-          "download_count": 6,
+          "download_count": 7,
           "size": 4838437
         },
         {
