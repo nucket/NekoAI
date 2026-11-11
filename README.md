@@ -150,6 +150,10 @@ Go to [Releases](https://github.com/nucket/nekoai/releases) and grab the latest 
 > **First launch on Windows and macOS:** the installers are not code-signed yet, so Windows SmartScreen and macOS
 > Gatekeeper warn the first time you open NekoAI. [Opening an unsigned build](docs/code-signing.md#opening-an-unsigned-build)
 > shows how to get past the warning, and the [code signing policy](docs/code-signing.md) explains how releases are built.
+>
+> **Code signing:** NekoAI has applied to the [SignPath Foundation](https://signpath.org/) for free code signing of
+> its Windows releases (application submitted in November 2026). Until it is approved, installers stay unsigned; see the
+> [code signing policy](docs/code-signing.md) for the current status.
 
 > **Linux note:** The `.AppImage` needs no installation — `chmod +x` it and run it
 > directly. If you prefer the `.deb`, install it from a terminal with
