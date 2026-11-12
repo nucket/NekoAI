@@ -5,11 +5,11 @@ app does on the network.
 
 ## Current status
 
-| Platform | Installer signing                                                                                                           | Update signing                |
-| -------- | --------------------------------------------------------------------------------------------------------------------------- | ----------------------------- |
-| Windows  | Not signed yet. An application to the [SignPath Foundation](https://signpath.org/) open-source programme is being prepared. | Signed with the updater key ¹ |
-| macOS    | Not signed or notarized (no Apple Developer ID).                                                                            | Signed with the updater key ¹ |
-| Linux    | Not applicable (AppImage, `.deb`, `.rpm`).                                                                                  | Signed with the updater key ¹ |
+| Platform | Installer signing                                                                                                                                        | Update signing                |
+| -------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------- |
+| Windows  | Not signed yet. Planned through the [SignPath Foundation](https://signpath.org/) open-source programme once the project meets its adoption requirements. | Signed with the updater key ¹ |
+| macOS    | Not signed or notarized (no Apple Developer ID).                                                                                                         | Signed with the updater key ¹ |
+| Linux    | Not applicable (AppImage, `.deb`, `.rpm`).                                                                                                               | Signed with the updater key ¹ |
 
 ¹ From the first release that includes the in-app updater. Updates are verified against the updater public key in
 [`src-tauri/tauri.conf.json`](../src-tauri/tauri.conf.json) (`plugins.updater.pubkey`) before they are installed. The
