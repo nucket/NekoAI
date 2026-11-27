@@ -1,21 +1,21 @@
 {
   "schema_version": 1,
-  "captured_at": "2026-11-26T16:49:06.759Z",
+  "captured_at": "2026-11-27T16:34:36.605Z",
   "source": "github-releases",
   "repo": "nucket/NekoAI",
   "totals": {
-    "all": 1550,
+    "all": 1554,
     "by_os": {
-      "linux": 482,
-      "windows": 844,
+      "linux": 483,
+      "windows": 847,
       "macos": 224
     },
     "by_arch": {
-      "x86_64": 1472,
+      "x86_64": 1476,
       "aarch64": 78
     },
     "by_version": {
-      "v0.3.9": 182,
+      "v0.3.9": 186,
       "v0.3.8": 1106,
       "v0.3.7": 41,
       "v0.3.6": 20,
@@ -30,12 +30,12 @@
     },
     "by_format": {
       "rpm": 93,
-      "portable": 200,
+      "portable": 202,
       "dmg": 224,
-      "appimage": 210,
+      "appimage": 211,
       "deb": 179,
       "nsis": 228,
-      "msi": 416
+      "msi": 417
     }
   },
   "releases": [
@@ -56,7 +56,7 @@
           "os": "windows",
           "arch": "x86_64",
           "format": "portable",
-          "download_count": 33,
+          "download_count": 35,
           "size": 3985939
         },
         {
@@ -72,7 +72,7 @@
           "os": "linux",
           "arch": "x86_64",
           "format": "appimage",
-          "download_count": 47,
+          "download_count": 48,
           "size": 85252600
         },
         {
@@ -104,7 +104,7 @@
           "os": "windows",
           "arch": "x86_64",
           "format": "msi",
-          "download_count": 1,
+          "download_count": 2,
           "size": 4243456
         }
       ]
